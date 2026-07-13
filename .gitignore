@@ -16,6 +16,16 @@ dist/
 build/
 coverage/
 
+# Turbo / task cache
+.turbo/
+**/.turbo/
+turbo-build.log
+**/turbo-build.log
+
+# TypeScript build info
+*.tsbuildinfo
+**/*.tsbuildinfo
+
 # Logs
 npm-debug.log*
 yarn-debug.log*

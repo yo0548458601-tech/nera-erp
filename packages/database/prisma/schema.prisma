@@ -1,0 +1,224 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrganizationStatus {
+  active
+  inactive
+  suspended
+  archived
+}
+
+enum OrganizationUnitStatus {
+  active
+  inactive
+  archived
+}
+
+enum UserProfileStatus {
+  active
+  inactive
+  suspended
+  pending
+}
+
+enum OrganizationMembershipStatus {
+  active
+  invited
+  pending
+  suspended
+  left
+}
+
+enum RoleStatus {
+  active
+  inactive
+  archived
+}
+
+enum RolePermissionEffect {
+  allow
+  deny
+}
+
+enum CalendarDisplay {
+  gregorian
+  hebrew
+  both
+}
+
+model Organization {
+  id                     String                   @id @default(uuid()) @db.Uuid
+  name                   String                   @db.VarChar(255)
+  legalName              String?                  @map("legal_name") @db.VarChar(255)
+  registrationNumber     String?                  @map("registration_number") @db.VarChar(100)
+  status                 OrganizationStatus       @default(active)
+  defaultLocale          String                   @default("en") @map("default_locale") @db.VarChar(16)
+  defaultTimezone        String                   @default("UTC") @map("default_timezone") @db.VarChar(64)
+  defaultCalendarDisplay CalendarDisplay          @default(gregorian) @map("default_calendar_display")
+  createdAt              DateTime                 @default(now()) @map("created_at")
+  updatedAt              DateTime                 @updatedAt @map("updated_at")
+  deletedAt              DateTime?                @map("deleted_at")
+  organizationUnits      OrganizationUnit[]
+  memberships            OrganizationMembership[]
+  roles                  Role[]
+  rolePermissions        RolePermission[]
+  membershipRoles        MembershipRole[]
+  auditLogs              AuditLog[]
+
+  @@map("organizations")
+}
+
+model OrganizationUnit {
+  id              String                 @id @default(uuid()) @db.Uuid
+  organizationId  String                 @map("organization_id") @db.Uuid
+  parentId        String?                @map("parent_id") @db.Uuid
+  unitType        String                 @map("unit_type") @db.VarChar(100)
+  name            String                 @db.VarChar(255)
+  status          OrganizationUnitStatus @default(active)
+  createdAt       DateTime               @default(now()) @map("created_at")
+  updatedAt       DateTime               @updatedAt @map("updated_at")
+  deletedAt       DateTime?              @map("deleted_at")
+  organization    Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  parent          OrganizationUnit?      @relation("OrganizationUnitHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children        OrganizationUnit[]     @relation("OrganizationUnitHierarchy")
+
+  @@index([organizationId])
+  @@index([parentId])
+  @@map("organization_units")
+}
+
+model UserProfile {
+  id                      String                   @id @default(uuid()) @db.Uuid
+  authenticationUserId    String                   @unique @map("authentication_user_id") @db.VarChar(255)
+  displayName             String?                  @map("display_name") @db.VarChar(255)
+  preferredLocale         String                   @default("en") @map("preferred_locale") @db.VarChar(16)
+  preferredTimezone       String                   @default("UTC") @map("preferred_timezone") @db.VarChar(64)
+  preferredCalendarDisplay CalendarDisplay          @default(gregorian) @map("preferred_calendar_display")
+  status                  UserProfileStatus        @default(active)
+  createdAt               DateTime                 @default(now()) @map("created_at")
+  updatedAt               DateTime                 @updatedAt @map("updated_at")
+  deletedAt               DateTime?                @map("deleted_at")
+  memberships             OrganizationMembership[]
+  actorLogs               AuditLog[]               @relation("ActorUserProfile")
+
+  @@map("user_profiles")
+}
+
+model OrganizationMembership {
+  id                String                     @id @default(uuid()) @db.Uuid
+  organizationId    String                     @map("organization_id") @db.Uuid
+  userProfileId     String                     @map("user_profile_id") @db.Uuid
+  status            OrganizationMembershipStatus @default(active)
+  joinedAt          DateTime                   @default(now()) @map("joined_at")
+  createdAt         DateTime                   @default(now()) @map("created_at")
+  updatedAt         DateTime                   @updatedAt @map("updated_at")
+  deletedAt         DateTime?                  @map("deleted_at")
+  organization      Organization               @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  userProfile       UserProfile                @relation(fields: [userProfileId], references: [id], onDelete: Restrict)
+  roles             MembershipRole[]
+  actorLogs         AuditLog[]                 @relation("ActorMembership")
+
+  @@index([organizationId])
+  @@index([userProfileId])
+  @@index([status])
+  @@index([organizationId, userProfileId])
+  @@map("organization_memberships")
+}
+
+model Role {
+  id              String             @id @default(uuid()) @db.Uuid
+  organizationId  String             @map("organization_id") @db.Uuid
+  name            String             @db.VarChar(255)
+  description     String?            @db.Text
+  isSystemRole    Boolean            @default(false) @map("is_system_role")
+  status          RoleStatus         @default(active)
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+  deletedAt       DateTime?          @map("deleted_at")
+  organization    Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  rolePermissions RolePermission[]
+  membershipRoles MembershipRole[]
+
+  @@index([organizationId])
+  @@map("roles")
+}
+
+model Permission {
+  id              String             @id @default(uuid()) @db.Uuid
+  permissionKey   String             @unique @map("permission_key") @db.VarChar(255)
+  resource        String             @db.VarChar(255)
+  action          String             @db.VarChar(64)
+  description     String?            @db.Text
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+  rolePermissions RolePermission[]
+
+  @@index([resource, action])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id              String               @id @default(uuid()) @db.Uuid
+  organizationId  String               @map("organization_id") @db.Uuid
+  roleId          String               @map("role_id") @db.Uuid
+  permissionId    String               @map("permission_id") @db.Uuid
+  effect          RolePermissionEffect @default(allow)
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+  organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  role            Role                 @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  permission      Permission           @relation(fields: [permissionId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, roleId, permissionId], name: "role_permissions_org_role_permission_unique")
+  @@index([organizationId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+model MembershipRole {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  organizationId        String                 @map("organization_id") @db.Uuid
+  organizationMembershipId String                @map("organization_membership_id") @db.Uuid
+  roleId                String                 @map("role_id") @db.Uuid
+  createdAt             DateTime               @default(now()) @map("created_at")
+  organization          Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organizationMembership OrganizationMembership @relation(fields: [organizationMembershipId], references: [id], onDelete: Restrict)
+  role                  Role                   @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationMembershipId, roleId], name: "membership_roles_membership_role_unique")
+  @@index([organizationId])
+  @@index([organizationMembershipId])
+  @@index([roleId])
+  @@map("membership_roles")
+}
+
+model AuditLog {
+  id                  String                 @id @default(uuid()) @db.Uuid
+  organizationId      String                 @map("organization_id") @db.Uuid
+  actorUserProfileId  String?                @map("actor_user_profile_id") @db.Uuid
+  actorMembershipId   String?                @map("actor_membership_id") @db.Uuid
+  action              String                 @db.VarChar(100)
+  entityType          String                 @map("entity_type") @db.VarChar(150)
+  entityId            String                 @map("entity_id") @db.VarChar(255)
+  oldValues           Json?                  @map("old_values")
+  newValues           Json?                  @map("new_values")
+  metadata            Json?
+  occurredAt          DateTime               @default(now()) @map("occurred_at")
+  organization        Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  actorUserProfile    UserProfile?           @relation("ActorUserProfile", fields: [actorUserProfileId], references: [id], onDelete: Restrict)
+  actorMembership     OrganizationMembership? @relation("ActorMembership", fields: [actorMembershipId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([actorUserProfileId])
+  @@index([actorMembershipId])
+  @@index([entityType])
+  @@index([occurredAt])
+  @@map("audit_logs")
+}
