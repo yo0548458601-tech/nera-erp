@@ -1,5 +1,6 @@
-import { PlatformShell } from '../src/components/PlatformShell';
+import { AuthGate } from '../src/components/AuthGate';
+import { isDemoModeEnabled } from '../src/lib/auth/demoAuth';
 
 export default function HomePage() {
-  return <PlatformShell />;
+  return <AuthGate demoModeEnabled={isDemoModeEnabled()} />;
 }

@@ -7,6 +7,11 @@ type ActivityItem = {
   meta: string;
 };
 
+type DashboardContentProps = {
+  dashboardState?: 'loading' | 'ready' | 'empty' | 'error';
+  viewMode?: 'gregorian' | 'hebrew' | 'both';
+};
+
 const activityItems: ActivityItem[] = [
   { title: 'אושר מסמך חדש', meta: '08:30 · צוות כספים' },
   { title: 'נוצרה משימה חדשה', meta: '10:15 · פרויקטים' },
@@ -16,7 +21,35 @@ const activityItems: ActivityItem[] = [
 const tasks = ['בדיקת הזמנות', 'אישור תשלום', 'סקירת תוכן'];
 const upcomingEvents = ['פגישה עם ספקים · 14:00', 'הדרכת צוות · 16:30', 'סקר ארגוני · 18:00'];
 
-export function DashboardContent() {
+export function DashboardContent({ dashboardState = 'ready', viewMode = 'both' }: DashboardContentProps) {
+  if (dashboardState === 'loading') {
+    return (
+      <div className="space-y-6">
+        {[1, 2, 3, 4].map((index) => (
+          <div key={index} className="h-24 animate-pulse rounded-[24px] border border-slate-200 bg-slate-100" />
+        ))}
+      </div>
+    );
+  }
+
+  if (dashboardState === 'empty') {
+    return (
+      <div className="rounded-[24px] border border-dashed border-slate-300 bg-white/80 p-10 text-center text-slate-600">
+        <p className="text-lg font-semibold text-slate-900">אין נתונים להצגה כרגע</p>
+        <p className="mt-2 text-sm">הדשבורד יופיע כאן לאחר הוספת תוכן במצב הפיתוח.</p>
+      </div>
+    );
+  }
+
+  if (dashboardState === 'error') {
+    return (
+      <div className="rounded-[24px] border border-rose-200 bg-rose-50 p-8 text-center text-rose-700">
+        <p className="text-lg font-semibold">אירעה שגיאה בטעינת התצוגה</p>
+        <p className="mt-2 text-sm">המצב הזה מיועד לבדיקה עיצובית בלבד.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -50,7 +83,7 @@ export function DashboardContent() {
         </PanelCard>
 
         <PanelCard title="תצוגת תאריך" subtitle="לועזי ועברי למעקב ארגוני">
-          <DateDisplay />
+          <DateDisplay viewMode={viewMode} />
         </PanelCard>
       </div>
 
