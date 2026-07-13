@@ -6,7 +6,7 @@ type DateDisplayProps = {
   viewMode?: 'gregorian' | 'hebrew' | 'both';
 };
 
-export function DateDisplay({ value = '2026-07-12', className = '', viewMode = 'both' }: DateDisplayProps) {
+export function DateDisplay({ value = new Date(), className = '', viewMode = 'both' }: DateDisplayProps) {
   const { gregorian, hebrew } = getDateDisplayPair(value);
 
   const showGregorian = viewMode === 'gregorian' || viewMode === 'both';

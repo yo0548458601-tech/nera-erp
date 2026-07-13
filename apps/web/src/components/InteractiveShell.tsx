@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { demoOrganizations, demoUser } from '../lib/auth/demoData';
 import { type AuthSession } from '../lib/auth/demoAuth';
+import { useDismissableOverlay } from '../hooks/useDismissableOverlay';
 import { DashboardContent } from './DashboardContent';
 import { DashboardHeader } from './DashboardHeader';
 import { SidebarNav } from './SidebarNav';
@@ -13,11 +14,10 @@ type InteractiveShellProps = {
   onOrganizationChange: (organizationId: string) => void;
 };
 
+type OverlayPanel = 'mobileMenu' | 'notifications' | 'search' | 'quickActions' | 'userMenu' | 'orgSwitcher';
+
 export function InteractiveShell({ session, onLogout, onOrganizationChange }: InteractiveShellProps) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
+  const [openPanel, setOpenPanel] = useState<OverlayPanel | null>(null);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState(session.selectedOrganizationId);
   const [notifications, setNotifications] = useState([
     { id: 1, title: 'מסמך ממתין לאישור', body: 'מסמך חדש זקוק לאישור מנהל', unread: true },
@@ -28,17 +28,27 @@ export function InteractiveShell({ session, onLogout, onOrganizationChange }: In
   const [dashboardState, setDashboardState] = useState<'loading' | 'ready' | 'empty' | 'error'>('ready');
   const [toastMessage, setToastMessage] = useState('');
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setNotificationsOpen(false);
-        setSearchOpen(false);
-        setQuickActionsOpen(false);
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+  const togglePanel = useCallback((panel: OverlayPanel) => {
+    setOpenPanel((current) => (current === panel ? null : panel));
   }, []);
+  const closePanel = useCallback(() => setOpenPanel(null), []);
+
+  const notificationsPanelRef = useRef<HTMLDivElement>(null);
+  const notificationsTriggerRef = useRef<HTMLButtonElement>(null);
+  const searchPanelRef = useRef<HTMLDivElement>(null);
+  const searchTriggerRef = useRef<HTMLButtonElement>(null);
+  const quickActionsPanelRef = useRef<HTMLDivElement>(null);
+  const quickActionsTriggerRef = useRef<HTMLButtonElement>(null);
+
+  useDismissableOverlay(openPanel === 'notifications', closePanel, [notificationsPanelRef, notificationsTriggerRef], {
+    restoreFocusRef: notificationsTriggerRef,
+  });
+  useDismissableOverlay(openPanel === 'search', closePanel, [searchPanelRef, searchTriggerRef], {
+    restoreFocusRef: searchTriggerRef,
+  });
+  useDismissableOverlay(openPanel === 'quickActions', closePanel, [quickActionsPanelRef, quickActionsTriggerRef], {
+    restoreFocusRef: quickActionsTriggerRef,
+  });
 
   useEffect(() => {
     if (!toastMessage) {
@@ -68,7 +78,7 @@ export function InteractiveShell({ session, onLogout, onOrganizationChange }: In
   };
 
   const handleQuickAction = (type: string) => {
-    setQuickActionsOpen(false);
+    closePanel();
     setToastMessage(`הפעולה “${type}” נבחרה. בשלב זה היא מציגה רק ממשק תצוגה.`);
   };
 
@@ -78,10 +88,23 @@ export function InteractiveShell({ session, onLogout, onOrganizationChange }: In
         <DashboardHeader
           user={demoUser}
           organization={selectedOrganization}
-          onMenuToggle={() => setMobileMenuOpen((value) => !value)}
-          mobileMenuOpen={mobileMenuOpen}
-          onNotificationsToggle={() => setNotificationsOpen((value) => !value)}
-          onSearchToggle={() => setSearchOpen((value) => !value)}
+          organizations={demoOrganizations}
+          mobileMenuOpen={openPanel === 'mobileMenu'}
+          onMenuToggle={() => togglePanel('mobileMenu')}
+          notificationsOpen={openPanel === 'notifications'}
+          onNotificationsToggle={() => togglePanel('notifications')}
+          notificationsTriggerRef={notificationsTriggerRef}
+          searchOpen={openPanel === 'search'}
+          onSearchToggle={() => togglePanel('search')}
+          searchTriggerRef={searchTriggerRef}
+          quickActionsOpen={openPanel === 'quickActions'}
+          onQuickActionsToggle={() => togglePanel('quickActions')}
+          quickActionsTriggerRef={quickActionsTriggerRef}
+          userMenuOpen={openPanel === 'userMenu'}
+          onUserMenuToggle={() => togglePanel('userMenu')}
+          orgSwitcherOpen={openPanel === 'orgSwitcher'}
+          onOrgSwitcherToggle={() => togglePanel('orgSwitcher')}
+          onPanelClose={closePanel}
           onHelpClick={() => setToastMessage('עזרה תתמוך בעתיד בפעולות מערכת.')}
           onOrganizationChange={handleOrganizationChange}
           onLogout={onLogout}
@@ -113,8 +136,8 @@ export function InteractiveShell({ session, onLogout, onOrganizationChange }: In
         </div>
       </div>
 
-      {notificationsOpen ? (
-        <div className="fixed left-4 top-24 z-40 w-[min(90vw,360px)] rounded-[24px] border border-slate-200 bg-white p-4 shadow-2xl">
+      {openPanel === 'notifications' ? (
+        <div ref={notificationsPanelRef} className="fixed left-4 top-24 z-40 w-[min(90vw,360px)] rounded-[24px] border border-slate-200 bg-white p-4 shadow-2xl">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-slate-900">התראות</h3>
             <button type="button" onClick={markAllAsRead} className="text-sm text-cyan-700">סמן הכל כנקראו</button>
@@ -138,10 +161,10 @@ export function InteractiveShell({ session, onLogout, onOrganizationChange }: In
         </div>
       ) : null}
 
-      {searchOpen ? (
-        <div className="fixed left-1/2 top-24 z-40 w-[min(92vw,560px)] -translate-x-1/2 rounded-[24px] border border-slate-200 bg-white p-4 shadow-2xl">
+      {openPanel === 'search' ? (
+        <div ref={searchPanelRef} className="fixed left-1/2 top-24 z-40 w-[min(92vw,560px)] -translate-x-1/2 rounded-[24px] border border-slate-200 bg-white p-4 shadow-2xl">
           <label className="block text-sm font-semibold text-slate-900">חיפוש מהיר</label>
-          <input className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none" placeholder="חיפוש בפאנל, פעולות ומהירות" />
+          <input autoFocus className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none" placeholder="חיפוש בפאנל, פעולות ומהירות" />
           <div className="mt-4 space-y-2 text-sm text-slate-600">
             <div className="rounded-2xl bg-slate-50 p-3">לוחות מחוונים</div>
             <div className="rounded-2xl bg-slate-50 p-3">ניהול ארגונים</div>
@@ -150,12 +173,12 @@ export function InteractiveShell({ session, onLogout, onOrganizationChange }: In
         </div>
       ) : null}
 
-      {quickActionsOpen ? (
+      {openPanel === 'quickActions' ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4">
-          <div className="w-full max-w-xl rounded-[28px] border border-slate-200 bg-white p-6 shadow-2xl">
+          <div ref={quickActionsPanelRef} className="w-full max-w-xl rounded-[28px] border border-slate-200 bg-white p-6 shadow-2xl">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-slate-900">פעולות מהירות</h3>
-              <button type="button" onClick={() => setQuickActionsOpen(false)} className="text-sm text-slate-500">סגור</button>
+              <button type="button" onClick={closePanel} className="text-sm text-slate-500">סגור</button>
             </div>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               {[
