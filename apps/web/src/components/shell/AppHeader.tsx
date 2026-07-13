@@ -1,16 +1,18 @@
 'use client';
 
 import { useRef, type RefObject } from 'react';
-import { type DemoOrganization, type DemoUser } from '../lib/auth/demoData';
-import { useDismissableOverlay } from '../hooks/useDismissableOverlay';
-import { SidebarNav } from './SidebarNav';
+import { Bell, ChevronDown, HelpCircle, LogOut, Menu, Plus, Search } from 'lucide-react';
+import { type DemoOrganization, type DemoUser } from '../../lib/auth/demoData';
+import { useDismissableOverlay } from '../../hooks/useDismissableOverlay';
 
-type DashboardHeaderProps = {
+type AppHeaderProps = {
+  pageTitle: string;
   user: DemoUser;
   organization: DemoOrganization;
   organizations: DemoOrganization[];
   mobileMenuOpen: boolean;
-  onMenuToggle: () => void;
+  onMobileMenuToggle: () => void;
+  mobileMenuTriggerRef: RefObject<HTMLButtonElement>;
   notificationsOpen: boolean;
   onNotificationsToggle: () => void;
   notificationsTriggerRef: RefObject<HTMLButtonElement>;
@@ -28,16 +30,21 @@ type DashboardHeaderProps = {
   onHelpClick: () => void;
   onOrganizationChange: (organizationId: string) => void;
   onLogout: () => void;
-  viewMode: 'gregorian' | 'hebrew' | 'both';
-  onViewModeChange: (value: 'gregorian' | 'hebrew' | 'both') => void;
 };
 
-export function DashboardHeader({
+/**
+ * Application-wide header. Data (user, organization, organizations) is
+ * always supplied by the caller (AppShell, backed by SessionContext) -
+ * this component never imports demo data directly.
+ */
+export function AppHeader({
+  pageTitle,
   user,
   organization,
   organizations,
   mobileMenuOpen,
-  onMenuToggle,
+  onMobileMenuToggle,
+  mobileMenuTriggerRef,
   notificationsOpen,
   onNotificationsToggle,
   notificationsTriggerRef,
@@ -55,19 +62,12 @@ export function DashboardHeader({
   onHelpClick,
   onOrganizationChange,
   onLogout,
-  viewMode,
-  onViewModeChange,
-}: DashboardHeaderProps) {
-  const mobileMenuTriggerRef = useRef<HTMLButtonElement>(null);
-  const mobileMenuPanelRef = useRef<HTMLDivElement>(null);
+}: AppHeaderProps) {
   const userMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const userMenuPanelRef = useRef<HTMLDivElement>(null);
   const orgSwitcherTriggerRef = useRef<HTMLButtonElement>(null);
   const orgSwitcherPanelRef = useRef<HTMLDivElement>(null);
 
-  useDismissableOverlay(mobileMenuOpen, onPanelClose, [mobileMenuPanelRef, mobileMenuTriggerRef], {
-    restoreFocusRef: mobileMenuTriggerRef,
-  });
   useDismissableOverlay(userMenuOpen, onPanelClose, [userMenuPanelRef, userMenuTriggerRef], {
     restoreFocusRef: userMenuTriggerRef,
   });
@@ -76,43 +76,71 @@ export function DashboardHeader({
   });
 
   return (
-    <header className="rounded-[28px] border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur sm:p-5">
+    <header className="border-b border-slate-200 bg-white/90 p-4 backdrop-blur sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <button
             ref={mobileMenuTriggerRef}
             type="button"
-            onClick={onMenuToggle}
+            onClick={onMobileMenuToggle}
             aria-haspopup="true"
             aria-expanded={mobileMenuOpen}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 lg:hidden"
-            aria-label="פתח תפריט"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 lg:hidden"
+            aria-label="פתח תפריט ניווט"
           >
-            ☰
+            <Menu size={18} aria-hidden="true" />
           </button>
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-600 text-lg font-semibold text-white">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cyan-600 text-lg font-semibold text-white">
             N
           </div>
-          <div>
-            <p className="text-lg font-semibold text-slate-900">Nera</p>
-            <p className="text-sm text-slate-500">פלטפורמת ארגון חכמה</p>
+          <div className="min-w-0">
+            <p className="truncate text-lg font-semibold text-slate-900">{pageTitle}</p>
+            <p className="text-sm text-slate-500">Nera · פלטפורמת ארגון חכמה</p>
           </div>
         </div>
 
         <div className="flex flex-1 flex-wrap items-center justify-end gap-3">
-          <button ref={searchTriggerRef} type="button" onClick={onSearchToggle} aria-haspopup="true" aria-expanded={searchOpen} className="flex min-w-[220px] flex-1 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500 sm:min-w-[280px]">
-            <span>🔍</span>
-            <span className="w-full text-right">חיפוש מהיר</span>
+          <button
+            ref={searchTriggerRef}
+            type="button"
+            onClick={onSearchToggle}
+            aria-haspopup="true"
+            aria-expanded={searchOpen}
+            className="flex min-w-[220px] flex-1 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500 sm:min-w-[280px] sm:flex-none"
+          >
+            <Search size={16} aria-hidden="true" />
+            <span className="hidden w-full text-right sm:inline">חיפוש מהיר</span>
           </button>
-          <button ref={notificationsTriggerRef} type="button" onClick={onNotificationsToggle} aria-haspopup="true" aria-expanded={notificationsOpen} className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-700">
-            🔔
-            <span className="absolute left-2 top-2 h-2.5 w-2.5 rounded-full bg-rose-500" />
+          <button
+            ref={notificationsTriggerRef}
+            type="button"
+            onClick={onNotificationsToggle}
+            aria-haspopup="true"
+            aria-expanded={notificationsOpen}
+            aria-label="התראות"
+            className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-700"
+          >
+            <Bell size={18} aria-hidden="true" />
+            <span className="absolute left-2 top-2 h-2.5 w-2.5 rounded-full bg-rose-500" aria-hidden="true" />
           </button>
-          <button ref={quickActionsTriggerRef} type="button" onClick={onQuickActionsToggle} aria-haspopup="true" aria-expanded={quickActionsOpen} className="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 px-3 text-sm font-medium text-slate-700">
-            + פעולות מהירות
+          <button
+            ref={quickActionsTriggerRef}
+            type="button"
+            onClick={onQuickActionsToggle}
+            aria-haspopup="true"
+            aria-expanded={quickActionsOpen}
+            className="hidden h-11 items-center justify-center gap-1.5 rounded-2xl border border-slate-200 px-3 text-sm font-medium text-slate-700 md:inline-flex"
+          >
+            <Plus size={16} aria-hidden="true" />
+            פעולות מהירות
           </button>
-          <button type="button" onClick={onHelpClick} className="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 px-3 text-sm font-medium text-slate-700">
-            עזרה
+          <button
+            type="button"
+            onClick={onHelpClick}
+            aria-label="עזרה"
+            className="hidden h-11 items-center justify-center rounded-2xl border border-slate-200 px-3 text-sm font-medium text-slate-700 md:inline-flex"
+          >
+            <HelpCircle size={18} aria-hidden="true" />
           </button>
 
           <div className="relative">
@@ -127,7 +155,7 @@ export function DashboardHeader({
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
                 {user.name.charAt(0)}
               </div>
-              <div className="text-right">
+              <div className="hidden text-right sm:block">
                 <p className="text-sm font-semibold text-slate-900">{user.name}</p>
                 <p className="text-xs text-slate-500">{user.role}</p>
               </div>
@@ -155,8 +183,9 @@ export function DashboardHeader({
                   role="menuitem"
                   type="button"
                   onClick={onLogout}
-                  className="mt-1 w-full rounded-xl px-3 py-2 text-right text-sm text-rose-600 hover:bg-rose-50"
+                  className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-right text-sm text-rose-600 hover:bg-rose-50"
                 >
+                  <LogOut size={14} aria-hidden="true" />
                   יציאה
                 </button>
               </div>
@@ -178,7 +207,7 @@ export function DashboardHeader({
               className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-700"
             >
               <span>{organization.name}</span>
-              <span aria-hidden="true">▾</span>
+              <ChevronDown size={14} aria-hidden="true" />
             </button>
 
             {orgSwitcherOpen ? (
@@ -208,21 +237,10 @@ export function DashboardHeader({
             ) : null}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
-          <select className="rounded-full border border-slate-200 bg-white px-3 py-1" value={viewMode} onChange={(event) => onViewModeChange(event.target.value as 'gregorian' | 'hebrew' | 'both')}>
-            <option value="both">שניהם</option>
-            <option value="gregorian">לועזי</option>
-            <option value="hebrew">עברי</option>
-          </select>
-          <button type="button" onClick={onLogout} className="rounded-full bg-slate-900 px-3 py-1 text-white">יציאה</button>
-        </div>
+        <button type="button" onClick={onLogout} className="rounded-full bg-slate-900 px-3 py-1 text-sm text-white">
+          יציאה
+        </button>
       </div>
-
-      {mobileMenuOpen ? (
-        <div ref={mobileMenuPanelRef} className="mt-4 lg:hidden">
-          <SidebarNav />
-        </div>
-      ) : null}
     </header>
   );
 }

@@ -1,48 +1,64 @@
 'use client';
 
-import { useState } from 'react';
-import { createDemoSession } from '../lib/auth/demoAuth';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { demoOrganizations } from '../lib/auth/demoData';
+import { useSession } from '../context/SessionContext';
 import { LoginScreen } from './LoginScreen';
-import { PlatformShell } from './PlatformShell';
 
-type AuthGateProps = {
-  demoModeEnabled: boolean;
-};
+export function AuthGate() {
+  const router = useRouter();
+  const { demoModeEnabled, session, isHydrated, login, loginAsDemo, selectOrganization, logout } = useSession();
+  const [view, setView] = useState<'login' | 'org-select'>('login');
+  const hasCheckedInitialSession = useRef(false);
 
-export function AuthGate({ demoModeEnabled }: AuthGateProps) {
-  const [session, setSession] = useState<ReturnType<typeof createDemoSession> | null>(null);
-  const [view, setView] = useState<'login' | 'org-select' | 'app'>('login');
+  // Only redirect for a session restored from storage on the very first
+  // hydration check - not for a session created moments later by an
+  // interactive login, which should go through the org-select step below.
+  useEffect(() => {
+    if (!isHydrated || hasCheckedInitialSession.current) {
+      return;
+    }
+    hasCheckedInitialSession.current = true;
+    if (session) {
+      router.replace('/dashboard');
+    }
+  }, [isHydrated, session, router]);
+
+  const proceedAfterLogin = () => {
+    if (demoOrganizations.length > 1) {
+      setView('org-select');
+    } else {
+      router.push('/dashboard');
+    }
+  };
 
   const handleLogin = (email: string, password: string) => {
-    if (!demoModeEnabled) {
-      return { success: false, message: 'התחברות לא זמינה אלא במצב הדגמה' };
+    const result = login(email, password);
+    if (result.success) {
+      proceedAfterLogin();
     }
-
-    if (!email || !password) {
-      return { success: false, message: 'יש למלא את כל השדות' };
-    }
-
-    const nextSession = createDemoSession();
-    setSession(nextSession);
-    setView(nextSession.organizations.length > 1 ? 'org-select' : 'app');
-    return { success: true, message: 'התחברת בהצלחה למצב הדגמה' };
+    return result;
   };
 
   const handleDemoLogin = () => {
-    const nextSession = createDemoSession();
-    setSession(nextSession);
-    setView(nextSession.organizations.length > 1 ? 'org-select' : 'app');
+    loginAsDemo();
+    proceedAfterLogin();
   };
 
   const handleLogout = () => {
-    setSession(null);
+    logout();
     setView('login');
   };
 
   const handleOrganizationSelect = (organizationId: string) => {
-    setSession(current => (current ? { ...current, selectedOrganizationId: organizationId } : current));
-    setView('app');
+    selectOrganization(organizationId);
+    router.push('/dashboard');
   };
+
+  if (!isHydrated) {
+    return null;
+  }
 
   if (!demoModeEnabled) {
     return <LoginScreen onLogin={handleLogin} demoModeEnabled={false} />;
@@ -81,5 +97,5 @@ export function AuthGate({ demoModeEnabled }: AuthGateProps) {
     );
   }
 
-  return <PlatformShell session={session} onLogout={handleLogout} onOrganizationChange={handleOrganizationSelect} />;
+  return null;
 }

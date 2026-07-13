@@ -41,3 +41,11 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Claude Code local settings
+.claude/
+
+# Playwright artifacts
+playwright-report/
+test-results/
+**/screenshots/
