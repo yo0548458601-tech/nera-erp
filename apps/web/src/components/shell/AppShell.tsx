@@ -1,17 +1,25 @@
 'use client';
 
 import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { queryEntities, getPersonFullName, getRoleLabel, type EntityRoleId } from '@nera/entity-engine';
 import { demoOrganizations } from '../../lib/auth/demoData';
 import { useSession } from '../../context/SessionContext';
+import { useEntities } from '../../context/EntityContext';
+import { useRoleDefinitions } from '../../context/RoleDefinitionContext';
 import { useDismissableOverlay } from '../../hooks/useDismissableOverlay';
 import { useLocalStorageState } from '../../hooks/useLocalStorageState';
 import { findNavMatch } from '../../config/navigation';
+import { useAddNewOptions } from '../../config/addNewOptions';
 import { AppSidebar } from './AppSidebar';
 import { MobileNavigation } from './MobileNavigation';
 import { AppHeader } from './AppHeader';
+import { PersonAvatar } from '../people/PersonAvatar';
+import { PersonFormDialog } from '../people/PersonFormDialog';
 
-type OverlayPanel = 'mobileMenu' | 'notifications' | 'search' | 'quickActions' | 'userMenu' | 'orgSwitcher';
+type OverlayPanel = 'mobileMenu' | 'notifications' | 'search' | 'quickActions' | 'userMenu' | 'orgSwitcher' | 'addPerson';
+
+const SEARCH_RESULT_LIMIT = 6;
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'nera:sidebar-collapsed';
 
@@ -27,7 +35,11 @@ type AppShellProps = {
  */
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { session, logout, selectOrganization } = useSession();
+  const { entities, roleAssignments } = useEntities();
+  const { roles } = useRoleDefinitions();
+  const addNewOptions = useAddNewOptions();
   const [sidebarCollapsed, setSidebarCollapsed] = useLocalStorageState(SIDEBAR_COLLAPSED_STORAGE_KEY, false);
 
   const [openPanel, setOpenPanel] = useState<OverlayPanel | null>(null);
@@ -37,6 +49,8 @@ export function AppShell({ children }: AppShellProps) {
     { id: 3, title: 'אירוע חדש נוסף ליומן', body: 'הוזמן אירוע צוות לשעה 16:30', unread: false },
   ]);
   const [toastMessage, setToastMessage] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [addPersonInitialRoles, setAddPersonInitialRoles] = useState<EntityRoleId[] | undefined>(undefined);
 
   const togglePanel = useCallback((panel: OverlayPanel) => {
     setOpenPanel((current) => (current === panel ? null : panel));
@@ -72,6 +86,17 @@ export function AppShell({ children }: AppShellProps) {
   );
 
   const pageTitle = useMemo(() => findNavMatch(pathname)?.item.label ?? 'Nera', [pathname]);
+
+  const searchResults = useMemo(
+    () => (searchQuery.trim() ? queryEntities(entities, roleAssignments, { search: searchQuery }).slice(0, SEARCH_RESULT_LIMIT) : []),
+    [entities, roleAssignments, searchQuery],
+  );
+
+  const handleSearchResultSelect = (personId: string) => {
+    setSearchQuery('');
+    closePanel();
+    router.push(`/contacts/${personId}`);
+  };
 
   const handleOrganizationChange = (organizationId: string) => {
     selectOrganization(organizationId);
@@ -187,13 +212,39 @@ export function AppShell({ children }: AppShellProps) {
           <label className="block text-sm font-semibold text-slate-900">חיפוש מהיר</label>
           <input
             autoFocus
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
             className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none"
-            placeholder="חיפוש בפאנל, פעולות ומהירות"
+            placeholder="חיפוש אנשי קשר לפי שם, טלפון, דוא&quot;ל, ת.ז. או תגית"
           />
           <div className="mt-4 space-y-2 text-sm text-slate-600">
-            <div className="rounded-2xl bg-slate-50 p-3">לוחות מחוונים</div>
-            <div className="rounded-2xl bg-slate-50 p-3">ניהול ארגונים</div>
-            <div className="rounded-2xl bg-slate-50 p-3">משימות</div>
+            {searchQuery.trim() === '' ? (
+              <p className="text-slate-400">התחילו להקליד כדי לחפש בין אנשי הקשר.</p>
+            ) : searchResults.length === 0 ? (
+              <p className="text-slate-400">לא נמצאו תוצאות עבור &quot;{searchQuery}&quot;.</p>
+            ) : (
+              searchResults.map((entity) => (
+                <button
+                  key={entity.id}
+                  type="button"
+                  onClick={() => handleSearchResultSelect(entity.id)}
+                  className="flex w-full items-center gap-3 rounded-2xl bg-slate-50 p-3 text-right hover:bg-slate-100"
+                >
+                  <PersonAvatar profile={entity.profile} size="sm" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium text-slate-900">
+                      {getPersonFullName(entity.profile)} <span className="text-xs text-slate-400">{entity.neraId}</span>
+                    </span>
+                    <span className="block truncate text-xs text-slate-500">
+                      {roleAssignments
+                        .filter((assignment) => assignment.entityId === entity.id)
+                        .map((assignment) => getRoleLabel(roles, assignment.role))
+                        .join(', ') || 'ללא תפקיד'}
+                    </span>
+                  </span>
+                </button>
+              ))
+            )}
           </div>
         </div>
       ) : null}
@@ -207,26 +258,65 @@ export function AppShell({ children }: AppShellProps) {
                 סגור
               </button>
             </div>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              {[
-                { label: 'יצירת משימה', action: 'יצירת משימה' },
-                { label: 'יצירת אירוע', action: 'יצירת אירוע' },
-                { label: 'העלאת מסמך', action: 'העלאת מסמך' },
-                { label: 'הוספת לקוח', action: 'הוספת לקוח' },
-              ].map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  onClick={() => handleQuickAction(item.action)}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-right text-sm font-medium text-slate-700"
-                >
-                  {item.label}
-                </button>
-              ))}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">הוספה חדשה</p>
+              <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                {addNewOptions.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    disabled={!option.implemented}
+                    title={option.implemented ? undefined : 'יכולת זו תתווסף בעתיד'}
+                    onClick={() => {
+                      if (!option.implemented) {
+                        return;
+                      }
+                      setAddPersonInitialRoles(option.presetRole ? [option.presetRole] : undefined);
+                      togglePanel('addPerson');
+                    }}
+                    className={`rounded-2xl border px-4 py-3 text-right text-sm font-medium transition ${
+                      option.implemented
+                        ? 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                        : 'cursor-not-allowed border-slate-100 bg-slate-50/50 text-slate-400'
+                    }`}
+                  >
+                    {option.label}
+                    {!option.implemented ? <span className="mr-1.5 text-[10px] text-slate-400">(בקרוב)</span> : null}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">פעולות נוספות</p>
+              <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                {['יצירת משימה', 'יצירת אירוע', 'העלאת מסמך'].map((label) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => handleQuickAction(label)}
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-right text-sm font-medium text-slate-700"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       ) : null}
+
+      <PersonFormDialog
+        open={openPanel === 'addPerson'}
+        mode="create"
+        onClose={closePanel}
+        onCreated={(person) => {
+          closePanel();
+          router.push(`/contacts/${person.id}`);
+        }}
+        restoreFocusRef={quickActionsTriggerRef}
+        initialRoles={addPersonInitialRoles}
+      />
 
       {toastMessage ? (
         <div className="fixed bottom-4 right-4 z-50 rounded-2xl bg-slate-900 px-4 py-3 text-sm text-white shadow-xl">

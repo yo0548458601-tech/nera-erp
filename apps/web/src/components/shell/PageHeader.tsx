@@ -15,6 +15,8 @@ type PageHeaderProps = {
   secondaryActions?: ReactNode;
   /** Optional extra content rendered below the title row, e.g. filters. */
   children?: ReactNode;
+  /** For dynamic detail pages: appended as the final breadcrumb crumb. */
+  breadcrumbExtra?: string;
 };
 
 /**
@@ -22,13 +24,13 @@ type PageHeaderProps = {
  * optional subtitle/help text and action slots. Pages should render this
  * instead of duplicating title/breadcrumb markup themselves.
  */
-export function PageHeader({ title, subtitle, helpText, primaryAction, secondaryActions, children }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, helpText, primaryAction, secondaryActions, children, breadcrumbExtra }: PageHeaderProps) {
   const pathname = usePathname();
-  const resolvedTitle = title ?? findNavMatch(pathname)?.item.label ?? '';
+  const resolvedTitle = title ?? breadcrumbExtra ?? findNavMatch(pathname)?.item.label ?? '';
 
   return (
     <div className="mb-6 flex flex-col gap-4">
-      <Breadcrumbs />
+      <Breadcrumbs extraCrumb={breadcrumbExtra} />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">{resolvedTitle}</h1>

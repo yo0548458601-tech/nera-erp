@@ -1,7 +1,8 @@
 'use client';
 
 import { useRef, type RefObject } from 'react';
-import { Bell, ChevronDown, HelpCircle, LogOut, Menu, Plus, Search } from 'lucide-react';
+import Link from 'next/link';
+import { Bell, ChevronDown, HelpCircle, LogOut, Menu, Plus, Search, ShieldCheck } from 'lucide-react';
 import { type DemoOrganization, type DemoUser } from '../../lib/auth/demoData';
 import { useDismissableOverlay } from '../../hooks/useDismissableOverlay';
 
@@ -171,11 +172,20 @@ export function AppHeader({
                   <p className="text-sm font-semibold text-slate-900">{user.name}</p>
                   <p className="mt-1 text-xs text-slate-500">{user.email}</p>
                 </div>
+                <Link
+                  role="menuitem"
+                  href="/settings"
+                  onClick={onPanelClose}
+                  className="mt-2 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-right text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  <ShieldCheck size={14} aria-hidden="true" />
+                  הרשאות משתמשים (הדגמה)
+                </Link>
                 <button
                   role="menuitem"
                   type="button"
                   onClick={onPanelClose}
-                  className="mt-2 w-full rounded-xl px-3 py-2 text-right text-sm text-slate-700 hover:bg-slate-50"
+                  className="mt-1 w-full rounded-xl px-3 py-2 text-right text-sm text-slate-700 hover:bg-slate-50"
                 >
                   הגדרות פרופיל
                 </button>

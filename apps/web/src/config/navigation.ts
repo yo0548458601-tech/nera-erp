@@ -312,7 +312,12 @@ function findInItems(items: NavItem[], pathname: string): NavItem | undefined {
   return undefined;
 }
 
-/** Finds the section + item whose href exactly matches the given pathname. */
+/**
+ * Finds the section + item whose href matches the given pathname. Tries an
+ * exact match first, then falls back to the nav item that is an ancestor of
+ * the pathname (e.g. a dynamic detail route like `/contacts/person-1` that
+ * isn't itself in the static nav config resolves to the `/contacts` item).
+ */
 export function findNavMatch(pathname: string): { section: NavSection; item: NavItem } | undefined {
   for (const section of navigationSections) {
     const item = findInItems(section.items, pathname);
@@ -320,6 +325,14 @@ export function findNavMatch(pathname: string): { section: NavSection; item: Nav
       return { section, item };
     }
   }
+
+  for (const section of navigationSections) {
+    const item = flattenItems(section.items).find((candidate) => pathname.startsWith(`${candidate.href}/`));
+    if (item) {
+      return { section, item };
+    }
+  }
+
   return undefined;
 }
 
@@ -347,8 +360,8 @@ export function getBreadcrumbTrail(pathname: string): BreadcrumbEntry[] {
 
   const { section, item } = match;
   if (section.id === 'main') {
-    return [{ label: item.label }];
+    return [{ label: item.label, href: item.href }];
   }
 
-  return [{ label: section.label }, { label: item.label }];
+  return [{ label: section.label }, { label: item.label, href: item.href }];
 }

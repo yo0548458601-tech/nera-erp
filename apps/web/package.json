@@ -9,10 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@nera/authorization-engine": "*",
     "@nera/calendar-engine": "*",
+    "@nera/customization-engine": "*",
+    "@nera/entity-engine": "*",
     "@nera/settings-engine": "*",
     "@nera/types": "*",
     "@nera/ui": "*",
+    "exceljs": "^4.4.0",
     "lucide-react": "^0.469.0",
     "next": "14.2.15",
     "react": "18.3.1",

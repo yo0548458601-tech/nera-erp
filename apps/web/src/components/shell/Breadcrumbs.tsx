@@ -5,13 +5,23 @@ import { usePathname } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 import { getBreadcrumbTrail } from '../../config/navigation';
 
+type BreadcrumbsProps = {
+  /**
+   * Appended after the matched nav trail as the final, non-linked crumb.
+   * Used by dynamic detail pages (e.g. a person's name) whose title can't
+   * be known by the static navigation config.
+   */
+  extraCrumb?: string;
+};
+
 /**
  * Derives its breadcrumb trail from the current route and the navigation
  * config, so individual pages never need to hardcode their own breadcrumbs.
  */
-export function Breadcrumbs() {
+export function Breadcrumbs({ extraCrumb }: BreadcrumbsProps = {}) {
   const pathname = usePathname();
-  const trail = getBreadcrumbTrail(pathname);
+  const baseTrail = getBreadcrumbTrail(pathname);
+  const trail = extraCrumb ? [...baseTrail, { label: extraCrumb }] : baseTrail;
 
   if (trail.length === 0) {
     return null;
