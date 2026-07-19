@@ -5,6 +5,19 @@ import { type PermissionId } from './permissions';
  * broadest to most specific. This is a fixed set today; if a future scope
  * is ever needed (e.g. "branch"), add it here and to the precedence order
  * in resolveEffectivePermission - nothing else needs to change shape.
+ *
+ * Scope-naming reconciliation (P011, documented per `ENGINE_MAP.md` Section
+ * 2 and ADR-008's own follow-up - not a new architectural decision, no new
+ * ADR): `'institution'` here currently means **Organization**, not a real
+ * ADR-002 Institution. Organization is the only implemented tenant/security
+ * boundary today (ADR-002); no `institutions` table exists yet, so this
+ * scope literal cannot mean anything else in practice. This reconciliation
+ * is intentionally narrow - it does not resolve the future relationship
+ * between Organization, Institution, Branch and Department (ADR-008's own
+ * follow-up leaves that open for whenever those hierarchy levels are real).
+ * The literal is not renamed here, to avoid a breaking change to this
+ * package's existing consumers (`apps/web`'s demo UI), which is out of
+ * scope for P011.
  */
 export type PermissionScope = 'system' | 'institution' | 'role' | 'user';
 
@@ -60,6 +73,14 @@ export type EffectivePermissionResult = {
  * UI and to define the contract a future server-side Authorization Engine
  * must honor - it is not itself a security boundary. Hiding a button
  * based on this result is a UX convenience, not enforcement.
+ *
+ * As of P011, `checkPermission()` (`checkPermission.ts`, in this same
+ * package) is that authoritative server-side engine: a real, Prisma-backed
+ * decision against `MembershipRole`/`RolePermission`. This function remains
+ * exactly what it always was - a pure, non-authoritative UI hint - and is
+ * not wired to `checkPermission()` in any way; the two are not kept in sync
+ * automatically, and callers must not treat this function's result as
+ * enforcement, only as a hint for what the UI should show.
  */
 export function resolveEffectivePermission(
   permission: PermissionId,

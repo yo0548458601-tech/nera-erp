@@ -3,6 +3,70 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+/**
+ * The canonical `PermissionId` catalog, transcribed by hand from
+ * `packages/engines/authorization/src/permissions.ts` (P011 - see
+ * `docs/ROADMAP.md`).
+ *
+ * Not imported directly: `@nera/database` sits at the Platform layer and
+ * `@nera/authorization-engine` sits at the Core Engine layer
+ * (`packages/core/src/dependencyRules.ts`), and a Platform package importing
+ * a Core Engine package is a layer-order violation caught by
+ * `dependencyRules.test.ts`. Duplicating the id list by hand is the smallest
+ * repository-compliant option - the same convention `packages/core/src/
+ * engine.ts` already uses for transcribing `ENGINE_MAP.md`. Only the ids
+ * themselves are duplicated (not the Hebrew labels/descriptions), to keep
+ * the duplicated surface - and the manual-sync burden - as small as
+ * possible; `description` below is intentionally left unset rather than
+ * fabricated. Keep this list in sync with `permissions.ts` by hand; do not
+ * rename, remove, or invent a `PermissionId` here - this file only mirrors
+ * the existing catalog.
+ */
+const CANONICAL_PERMISSION_IDS: readonly string[] = [
+  'notes.edit',
+  'notes.delete',
+  'notes.restore',
+  'entities.edit',
+  'entities.roles.manage',
+  'entities.view_sensitive',
+  'entities.export',
+  'entities.import',
+  'entities.merge',
+  'entities.duplicate_override',
+  'entities.archive',
+  'finance.view',
+  'finance.payment_priority',
+  'finance.clear_priority_markers',
+  'modules.access',
+  'roles.manage_definitions',
+  'custom_fields.manage',
+  'custom_fields.view_sensitive',
+  'list_views.manage_defaults',
+  'field_requirements.manage_defaults',
+  'contact_methods.edit',
+  'contact_methods.deactivate',
+  'contact_methods.remove',
+  'contact_methods.restore',
+  'birth_date.view',
+  'birth_date.edit',
+];
+
+/**
+ * The schema's `resource`/`action` columns are required and don't exist on
+ * the source `PermissionId` catalog (a flat dotted id + Hebrew label/
+ * description). They are derived mechanically by splitting each id on its
+ * *last* "." - e.g. "entities.roles.manage" -> resource "entities.roles",
+ * action "manage" - a formatting step only; it changes no id, and invents no
+ * new taxonomy.
+ */
+function splitPermissionKey(permissionKey: string): { resource: string; action: string } {
+  const lastDotIndex = permissionKey.lastIndexOf('.');
+  return {
+    resource: permissionKey.slice(0, lastDotIndex),
+    action: permissionKey.slice(lastDotIndex + 1),
+  };
+}
+
 async function main() {
   if (process.env.NODE_ENV === 'production') {
     console.info('Skipping database seed in production.');
@@ -23,74 +87,28 @@ async function main() {
     },
   });
 
-  const permissions = [
-    {
-      permissionKey: 'platform.organization.create',
-      resource: 'organization',
-      action: 'create',
-      description: 'Create organizations',
-    },
-    {
-      permissionKey: 'platform.organization.read',
-      resource: 'organization',
-      action: 'read',
-      description: 'Read organizations',
-    },
-    {
-      permissionKey: 'platform.organization.update',
-      resource: 'organization',
-      action: 'update',
-      description: 'Update organizations',
-    },
-    {
-      permissionKey: 'platform.organization.delete',
-      resource: 'organization',
-      action: 'delete',
-      description: 'Delete organizations',
-    },
-    {
-      permissionKey: 'platform.organization.approve',
-      resource: 'organization',
-      action: 'approve',
-      description: 'Approve organizations',
-    },
-    {
-      permissionKey: 'platform.organization.cancel',
-      resource: 'organization',
-      action: 'cancel',
-      description: 'Cancel organizations',
-    },
-    {
-      permissionKey: 'platform.organization.export',
-      resource: 'organization',
-      action: 'export',
-      description: 'Export organizations',
-    },
-    {
-      permissionKey: 'platform.organization.import',
-      resource: 'organization',
-      action: 'import',
-      description: 'Import organizations',
-    },
-    {
-      permissionKey: 'platform.organization.print',
-      resource: 'organization',
-      action: 'print',
-      description: 'Print organizations',
-    },
-    {
-      permissionKey: 'platform.organization.manage',
-      resource: 'organization',
-      action: 'manage',
-      description: 'Manage organizations',
-    },
-  ];
+  // Replace any previously-seeded permission that is not part of the
+  // canonical PermissionId catalog (e.g. the old placeholder
+  // "platform.organization.*" rows this seed used before P011). Child
+  // RolePermission rows are removed first - the foreign key is RESTRICT.
+  const obsoletePermissions = await prisma.permission.findMany({
+    where: { permissionKey: { notIn: [...CANONICAL_PERMISSION_IDS] } },
+    select: { id: true },
+  });
+  if (obsoletePermissions.length > 0) {
+    const obsoletePermissionIds = obsoletePermissions.map(permission => permission.id);
+    await prisma.rolePermission.deleteMany({
+      where: { permissionId: { in: obsoletePermissionIds } },
+    });
+    await prisma.permission.deleteMany({ where: { id: { in: obsoletePermissionIds } } });
+  }
 
-  for (const permission of permissions) {
+  for (const permissionKey of CANONICAL_PERMISSION_IDS) {
+    const { resource, action } = splitPermissionKey(permissionKey);
     await prisma.permission.upsert({
-      where: { permissionKey: permission.permissionKey },
-      update: {},
-      create: permission,
+      where: { permissionKey },
+      update: { resource, action },
+      create: { permissionKey, resource, action },
     });
   }
 
