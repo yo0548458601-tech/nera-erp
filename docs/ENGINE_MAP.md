@@ -251,7 +251,7 @@
 - **Security requirements:** Registering or enabling an extension is itself an authorized, audited action; an extension cannot self-elevate its own permissions.
 - **Audit requirements:** Extension install/enable/disable is audited.
 - **Extension/plugin points:** This engine _is_ the extension-point mechanism — see Section 10 of `NERA_CONSTITUTION.md` for the authoritative list of what may be extended.
-- **Current status:** **planned**. No running system in V1 or Milestone 1 — Milestone 1's contribution is the boundary/contract discipline every other engine is designed against, not code.
+- **Current status:** **partial**. P008 (ADR-010) built the registration skeleton in `@nera/core` — a closed `ExtensionPointId` union matching `NERA_CONSTITUTION.md` Section 10 exactly, and a register/list/query mechanism, tested. There is still no dynamic/untrusted code execution, no sandboxing, and no marketplace — that remains future work requiring its own ADR per ADR-003. See the Appendix below.
 
 ---
 
@@ -288,6 +288,17 @@
 - **Audit requirements:** Not itself an audit mechanism — see Audit (Section 5) — but its own operational failures (a subscriber throwing) must be observable, not silently swallowed.
 - **Extension/plugin points:** "Business events" is an explicit extension point in `NERA_CONSTITUTION.md` Section 10 — a plugin may subscribe to (never intercept/block) a business event.
 - **Current status:** **planned**. No implementation exists; this is one of the two foundational pieces (with Audit) built in P010, before Authorization enforcement in P011.
+
+---
+
+# Appendix — Platform Core Package (`@nera/core`)
+
+Not a Core Engine — it sits **one layer below** the 16 engines enumerated above (Platform, not Core Engines, per `NERA_CONSTITUTION.md` Section 3.9's `Platform → Core Engines → Business Modules → Apps` order). Recorded here because it is now the thing this document's own status labels partly depend on (see Plugin / Extension Runtime, Section 14, above), and because engines depend on it, not the other way around.
+
+- **Responsibility:** Owns the Engine Registry (a code-side, tested mirror of this document's 17 entries — see `engineRegistry` in `packages/core/src/engine.ts`), the `DatabaseProvider`/`AuthProvider`/`StorageProvider` contracts (ADR-009), the Plugin Runtime registration skeleton (ADR-003), and dependency-boundary validation that checks the real workspace against the Constitution's layer graph.
+- **Owned data:** None at runtime — pure types, a data catalog transcribed from this document, and validation logic. No database table, no persisted state.
+- **Consumers:** None yet. Introduced in P008 (ADR-010) with zero real consumers by design — ready for the next sprint that needs a provider, a registry lookup, or an extension-point registration.
+- **Current status:** **existing**. `packages/core` — built in P008, fully tested (`vitest`), zero runtime dependencies.
 
 ---
 

@@ -8,17 +8,19 @@ An ADR is a short, point-in-time record of one architectural decision: what was 
 
 ## Index
 
-| ADR                                                       | Title                                     | Status                  |
-| --------------------------------------------------------- | ----------------------------------------- | ----------------------- |
-| [000](./000-template.md)                                  | Template                                  | — (not a real decision) |
-| [001](./001-product-philosophy.md)                        | Product Philosophy                        | Accepted                |
-| [002](./002-organization-and-institution-hierarchy.md)    | Organization and Institution Hierarchy    | Accepted                |
-| [003](./003-plugin-platform.md)                           | Plugin Platform                           | Accepted                |
-| [004](./004-ai-assistance-and-user-control.md)            | AI Assistance and User Control            | Accepted                |
-| [005](./005-vendor-abstraction-and-integration-engine.md) | Vendor Abstraction and Integration Engine | Accepted                |
-| [006](./006-monorepo-architecture.md)                     | Monorepo Architecture                     | Accepted                |
-| [007](./007-domain-driven-architecture.md)                | Domain Driven Architecture                | Accepted                |
-| [008](./008-authorization-model.md)                       | Authorization Model                       | Accepted                |
+| ADR                                                       | Title                                                                             | Status                  |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------- | ----------------------- |
+| [000](./000-template.md)                                  | Template                                                                          | — (not a real decision) |
+| [001](./001-product-philosophy.md)                        | Product Philosophy                                                                | Accepted                |
+| [002](./002-organization-and-institution-hierarchy.md)    | Organization and Institution Hierarchy                                            | Accepted                |
+| [003](./003-plugin-platform.md)                           | Plugin Platform                                                                   | Accepted                |
+| [004](./004-ai-assistance-and-user-control.md)            | AI Assistance and User Control                                                    | Accepted                |
+| [005](./005-vendor-abstraction-and-integration-engine.md) | Vendor Abstraction and Integration Engine                                         | Accepted                |
+| [006](./006-monorepo-architecture.md)                     | Monorepo Architecture                                                             | Accepted                |
+| [007](./007-domain-driven-architecture.md)                | Domain Driven Architecture                                                        | Accepted                |
+| [008](./008-authorization-model.md)                       | Authorization Model                                                               | Accepted                |
+| [009](./009-provider-abstraction-without-selection.md)    | Provider Abstraction Without Provider Selection                                   | Accepted                |
+| [010](./010-platform-core-package.md)                     | Platform Core Package: Engine Registry, Contracts, and Plugin Runtime Foundations | Accepted                |
 
 ## Status Values
 
