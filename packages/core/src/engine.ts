@@ -186,6 +186,7 @@ export const engineRegistry: EngineDescriptor[] = [
     id: 'audit',
     classification: 'required',
     name: 'Audit',
+    packageName: '@nera/audit-engine',
     responsibility:
       'Record every meaningful business action in an append-only, tamper-resistant trail, and expose it for review.',
     boundaries:
@@ -401,6 +402,7 @@ export const engineRegistry: EngineDescriptor[] = [
     id: 'business-event-bus',
     classification: 'required',
     name: 'Business Event Bus',
+    packageName: '@nera/event-bus-engine',
     responsibility:
       'Let engines and modules communicate by publishing and subscribing to events instead of calling each other directly.',
     boundaries: 'In-process for V1, not a distributed queue.',
@@ -415,7 +417,7 @@ export const engineRegistry: EngineDescriptor[] = [
       'Not itself an audit mechanism; its own operational failures must be observable.',
     extensionPoints:
       'Business events - a plugin may subscribe to (never intercept/block) a business event.',
-    status: 'planned',
+    status: 'partial',
   },
   {
     id: 'calendar',

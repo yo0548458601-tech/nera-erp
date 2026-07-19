@@ -73,6 +73,33 @@ describe('engineRegistry', () => {
       expect.arrayContaining(['organization-institution', 'audit'])
     );
   });
+
+  describe('P010 (Audit Engine & Business Event Bus)', () => {
+    it('audit is implemented by @nera/audit-engine', () => {
+      expect(getEngine('audit')?.packageName).toBe('@nera/audit-engine');
+    });
+
+    it('business-event-bus is implemented by @nera/event-bus-engine', () => {
+      expect(getEngine('business-event-bus')?.packageName).toBe('@nera/event-bus-engine');
+    });
+
+    it('audit remains "partial", not "existing" - a real writer exists but nothing calls it yet (no real caller wired into apps/web until P011+)', () => {
+      expect(getEngine('audit')?.status).toBe('partial');
+    });
+
+    it('business-event-bus is now "partial", not "planned" - a real in-process implementation exists but nothing publishes/subscribes yet', () => {
+      expect(getEngine('business-event-bus')?.status).toBe('partial');
+    });
+
+    it('business-event-bus still depends on audit and not the reverse - audit must never depend on business-event-bus, or the two would form a cycle', () => {
+      expect(getEngine('business-event-bus')?.dependencies).toContain('audit');
+      expect(getEngine('audit')?.dependencies).not.toContain('business-event-bus');
+    });
+
+    it('the registry is still valid after the P010 packageName/status updates - no duplicate ids, no unknown references, no cycles', () => {
+      expect(findEngineRegistryIssues()).toEqual([]);
+    });
+  });
 });
 
 describe('findEngineRegistryIssues', () => {
