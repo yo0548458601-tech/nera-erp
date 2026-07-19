@@ -8,7 +8,8 @@ import { LoginScreen } from './LoginScreen';
 
 export function AuthGate() {
   const router = useRouter();
-  const { demoModeEnabled, session, isHydrated, login, loginAsDemo, selectOrganization, logout } = useSession();
+  const { demoModeEnabled, session, isHydrated, login, loginAsDemo, selectOrganization, logout } =
+    useSession();
   const [view, setView] = useState<'login' | 'org-select'>('login');
   const hasCheckedInitialSession = useRef(false);
 
@@ -75,10 +76,12 @@ export function AuthGate() {
           <div>
             <p className="text-sm font-medium text-cyan-300">מצב הדגמה</p>
             <h1 className="mt-2 text-3xl font-semibold">בחר ארגון</h1>
-            <p className="mt-2 text-sm text-slate-300">המערכת תציג את הארגון שנבחר בהמשך כל חוויית השימוש.</p>
+            <p className="mt-2 text-sm text-slate-300">
+              המערכת תציג את הארגון שנבחר בהמשך כל חוויית השימוש.
+            </p>
           </div>
           <div className="grid gap-3">
-            {session.organizations.map((organization) => (
+            {session.organizations.map(organization => (
               <button
                 key={organization.id}
                 type="button"
@@ -89,7 +92,11 @@ export function AuthGate() {
               </button>
             ))}
           </div>
-          <button type="button" onClick={handleLogout} className="self-start text-sm text-slate-300 underline">
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="self-start text-sm text-slate-300 underline"
+          >
             יציאה
           </button>
         </div>

@@ -38,21 +38,21 @@ export function UserPermissionsPanel() {
   const { session } = useSession();
   const [selectedUserId, setSelectedUserId] = useState(systemUsers[0]?.id ?? '');
 
-  const selectedUser = systemUsers.find((user) => user.id === selectedUserId);
+  const selectedUser = systemUsers.find(user => user.id === selectedUserId);
   const currentUserId = session?.user.id ?? 'demo-user';
 
   return (
     <PanelCard
       title="הרשאות משתמשים"
-      subtitle='מצב הדגמה - השינויים נשמרים בזיכרון הדפדפן בלבד למשך ההדגמה ואינם מהווים אכיפה אמיתית. אכיפה בפועל תתבצע בצד השרת בעתיד.'
+      subtitle="מצב הדגמה - השינויים נשמרים בזיכרון הדפדפן בלבד למשך ההדגמה ואינם מהווים אכיפה אמיתית. אכיפה בפועל תתבצע בצד השרת בעתיד."
     >
       <div className="flex flex-col gap-4">
         <div className="flex items-start gap-2 rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-500">
           <HelpCircle size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
           <p>
-            &quot;{INHERIT_LABEL}&quot; אומר שלא הוגדרה התאמה אישית עבור המשתמש הזה - ההרשאה האפקטיבית נקבעת לפי התפקיד שלו, לפי
-            המוסד, או לפי ברירת המחדל של המערכת, לפי סדר עדיפות קבוע: התאמה אישית למשתמש ← תפקיד ← מוסד ← ברירת מחדל למערכת ← דחייה
-            כברירת מחדל.
+            &quot;{INHERIT_LABEL}&quot; אומר שלא הוגדרה התאמה אישית עבור המשתמש הזה - ההרשאה
+            האפקטיבית נקבעת לפי התפקיד שלו, לפי המוסד, או לפי ברירת המחדל של המערכת, לפי סדר עדיפות
+            קבוע: התאמה אישית למשתמש ← תפקיד ← מוסד ← ברירת מחדל למערכת ← דחייה כברירת מחדל.
           </p>
         </div>
 
@@ -60,10 +60,10 @@ export function UserPermissionsPanel() {
           <span className="font-medium text-slate-700">בחירת משתמש</span>
           <select
             value={selectedUserId}
-            onChange={(event) => setSelectedUserId(event.target.value)}
+            onChange={event => setSelectedUserId(event.target.value)}
             className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
           >
-            {systemUsers.map((user) => (
+            {systemUsers.map(user => (
               <option key={user.id} value={user.id}>
                 {user.name}
               </option>
@@ -91,7 +91,7 @@ export function UserPermissionsPanel() {
                 </tr>
               </thead>
               <tbody>
-                {permissionRegistry.map((definition) => {
+                {permissionRegistry.map(definition => {
                   const effective = resolvePermission(definition.id, {
                     userId: selectedUser.id,
                     roleIds: selectedUser.roleIds,
@@ -108,7 +108,9 @@ export function UserPermissionsPanel() {
                       <td className="px-3 py-3">
                         <span
                           className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-                            effective.decision === 'allow' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                            effective.decision === 'allow'
+                              ? 'bg-emerald-50 text-emerald-700'
+                              : 'bg-rose-50 text-rose-700'
                           }`}
                         >
                           {decisionLabels[effective.decision]}
@@ -118,8 +120,13 @@ export function UserPermissionsPanel() {
                       <td className="px-3 py-3">
                         <select
                           value={override}
-                          onChange={(event) =>
-                            setUserOverride(selectedUser.id, definition.id, event.target.value as PermissionDecision, currentUserId)
+                          onChange={event =>
+                            setUserOverride(
+                              selectedUser.id,
+                              definition.id,
+                              event.target.value as PermissionDecision,
+                              currentUserId
+                            )
                           }
                           aria-label={`התאמה אישית עבור ${definition.label} של ${selectedUser.name}`}
                           title={`${INHERIT_LABEL}: אין התאמה אישית - ההרשאה נקבעת לפי תפקיד/מוסד/ברירת מחדל של המערכת.`}

@@ -289,12 +289,12 @@ export const navigationSections: NavSection[] = [
 ];
 
 function flattenItems(items: NavItem[]): NavItem[] {
-  return items.flatMap((item) => (item.children ? [item, ...flattenItems(item.children)] : [item]));
+  return items.flatMap(item => (item.children ? [item, ...flattenItems(item.children)] : [item]));
 }
 
 /** All navigation items across every section, flattened (including nested children). */
 export function getAllNavItems(): NavItem[] {
-  return navigationSections.flatMap((section) => flattenItems(section.items));
+  return navigationSections.flatMap(section => flattenItems(section.items));
 }
 
 function findInItems(items: NavItem[], pathname: string): NavItem | undefined {
@@ -327,7 +327,9 @@ export function findNavMatch(pathname: string): { section: NavSection; item: Nav
   }
 
   for (const section of navigationSections) {
-    const item = flattenItems(section.items).find((candidate) => pathname.startsWith(`${candidate.href}/`));
+    const item = flattenItems(section.items).find(candidate =>
+      pathname.startsWith(`${candidate.href}/`)
+    );
     if (item) {
       return { section, item };
     }

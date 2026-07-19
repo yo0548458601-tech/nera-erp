@@ -17,7 +17,7 @@ export function PersonAvatar({ profile, size = 'md' }: PersonAvatarProps) {
     .split(' ')
     .filter(Boolean)
     .slice(0, 2)
-    .map((part) => part.charAt(0))
+    .map(part => part.charAt(0))
     .join('');
 
   return (

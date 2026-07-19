@@ -6,7 +6,13 @@ import { ListFieldEditor } from '../shared/ListFieldEditor';
 import { EmailInput } from '../shared/EmailInput';
 import { validateEmailAddress } from '../../lib/validation/contactMethods';
 
-const emailTypeLabels: Record<EmailType, string> = { personal: 'אישי', work: 'עבודה', billing: 'חיוב', notifications: 'התראות', other: 'אחר' };
+const emailTypeLabels: Record<EmailType, string> = {
+  personal: 'אישי',
+  work: 'עבודה',
+  billing: 'חיוב',
+  notifications: 'התראות',
+  other: 'אחר',
+};
 const emailTypes: EmailType[] = ['personal', 'work', 'billing', 'notifications', 'other'];
 
 function createId(prefix: string): string {
@@ -14,10 +20,27 @@ function createId(prefix: string): string {
 }
 
 export function createEmptyEmailDraft(): EmailDraft {
-  return { id: createId('email'), address: '', type: 'personal', label: emailTypeLabels.personal, isPrimary: false, status: 'active', order: 0, verified: false };
+  return {
+    id: createId('email'),
+    address: '',
+    type: 'personal',
+    label: emailTypeLabels.personal,
+    isPrimary: false,
+    status: 'active',
+    order: 0,
+    verified: false,
+  };
 }
 
-export function EmailListEditor({ emails, onChange, currentUserId }: { emails: EmailDraft[]; onChange: (emails: EmailDraft[]) => void; currentUserId: string }) {
+export function EmailListEditor({
+  emails,
+  onChange,
+  currentUserId,
+}: {
+  emails: EmailDraft[];
+  onChange: (emails: EmailDraft[]) => void;
+  currentUserId: string;
+}) {
   const canEdit = useMyPermission('contact_methods.edit');
   const canDeactivate = useMyPermission('contact_methods.deactivate');
   const canRemove = useMyPermission('contact_methods.remove');
@@ -31,7 +54,7 @@ export function EmailListEditor({ emails, onChange, currentUserId }: { emails: E
       createItem={createEmptyEmailDraft}
       addLabel='הוסף כתובת דוא"ל נוספת'
       emptyLabel='לא הוזנה כתובת דוא"ל.'
-      itemAriaLabel={(item) => `דוא"ל ${item.address || 'חדש'}`}
+      itemAriaLabel={item => `דוא"ל ${item.address || 'חדש'}`}
       currentUserId={currentUserId}
       activeStatusLabel="פעילה"
       inactiveStatusLabel="לא פעילה"
@@ -52,7 +75,7 @@ export function EmailListEditor({ emails, onChange, currentUserId }: { emails: E
               <span className="font-medium text-slate-600">כתובת דוא&quot;ל *</span>
               <EmailInput
                 value={item.address}
-                onChange={(value) => update({ address: value })}
+                onChange={value => update({ address: value })}
                 className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-sm outline-none focus:border-cyan-400"
               />
               {error ? <span className="text-[11px] text-rose-600">{error}</span> : null}
@@ -61,13 +84,19 @@ export function EmailListEditor({ emails, onChange, currentUserId }: { emails: E
               <span className="font-medium text-slate-600">סוג</span>
               <select
                 value={item.type}
-                onChange={(event) => {
+                onChange={event => {
                   const type = event.target.value as EmailType;
-                  update({ type, label: item.label === emailTypeLabels[item.type] ? emailTypeLabels[type] : item.label });
+                  update({
+                    type,
+                    label:
+                      item.label === emailTypeLabels[item.type]
+                        ? emailTypeLabels[type]
+                        : item.label,
+                  });
                 }}
                 className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-sm"
               >
-                {emailTypes.map((type) => (
+                {emailTypes.map(type => (
                   <option key={type} value={type}>
                     {emailTypeLabels[type]}
                   </option>
@@ -78,7 +107,7 @@ export function EmailListEditor({ emails, onChange, currentUserId }: { emails: E
               <span className="font-medium text-slate-600">תווית (עברית)</span>
               <input
                 value={item.label}
-                onChange={(event) => update({ label: event.target.value })}
+                onChange={event => update({ label: event.target.value })}
                 className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-sm"
               />
             </label>

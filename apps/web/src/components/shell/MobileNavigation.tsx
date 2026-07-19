@@ -14,9 +14,17 @@ type MobileNavigationProps = {
 };
 
 /** Mobile drawer replacement for the desktop sidebar, sliding in from the RTL start (right) edge. */
-export function MobileNavigation({ open, onClose, pathname, organizationName, triggerRef }: MobileNavigationProps) {
+export function MobileNavigation({
+  open,
+  onClose,
+  pathname,
+  organizationName,
+  triggerRef,
+}: MobileNavigationProps) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const [collapsedSectionIds, setCollapsedSectionIds] = useState<ReadonlySet<string>>(() => new Set());
+  const [collapsedSectionIds, setCollapsedSectionIds] = useState<ReadonlySet<string>>(
+    () => new Set()
+  );
 
   useDismissableOverlay(open, onClose, [panelRef, triggerRef], { restoreFocusRef: triggerRef });
 
@@ -32,7 +40,7 @@ export function MobileNavigation({ open, onClose, pathname, organizationName, tr
   }, [open]);
 
   const toggleSection = (sectionId: string) => {
-    setCollapsedSectionIds((current) => {
+    setCollapsedSectionIds(current => {
       const next = new Set(current);
       if (next.has(sectionId)) {
         next.delete(sectionId);

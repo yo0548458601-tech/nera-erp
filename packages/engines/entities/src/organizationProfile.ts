@@ -1,7 +1,8 @@
 import { type Entity } from './entity';
 import { type Address, type Email, type Phone } from './contactMethods';
 
-export type OrganizationType = 'company' | 'nonprofit' | 'institution' | 'government' | 'bank' | 'other';
+export type OrganizationType =
+  'company' | 'nonprofit' | 'institution' | 'government' | 'bank' | 'other';
 
 /**
  * Organization-specific fields for an external/business-world entity such

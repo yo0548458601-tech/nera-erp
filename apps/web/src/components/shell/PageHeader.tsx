@@ -24,7 +24,15 @@ type PageHeaderProps = {
  * optional subtitle/help text and action slots. Pages should render this
  * instead of duplicating title/breadcrumb markup themselves.
  */
-export function PageHeader({ title, subtitle, helpText, primaryAction, secondaryActions, children, breadcrumbExtra }: PageHeaderProps) {
+export function PageHeader({
+  title,
+  subtitle,
+  helpText,
+  primaryAction,
+  secondaryActions,
+  children,
+  breadcrumbExtra,
+}: PageHeaderProps) {
   const pathname = usePathname();
   const resolvedTitle = title ?? breadcrumbExtra ?? findNavMatch(pathname)?.item.label ?? '';
 

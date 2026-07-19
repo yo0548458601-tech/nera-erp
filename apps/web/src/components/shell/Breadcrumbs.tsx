@@ -35,13 +35,21 @@ export function Breadcrumbs({ extraCrumb }: BreadcrumbsProps = {}) {
 
         return (
           <span key={`${crumb.label}-${index}`} className="flex items-center gap-1">
-            {index > 0 ? <ChevronLeft size={14} aria-hidden="true" className="text-slate-300" /> : null}
+            {index > 0 ? (
+              <ChevronLeft size={14} aria-hidden="true" className="text-slate-300" />
+            ) : null}
             {isLinkable ? (
-              <Link href={crumb.href as string} className="rounded px-1 hover:text-cyan-700 hover:underline">
+              <Link
+                href={crumb.href as string}
+                className="rounded px-1 hover:text-cyan-700 hover:underline"
+              >
                 {crumb.label}
               </Link>
             ) : (
-              <span aria-current={isLast ? 'page' : undefined} className={isLast ? 'font-medium text-slate-700' : ''}>
+              <span
+                aria-current={isLast ? 'page' : undefined}
+                className={isLast ? 'font-medium text-slate-700' : ''}
+              >
                 {crumb.label}
               </span>
             )}

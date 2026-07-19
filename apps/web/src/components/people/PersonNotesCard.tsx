@@ -8,7 +8,13 @@ import { useMyPermission } from '../../context/AuthorizationContext';
 import { PanelCard } from '../PanelCard';
 
 function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('he-IL', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleString('he-IL', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 /** Demo-only author resolution: the real system resolves createdByUserId through a Users service. */
@@ -29,8 +35,8 @@ export function PersonNotesCard({ person }: { person: PersonEntity }) {
   const currentUserId = demoUser.id;
 
   const allNotes = getNotesForEntity(person.id);
-  const activeNotes = allNotes.filter((note) => !isNoteDeleted(note));
-  const deletedNotes = allNotes.filter((note) => isNoteDeleted(note));
+  const activeNotes = allNotes.filter(note => !isNoteDeleted(note));
+  const deletedNotes = allNotes.filter(note => isNoteDeleted(note));
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -64,12 +70,15 @@ export function PersonNotesCard({ person }: { person: PersonEntity }) {
       <form onSubmit={handleSubmit} className="flex flex-col gap-2 sm:flex-row">
         <input
           value={draft}
-          onChange={(event) => setDraft(event.target.value)}
+          onChange={event => setDraft(event.target.value)}
           placeholder="הוספת הערה חדשה"
           aria-label="הוספת הערה חדשה"
           className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-400"
         />
-        <button type="submit" className="rounded-2xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white">
+        <button
+          type="submit"
+          className="rounded-2xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white"
+        >
           הוסף הערה
         </button>
       </form>
@@ -78,7 +87,7 @@ export function PersonNotesCard({ person }: { person: PersonEntity }) {
         <p className="mt-4 text-sm text-slate-400">אין הערות עדיין.</p>
       ) : (
         <ul className="mt-4 space-y-3">
-          {activeNotes.map((note) => {
+          {activeNotes.map(note => {
             const isEditing = editingNoteId === note.id;
             const edited = isNoteEdited(note);
 
@@ -88,7 +97,7 @@ export function PersonNotesCard({ person }: { person: PersonEntity }) {
                   <div className="flex flex-col gap-2">
                     <textarea
                       value={editDraft}
-                      onChange={(event) => setEditDraft(event.target.value)}
+                      onChange={event => setEditDraft(event.target.value)}
                       rows={2}
                       className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-cyan-400"
                     />
@@ -100,7 +109,11 @@ export function PersonNotesCard({ person }: { person: PersonEntity }) {
                       >
                         שמור
                       </button>
-                      <button type="button" onClick={cancelEdit} className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-600">
+                      <button
+                        type="button"
+                        onClick={cancelEdit}
+                        className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-600"
+                      >
                         ביטול
                       </button>
                     </div>
@@ -109,14 +122,24 @@ export function PersonNotesCard({ person }: { person: PersonEntity }) {
                   <>
                     <p className="text-sm text-slate-700">{note.content}</p>
                     <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-slate-400">
-                      <span className="font-medium text-slate-500">{resolveUserName(note.createdByUserId)}</span>
+                      <span className="font-medium text-slate-500">
+                        {resolveUserName(note.createdByUserId)}
+                      </span>
                       <span aria-hidden="true">·</span>
                       <span>{formatDateTime(note.createdAt)}</span>
-                      {edited ? <span className="rounded-full bg-slate-200 px-2 py-0.5 text-slate-600">נערך</span> : null}
+                      {edited ? (
+                        <span className="rounded-full bg-slate-200 px-2 py-0.5 text-slate-600">
+                          נערך
+                        </span>
+                      ) : null}
                     </div>
                     <div className="mt-2 flex gap-3 text-xs">
                       {canEditNotes ? (
-                        <button type="button" onClick={() => startEdit(note)} className="font-medium text-cyan-700">
+                        <button
+                          type="button"
+                          onClick={() => startEdit(note)}
+                          className="font-medium text-cyan-700"
+                        >
                           ערוך
                         </button>
                       ) : null}
@@ -140,19 +163,31 @@ export function PersonNotesCard({ person }: { person: PersonEntity }) {
 
       {canRestoreNotes && deletedNotes.length > 0 ? (
         <div className="mt-4 border-t border-slate-100 pt-3">
-          <button type="button" onClick={() => setShowDeleted((value) => !value)} className="text-xs font-medium text-slate-500">
+          <button
+            type="button"
+            onClick={() => setShowDeleted(value => !value)}
+            className="text-xs font-medium text-slate-500"
+          >
             {showDeleted ? 'הסתר' : 'הצג'} הערות שנמחקו ({deletedNotes.length})
           </button>
           {showDeleted ? (
             <ul className="mt-2 space-y-2">
-              {deletedNotes.map((note) => (
-                <li key={note.id} className="rounded-2xl border border-dashed border-slate-200 bg-white p-3 opacity-70">
+              {deletedNotes.map(note => (
+                <li
+                  key={note.id}
+                  className="rounded-2xl border border-dashed border-slate-200 bg-white p-3 opacity-70"
+                >
                   <p className="text-sm text-slate-500 line-through">{note.content}</p>
                   <p className="mt-1 text-xs text-slate-400">
-                    נמחקה על ידי {note.deletedByUserId ? resolveUserName(note.deletedByUserId) : '—'}
+                    נמחקה על ידי{' '}
+                    {note.deletedByUserId ? resolveUserName(note.deletedByUserId) : '—'}
                     {note.deletedAt ? ` · ${formatDateTime(note.deletedAt)}` : ''}
                   </p>
-                  <button type="button" onClick={() => restoreNote(note.id)} className="mt-2 text-xs font-medium text-cyan-700">
+                  <button
+                    type="button"
+                    onClick={() => restoreNote(note.id)}
+                    className="mt-2 text-xs font-medium text-cyan-700"
+                  >
                     שחזר הערה
                   </button>
                 </li>

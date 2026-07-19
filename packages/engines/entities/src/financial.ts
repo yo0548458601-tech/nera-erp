@@ -45,7 +45,7 @@ export function assertDistinctRoleStreams(streams: FinancialStreamContext[]): vo
   for (const stream of streams) {
     if (seen.has(stream.roleAssignmentId)) {
       throw new Error(
-        `Financial streams must stay separate per role assignment; duplicate roleAssignmentId "${stream.roleAssignmentId}" would combine two streams.`,
+        `Financial streams must stay separate per role assignment; duplicate roleAssignmentId "${stream.roleAssignmentId}" would combine two streams.`
       );
     }
     seen.add(stream.roleAssignmentId);

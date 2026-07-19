@@ -99,7 +99,12 @@ function builtInRole(
   description: string,
   applicableEntityTypes: EntityType[],
   order: number,
-  overrides: Partial<Pick<RoleDefinition, 'showInGlobalAddNew' | 'allowMultipleAssignments' | 'icon' | 'supportsBillingProfile'>> = {},
+  overrides: Partial<
+    Pick<
+      RoleDefinition,
+      'showInGlobalAddNew' | 'allowMultipleAssignments' | 'icon' | 'supportsBillingProfile'
+    >
+  > = {}
 ): RoleDefinition {
   return {
     id: `role-def-${key}`,
@@ -133,28 +138,61 @@ function builtInRole(
 export const entityRoleRegistry: RoleDefinition[] = [
   builtInRole('contact', 'איש קשר', 'איש קשר כללי ללא שיוך עסקי ספציפי.', ['person'], 0),
   builtInRole('employee', 'עובד', 'עובד בארגון.', ['person'], 1, { showInGlobalAddNew: true }),
-  builtInRole('avreich', 'אברך', 'אברך המשויך למוסד לימוד.', ['person'], 2, { showInGlobalAddNew: true }),
-  builtInRole('student', 'תלמיד', 'תלמיד המשויך למסגרת לימודים.', ['person'], 3, { showInGlobalAddNew: true }),
+  builtInRole('avreich', 'אברך', 'אברך המשויך למוסד לימוד.', ['person'], 2, {
+    showInGlobalAddNew: true,
+  }),
+  builtInRole('student', 'תלמיד', 'תלמיד המשויך למסגרת לימודים.', ['person'], 3, {
+    showInGlobalAddNew: true,
+  }),
   builtInRole('parent', 'הורה', 'הורה או אפוטרופוס של תלמיד.', ['person'], 4),
-  builtInRole('donor', 'תורם', 'תורם לארגון.', ['person', 'organization'], 5, { allowMultipleAssignments: true, supportsBillingProfile: true }),
+  builtInRole('donor', 'תורם', 'תורם לארגון.', ['person', 'organization'], 5, {
+    allowMultipleAssignments: true,
+    supportsBillingProfile: true,
+  }),
   builtInRole('administrator', 'מנהל מערכת', 'הרשאת ניהול מערכת.', ['person'], 6),
-  builtInRole('individual_supplier', 'ספק פרטי', 'איש קשר המשמש כספק באופן פרטי, שלא דרך חברה.', ['person'], 7, { supportsBillingProfile: true }),
-  builtInRole('supplier', 'ספק', 'ארגון המספק שירותים או מוצרים.', ['organization'], 8, { showInGlobalAddNew: true, supportsBillingProfile: true }),
-  builtInRole('customer', 'לקוח', 'גורם הרוכש שירותים או מוצרים.', ['person', 'organization'], 9, { supportsBillingProfile: true }),
+  builtInRole(
+    'individual_supplier',
+    'ספק פרטי',
+    'איש קשר המשמש כספק באופן פרטי, שלא דרך חברה.',
+    ['person'],
+    7,
+    { supportsBillingProfile: true }
+  ),
+  builtInRole('supplier', 'ספק', 'ארגון המספק שירותים או מוצרים.', ['organization'], 8, {
+    showInGlobalAddNew: true,
+    supportsBillingProfile: true,
+  }),
+  builtInRole('customer', 'לקוח', 'גורם הרוכש שירותים או מוצרים.', ['person', 'organization'], 9, {
+    supportsBillingProfile: true,
+  }),
   builtInRole('partner', 'שותף עסקי', 'ארגון שותף עסקית.', ['organization'], 10),
-  builtInRole('service_provider', 'נותן שירות', 'גורם המעניק שירות לארגון.', ['person', 'organization'], 11),
+  builtInRole(
+    'service_provider',
+    'נותן שירות',
+    'גורם המעניק שירות לארגון.',
+    ['person', 'organization'],
+    11
+  ),
 ];
 
 function isVisible(role: RoleDefinition): boolean {
   return role.status === 'active' && !role.deletedAt;
 }
 
-export function getRolesForEntityType(roles: RoleDefinition[], entityType: EntityType): RoleDefinition[] {
-  return roles.filter((role) => isVisible(role) && role.applicableEntityTypes.includes(entityType)).sort((a, b) => a.order - b.order);
+export function getRolesForEntityType(
+  roles: RoleDefinition[],
+  entityType: EntityType
+): RoleDefinition[] {
+  return roles
+    .filter(role => isVisible(role) && role.applicableEntityTypes.includes(entityType))
+    .sort((a, b) => a.order - b.order);
 }
 
-export function findRoleDefinition(roles: RoleDefinition[], key: EntityRoleId): RoleDefinition | undefined {
-  return roles.find((entry) => entry.key === key);
+export function findRoleDefinition(
+  roles: RoleDefinition[],
+  key: EntityRoleId
+): RoleDefinition | undefined {
+  return roles.find(entry => entry.key === key);
 }
 
 export function getRoleDefinition(roles: RoleDefinition[], key: EntityRoleId): RoleDefinition {
@@ -209,10 +247,13 @@ export function canAssignRole(
   entityId: string,
   role: EntityRoleId,
   existingAssignments: RoleAssignment[],
-  roleDefinition: RoleDefinition | undefined,
+  roleDefinition: RoleDefinition | undefined
 ): boolean {
   if (roleDefinition?.allowMultipleAssignments) {
     return true;
   }
-  return !existingAssignments.some((assignment) => assignment.entityId === entityId && assignment.role === role && assignment.status === 'active');
+  return !existingAssignments.some(
+    assignment =>
+      assignment.entityId === entityId && assignment.role === role && assignment.status === 'active'
+  );
 }

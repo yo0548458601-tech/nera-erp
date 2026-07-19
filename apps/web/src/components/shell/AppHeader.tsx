@@ -2,7 +2,16 @@
 
 import { useRef, type RefObject } from 'react';
 import Link from 'next/link';
-import { Bell, ChevronDown, HelpCircle, LogOut, Menu, Plus, Search, ShieldCheck } from 'lucide-react';
+import {
+  Bell,
+  ChevronDown,
+  HelpCircle,
+  LogOut,
+  Menu,
+  Plus,
+  Search,
+  ShieldCheck,
+} from 'lucide-react';
 import { type DemoOrganization, type DemoUser } from '../../lib/auth/demoData';
 import { useDismissableOverlay } from '../../hooks/useDismissableOverlay';
 
@@ -72,9 +81,14 @@ export function AppHeader({
   useDismissableOverlay(userMenuOpen, onPanelClose, [userMenuPanelRef, userMenuTriggerRef], {
     restoreFocusRef: userMenuTriggerRef,
   });
-  useDismissableOverlay(orgSwitcherOpen, onPanelClose, [orgSwitcherPanelRef, orgSwitcherTriggerRef], {
-    restoreFocusRef: orgSwitcherTriggerRef,
-  });
+  useDismissableOverlay(
+    orgSwitcherOpen,
+    onPanelClose,
+    [orgSwitcherPanelRef, orgSwitcherTriggerRef],
+    {
+      restoreFocusRef: orgSwitcherTriggerRef,
+    }
+  );
 
   return (
     <header className="border-b border-slate-200 bg-white/90 p-4 backdrop-blur sm:p-5">
@@ -122,7 +136,10 @@ export function AppHeader({
             className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-700"
           >
             <Bell size={18} aria-hidden="true" />
-            <span className="absolute left-2 top-2 h-2.5 w-2.5 rounded-full bg-rose-500" aria-hidden="true" />
+            <span
+              className="absolute left-2 top-2 h-2.5 w-2.5 rounded-full bg-rose-500"
+              aria-hidden="true"
+            />
           </button>
           <button
             ref={quickActionsTriggerRef}
@@ -226,7 +243,7 @@ export function AppHeader({
                 role="listbox"
                 className="absolute right-0 top-[calc(100%+0.5rem)] z-40 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl"
               >
-                {organizations.map((item) => (
+                {organizations.map(item => (
                   <button
                     key={item.id}
                     type="button"
@@ -237,7 +254,9 @@ export function AppHeader({
                       onPanelClose();
                     }}
                     className={`block w-full rounded-xl px-3 py-2 text-right text-sm ${
-                      item.id === organization.id ? 'bg-cyan-50 text-cyan-700' : 'text-slate-700 hover:bg-slate-50'
+                      item.id === organization.id
+                        ? 'bg-cyan-50 text-cyan-700'
+                        : 'text-slate-700 hover:bg-slate-50'
                     }`}
                   >
                     {item.name}
@@ -247,7 +266,11 @@ export function AppHeader({
             ) : null}
           </div>
         </div>
-        <button type="button" onClick={onLogout} className="rounded-full bg-slate-900 px-3 py-1 text-sm text-white">
+        <button
+          type="button"
+          onClick={onLogout}
+          className="rounded-full bg-slate-900 px-3 py-1 text-sm text-white"
+        >
           יציאה
         </button>
       </div>

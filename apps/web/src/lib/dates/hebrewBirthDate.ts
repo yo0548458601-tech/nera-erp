@@ -25,9 +25,17 @@ export type HebrewDateAdjustment = -1 | 0 | 1;
  * Hebrew gematria conversion happens inside @nera/calendar-engine -
  * nothing here reimplements or hardcodes it.
  */
-export function computeHebrewBirthDate(birthDateGregorian: string, adjustmentDays: HebrewDateAdjustment): CalendarDate {
-  const adjustedDate = adjustmentDays === 0 ? birthDateGregorian : addDays(birthDateGregorian, adjustmentDays);
-  return { system: 'hebrew', isoDate: birthDateGregorian, display: formatHebrewDateField(adjustedDate) };
+export function computeHebrewBirthDate(
+  birthDateGregorian: string,
+  adjustmentDays: HebrewDateAdjustment
+): CalendarDate {
+  const adjustedDate =
+    adjustmentDays === 0 ? birthDateGregorian : addDays(birthDateGregorian, adjustmentDays);
+  return {
+    system: 'hebrew',
+    isoDate: birthDateGregorian,
+    display: formatHebrewDateField(adjustedDate),
+  };
 }
 
 /**
@@ -38,11 +46,19 @@ export function computeHebrewBirthDate(birthDateGregorian: string, adjustmentDay
  * Engine's formatIsraeliShortDate docstring for the full rationale).
  */
 export function formatGregorianBirthDate(birthDateGregorian: string): CalendarDate {
-  return { system: 'gregorian', isoDate: birthDateGregorian, display: formatIsraeliShortDate(birthDateGregorian) };
+  return {
+    system: 'gregorian',
+    isoDate: birthDateGregorian,
+    display: formatIsraeliShortDate(birthDateGregorian),
+  };
 }
 
 /** Structured Hebrew calendar parts (day/month/year) for the same adjusted date computeHebrewBirthDate displays - used for filtering, never for display formatting (see computeHebrewBirthDate for that). */
-export function getHebrewBirthDateParts(birthDateGregorian: string, adjustmentDays: HebrewDateAdjustment): HebrewCalendarParts {
-  const adjustedDate = adjustmentDays === 0 ? birthDateGregorian : addDays(birthDateGregorian, adjustmentDays);
+export function getHebrewBirthDateParts(
+  birthDateGregorian: string,
+  adjustmentDays: HebrewDateAdjustment
+): HebrewCalendarParts {
+  const adjustedDate =
+    adjustmentDays === 0 ? birthDateGregorian : addDays(birthDateGregorian, adjustmentDays);
   return getHebrewCalendarParts(adjustedDate);
 }

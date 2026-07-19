@@ -1,4 +1,8 @@
-import { findNextHebrewAnniversary, toCalendarDateUTC, type HebrewCalendarParts } from '@nera/calendar-engine';
+import {
+  findNextHebrewAnniversary,
+  toCalendarDateUTC,
+  type HebrewCalendarParts,
+} from '@nera/calendar-engine';
 import { getHebrewBirthDateParts, type HebrewDateAdjustment } from './hebrewBirthDate';
 
 /**
@@ -21,7 +25,12 @@ export { matchesHebrewMonth, matchesHebrewDay } from '@nera/calendar-engine';
  * the `todayIso` comparison point go through the same UTC-noon-anchored
  * date construction, so the day-difference is an exact integer.
  */
-export function isUpcomingHebrewBirthday(birthDateGregorian: string, adjustmentDays: HebrewDateAdjustment, todayIso: string, withinDays: number): boolean {
+export function isUpcomingHebrewBirthday(
+  birthDateGregorian: string,
+  adjustmentDays: HebrewDateAdjustment,
+  todayIso: string,
+  withinDays: number
+): boolean {
   const targetParts = getHebrewBirthDateParts(birthDateGregorian, adjustmentDays);
   const next = findNextHebrewAnniversary(todayIso, targetParts.month, targetParts.day);
   if (!next) {

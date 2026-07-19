@@ -38,8 +38,12 @@ export function PersonCustomFieldsCard({ person }: { person: PersonEntity }) {
    * a security boundary - see AuthorizationContext's docstring.
    */
   const fields = getFieldsForEntityType(definitions, 'person')
-    .filter((definition) => definition.showInDetail)
-    .filter((definition) => !definition.viewPermission || resolveMyPermission(definition.viewPermission as PermissionId).decision === 'allow');
+    .filter(definition => definition.showInDetail)
+    .filter(
+      definition =>
+        !definition.viewPermission ||
+        resolveMyPermission(definition.viewPermission as PermissionId).decision === 'allow'
+    );
 
   if (fields.length === 0) {
     return null;
@@ -52,38 +56,55 @@ export function PersonCustomFieldsCard({ person }: { person: PersonEntity }) {
       return;
     }
     const validationErrors = setValue(person.id, definitionId, draft, currentUserId);
-    setErrors((current) => ({ ...current, [definitionId]: validationErrors }));
+    setErrors(current => ({ ...current, [definitionId]: validationErrors }));
     if (validationErrors.length === 0) {
       setSavedFieldId(definitionId);
-      window.setTimeout(() => setSavedFieldId((current) => (current === definitionId ? null : current)), 2000);
+      window.setTimeout(
+        () => setSavedFieldId(current => (current === definitionId ? null : current)),
+        2000
+      );
     }
   };
 
   return (
-    <PanelCard title="שדות מותאמים אישית" subtitle="הדגמה של פלטפורמת השדות המותאמים אישית - הגדרות זמינות דרך הגדרות המערכת.">
+    <PanelCard
+      title="שדות מותאמים אישית"
+      subtitle="הדגמה של פלטפורמת השדות המותאמים אישית - הגדרות זמינות דרך הגדרות המערכת."
+    >
       <div className="flex flex-col gap-4">
-        {fields.map((definition) => {
+        {fields.map(definition => {
           const stored = getValue(person.id, definition.id);
           const currentValue = drafts[definition.id] ?? stored?.value;
           const fieldErrors = errors[definition.id] ?? [];
-          const canEdit = !definition.editPermission || resolveMyPermission(definition.editPermission as PermissionId).decision === 'allow';
+          const canEdit =
+            !definition.editPermission ||
+            resolveMyPermission(definition.editPermission as PermissionId).decision === 'allow';
 
           return (
-            <div key={definition.id} className="flex flex-col gap-1.5 border-b border-slate-100 pb-4 last:border-0 last:pb-0">
+            <div
+              key={definition.id}
+              className="flex flex-col gap-1.5 border-b border-slate-100 pb-4 last:border-0 last:pb-0"
+            >
               <label className="flex flex-col gap-1.5 text-sm">
                 <span className="font-medium text-slate-700">
                   {definition.label}
                   {definition.required ? ' *' : ''}
                 </span>
-                {definition.description ? <span className="text-xs text-slate-400">{definition.description}</span> : null}
+                {definition.description ? (
+                  <span className="text-xs text-slate-400">{definition.description}</span>
+                ) : null}
                 {canEdit ? (
                   <CustomFieldInput
                     definition={definition}
                     value={currentValue}
-                    onChange={(value) => setDrafts((current) => ({ ...current, [definition.id]: value }))}
+                    onChange={value =>
+                      setDrafts(current => ({ ...current, [definition.id]: value }))
+                    }
                   />
                 ) : (
-                  <span className="text-sm text-slate-500">{formatCustomFieldValue(stored?.value)}</span>
+                  <span className="text-sm text-slate-500">
+                    {formatCustomFieldValue(stored?.value)}
+                  </span>
                 )}
               </label>
               {canEdit ? (
@@ -95,13 +116,17 @@ export function PersonCustomFieldsCard({ person }: { person: PersonEntity }) {
                   >
                     שמור ערך
                   </button>
-                  {savedFieldId === definition.id ? <span className="text-xs font-medium text-emerald-600">נשמר</span> : null}
-                  <span className="text-xs text-slate-400">ערך נוכחי: {formatCustomFieldValue(stored?.value)}</span>
+                  {savedFieldId === definition.id ? (
+                    <span className="text-xs font-medium text-emerald-600">נשמר</span>
+                  ) : null}
+                  <span className="text-xs text-slate-400">
+                    ערך נוכחי: {formatCustomFieldValue(stored?.value)}
+                  </span>
                 </div>
               ) : null}
               {fieldErrors.length > 0 ? (
                 <ul className="text-xs text-rose-600">
-                  {fieldErrors.map((error) => (
+                  {fieldErrors.map(error => (
                     <li key={error}>{error}</li>
                   ))}
                 </ul>

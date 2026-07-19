@@ -17,10 +17,20 @@ export type CustomFieldValue = {
   updatedByUserId: string;
 };
 
-export function getCustomFieldValuesForEntity(values: CustomFieldValue[], entityId: string): CustomFieldValue[] {
-  return values.filter((value) => value.entityId === entityId);
+export function getCustomFieldValuesForEntity(
+  values: CustomFieldValue[],
+  entityId: string
+): CustomFieldValue[] {
+  return values.filter(value => value.entityId === entityId);
 }
 
-export function findCustomFieldValue(values: CustomFieldValue[], entityId: string, customFieldDefinitionId: string): CustomFieldValue | undefined {
-  return values.find((value) => value.entityId === entityId && value.customFieldDefinitionId === customFieldDefinitionId);
+export function findCustomFieldValue(
+  values: CustomFieldValue[],
+  entityId: string,
+  customFieldDefinitionId: string
+): CustomFieldValue | undefined {
+  return values.find(
+    value =>
+      value.entityId === entityId && value.customFieldDefinitionId === customFieldDefinitionId
+  );
 }

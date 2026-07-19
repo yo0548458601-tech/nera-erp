@@ -67,26 +67,39 @@ export function resolveEffectiveListViewColumns(
   screenId: string,
   context: ListViewPreferenceContext,
   rules: ListViewColumnPreference[],
-  builtInDefaultColumnKeys: string[],
+  builtInDefaultColumnKeys: string[]
 ): EffectiveListViewColumns {
-  const forScreen = rules.filter((rule) => rule.screenId === screenId);
+  const forScreen = rules.filter(rule => rule.screenId === screenId);
 
-  const userRule = forScreen.find((rule) => rule.scope === 'user' && rule.targetId === context.userId);
+  const userRule = forScreen.find(
+    rule => rule.scope === 'user' && rule.targetId === context.userId
+  );
   if (userRule) {
     return { screenId, visibleColumnKeys: userRule.visibleColumnKeys, source: 'user' };
   }
 
-  const roleRule = forScreen.find((rule) => rule.scope === 'role' && rule.targetId !== undefined && context.roleIds.includes(rule.targetId));
+  const roleRule = forScreen.find(
+    rule =>
+      rule.scope === 'role' &&
+      rule.targetId !== undefined &&
+      context.roleIds.includes(rule.targetId)
+  );
   if (roleRule) {
     return { screenId, visibleColumnKeys: roleRule.visibleColumnKeys, source: 'role' };
   }
 
-  const institutionRule = forScreen.find((rule) => rule.scope === 'institution' && rule.targetId === context.institutionId);
+  const institutionRule = forScreen.find(
+    rule => rule.scope === 'institution' && rule.targetId === context.institutionId
+  );
   if (institutionRule) {
-    return { screenId, visibleColumnKeys: institutionRule.visibleColumnKeys, source: 'institution' };
+    return {
+      screenId,
+      visibleColumnKeys: institutionRule.visibleColumnKeys,
+      source: 'institution',
+    };
   }
 
-  const systemRule = forScreen.find((rule) => rule.scope === 'system');
+  const systemRule = forScreen.find(rule => rule.scope === 'system');
   if (systemRule) {
     return { screenId, visibleColumnKeys: systemRule.visibleColumnKeys, source: 'system' };
   }
@@ -97,7 +110,7 @@ export function resolveEffectiveListViewColumns(
 /** The screen's built-in default: required columns first (always visible), then whichever optional columns are marked defaultVisible, in defaultOrder. */
 export function getBuiltInDefaultColumnKeys(definitions: ListColumnDefinition[]): string[] {
   return [...definitions]
-    .filter((definition) => definition.required || definition.defaultVisible)
+    .filter(definition => definition.required || definition.defaultVisible)
     .sort((a, b) => a.defaultOrder - b.defaultOrder)
-    .map((definition) => definition.key);
+    .map(definition => definition.key);
 }

@@ -10,7 +10,11 @@ function createId(prefix: string): string {
 type BillingProfileContextValue = {
   billingProfiles: BillingProfile[];
   getBillingProfile: (roleAssignmentId: string) => BillingProfile | undefined;
-  setBillingDisplayName: (roleAssignmentId: string, entityId: string, billingDisplayName: string) => void;
+  setBillingDisplayName: (
+    roleAssignmentId: string,
+    entityId: string,
+    billingDisplayName: string
+  ) => void;
 };
 
 const BillingProfileContext = createContext<BillingProfileContextValue | undefined>(undefined);
@@ -26,24 +30,42 @@ export function BillingProfileProvider({ children }: { children: ReactNode }) {
   const [billingProfiles, setBillingProfiles] = useState<BillingProfile[]>([]);
 
   const getBillingProfile = useCallback(
-    (roleAssignmentId: string) => getBillingProfileForRoleAssignment(billingProfiles, roleAssignmentId),
-    [billingProfiles],
+    (roleAssignmentId: string) =>
+      getBillingProfileForRoleAssignment(billingProfiles, roleAssignmentId),
+    [billingProfiles]
   );
 
-  const setBillingDisplayName = useCallback((roleAssignmentId: string, entityId: string, billingDisplayName: string) => {
-    setBillingProfiles((current) => {
-      const existing = current.find((profile) => profile.roleAssignmentId === roleAssignmentId);
-      const now = new Date().toISOString();
-      if (existing) {
-        return current.map((profile) => (profile.id === existing.id ? { ...profile, billingDisplayName, updatedAt: now } : profile));
-      }
-      return [...current, { id: createId('billing'), roleAssignmentId, entityId, billingDisplayName, createdAt: now, updatedAt: now }];
-    });
-  }, []);
+  const setBillingDisplayName = useCallback(
+    (roleAssignmentId: string, entityId: string, billingDisplayName: string) => {
+      setBillingProfiles(current => {
+        const existing = current.find(profile => profile.roleAssignmentId === roleAssignmentId);
+        const now = new Date().toISOString();
+        if (existing) {
+          return current.map(profile =>
+            profile.id === existing.id
+              ? { ...profile, billingDisplayName, updatedAt: now }
+              : profile
+          );
+        }
+        return [
+          ...current,
+          {
+            id: createId('billing'),
+            roleAssignmentId,
+            entityId,
+            billingDisplayName,
+            createdAt: now,
+            updatedAt: now,
+          },
+        ];
+      });
+    },
+    []
+  );
 
   const value = useMemo<BillingProfileContextValue>(
     () => ({ billingProfiles, getBillingProfile, setBillingDisplayName }),
-    [billingProfiles, getBillingProfile, setBillingDisplayName],
+    [billingProfiles, getBillingProfile, setBillingDisplayName]
   );
 
   return <BillingProfileContext.Provider value={value}>{children}</BillingProfileContext.Provider>;

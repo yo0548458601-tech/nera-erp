@@ -126,33 +126,35 @@ export type PhoneDraft = Omit<Phone, 'entityId' | 'createdAt' | 'updatedAt'>;
 export type EmailDraft = Omit<Email, 'entityId' | 'createdAt' | 'updatedAt'>;
 export type AddressDraft = Omit<Address, 'entityId' | 'createdAt' | 'updatedAt'>;
 
-function isSelectable<T extends { isPrimary: boolean; status: ContactMethodStatus; deletedAt?: string | null }>(record: T): boolean {
+function isSelectable<
+  T extends { isPrimary: boolean; status: ContactMethodStatus; deletedAt?: string | null },
+>(record: T): boolean {
   return record.status === 'active' && !record.deletedAt;
 }
 
 /** Active, non-removed records only - the set shown by default in any list/editor. */
 export function excludeDeleted<T extends SoftDeletable>(records: T[]): T[] {
-  return records.filter((record) => !record.deletedAt);
+  return records.filter(record => !record.deletedAt);
 }
 
 /** Removed (soft-deleted) records only - shown behind a "הצג פריטים שהוסרו" toggle, each restorable. */
 export function onlyDeleted<T extends SoftDeletable>(records: T[]): T[] {
-  return records.filter((record) => Boolean(record.deletedAt));
+  return records.filter(record => Boolean(record.deletedAt));
 }
 
 export function getPrimaryPhone(record: { phones: Phone[] }): Phone | undefined {
   const active = record.phones.filter(isSelectable);
-  return active.find((phone) => phone.isPrimary) ?? active[0];
+  return active.find(phone => phone.isPrimary) ?? active[0];
 }
 
 export function getPrimaryEmail(record: { emails: Email[] }): Email | undefined {
   const active = record.emails.filter(isSelectable);
-  return active.find((email) => email.isPrimary) ?? active[0];
+  return active.find(email => email.isPrimary) ?? active[0];
 }
 
 export function getPrimaryAddress(record: { addresses: Address[] }): Address | undefined {
   const active = record.addresses.filter(isSelectable);
-  return active.find((address) => address.isPrimary) ?? active[0];
+  return active.find(address => address.isPrimary) ?? active[0];
 }
 
 /**
@@ -172,7 +174,7 @@ export function formatAddress(address: Partial<Address>): string {
   const unitLine = unitParts.join(', ');
 
   const segments = [streetLine, unitLine, address.city, address.postalCode, address.country].filter(
-    (segment): segment is string => Boolean(segment && segment.trim()),
+    (segment): segment is string => Boolean(segment && segment.trim())
   );
 
   return segments.join(', ');

@@ -36,9 +36,14 @@ export type ExcelColumnContract<TRecord> = {
 };
 
 /** Runs export column resolution + formatting across a list of records - the shared pipeline every module reuses instead of writing its own. */
-export function buildExcelExportRows<TRecord>(records: TRecord[], columns: ExcelColumnContract<TRecord>[]): string[][] {
-  const enabledColumns = columns.filter((column) => column.exportEnabled);
-  const header = enabledColumns.map((column) => column.hebrewHeader);
-  const rows = records.map((record) => enabledColumns.map((column) => column.format(column.resolveValue(record))));
+export function buildExcelExportRows<TRecord>(
+  records: TRecord[],
+  columns: ExcelColumnContract<TRecord>[]
+): string[][] {
+  const enabledColumns = columns.filter(column => column.exportEnabled);
+  const header = enabledColumns.map(column => column.hebrewHeader);
+  const rows = records.map(record =>
+    enabledColumns.map(column => column.format(column.resolveValue(record)))
+  );
   return [header, ...rows];
 }

@@ -1,0 +1,65 @@
+name: CI
+
+# Runs the same checks `npm run validate` runs locally, in the same order,
+# so a CI failure is always reproducible by running that one command
+# locally. See docs/ROADMAP.md (P009) and docs/NERA_CONSTITUTION.md for why
+# this exists: Milestone 2's own exit criterion is "CI blocks a PR that
+# fails lint, typecheck, or tests."
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Cancel a superseded run on the same branch/PR when new commits land.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# No job needs to write anything (no deploy, no PR comments, no releases in
+# this sprint) - least privilege by default.
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # Deterministic install from the committed lockfile only - never
+      # `npm install` in CI. This is also what catches lockfile drift
+      # immediately (see docs/ROADMAP.md P009 for the exact failure this
+      # sprint found and fixed).
+      - name: Install dependencies
+        run: npm ci
+
+      # No environment variables are set anywhere in this workflow, on
+      # purpose: none of the steps below (format/lint/typecheck/test/build)
+      # read any secret or require a database connection. Prisma Client
+      # generation (chained into the database package's own typecheck/build
+      # scripts) only reads the schema file - it never connects to a real
+      # database. If a future sprint adds a check that genuinely needs an
+      # environment variable, add it explicitly here rather than assuming.
+
+      - name: Check formatting
+        run: npm run check-format
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build

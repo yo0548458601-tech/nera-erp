@@ -1,5 +1,12 @@
 import { type Entity, type EntityStatus } from './entity';
-import { type Address, type AddressDraft, type Email, type EmailDraft, type Phone, type PhoneDraft } from './contactMethods';
+import {
+  type Address,
+  type AddressDraft,
+  type Email,
+  type EmailDraft,
+  type Phone,
+  type PhoneDraft,
+} from './contactMethods';
 import { type EntityRoleId } from './roles';
 
 export type PersonGender = 'male' | 'female' | 'unspecified';

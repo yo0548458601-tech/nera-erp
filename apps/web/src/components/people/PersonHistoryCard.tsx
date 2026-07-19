@@ -31,7 +31,13 @@ function formatValue(value: unknown): string {
 }
 
 function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('he-IL', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleString('he-IL', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 type PersonHistoryCardProps = {
@@ -53,11 +59,20 @@ export function PersonHistoryCard({ history }: PersonHistoryCardProps) {
         <p className="text-sm text-slate-400">אין שינויים רשומים עדיין.</p>
       ) : (
         <ul className="space-y-2">
-          {sorted.map((change) => (
-            <li key={change.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-3 text-sm">
-              <p className="font-medium text-slate-800">{fieldLabels[change.field] ?? change.field}</p>
+          {sorted.map(change => (
+            <li
+              key={change.id}
+              className="rounded-2xl border border-slate-100 bg-slate-50 p-3 text-sm"
+            >
+              <p className="font-medium text-slate-800">
+                {fieldLabels[change.field] ?? change.field}
+              </p>
               <p className="mt-1 text-slate-600">
-                מ-<span className="text-slate-400 line-through">{formatValue(change.previousValue)}</span> ל-
+                מ-
+                <span className="text-slate-400 line-through">
+                  {formatValue(change.previousValue)}
+                </span>{' '}
+                ל-
                 <span className="font-medium text-slate-800">{formatValue(change.newValue)}</span>
               </p>
               <p className="mt-1 text-xs text-slate-400">

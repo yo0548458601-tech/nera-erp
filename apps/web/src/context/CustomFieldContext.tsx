@@ -31,7 +31,8 @@ const seedCustomFieldDefinitions: CustomFieldDefinition[] = [
     id: 'cf-def-known-allergies',
     key: 'known_allergies',
     label: 'רגישויות ידועות',
-    description: 'מידע רפואי כללי לידיעת הצוות בלבד - שדה לדוגמה להדגמת פלטפורמת השדות המותאמים אישית.',
+    description:
+      'מידע רפואי כללי לידיעת הצוות בלבד - שדה לדוגמה להדגמת פלטפורמת השדות המותאמים אישית.',
     fieldType: 'short_text',
     targetScope: 'entity_type',
     targetEntityType: 'person',
@@ -77,11 +78,19 @@ type CustomFieldContextValue = {
   /** All administrator-defined custom field definitions - demo-only, in-memory. */
   definitions: CustomFieldDefinition[];
   values: CustomFieldValue[];
-  addCustomField: (input: NewCustomFieldInput) => { definition?: CustomFieldDefinition; error?: string };
+  addCustomField: (input: NewCustomFieldInput) => {
+    definition?: CustomFieldDefinition;
+    error?: string;
+  };
   setFieldStatus: (id: string, status: 'active' | 'inactive') => void;
   getValuesForEntity: (entityId: string) => CustomFieldValue[];
   getValue: (entityId: string, definitionId: string) => CustomFieldValue | undefined;
-  setValue: (entityId: string, definitionId: string, value: CustomFieldValueData, updatedByUserId: string) => string[];
+  setValue: (
+    entityId: string,
+    definitionId: string,
+    value: CustomFieldValueData,
+    updatedByUserId: string
+  ) => string[];
 };
 
 const CustomFieldContext = createContext<CustomFieldContextValue | undefined>(undefined);
@@ -97,22 +106,29 @@ const KEY_PATTERN = /^[a-z][a-z0-9_]*$/;
  * `entities` and `custom_field_definitions` by foreign key.
  */
 export function CustomFieldProvider({ children }: { children: ReactNode }) {
-  const [definitions, setDefinitions] = useState<CustomFieldDefinition[]>(seedCustomFieldDefinitions);
+  const [definitions, setDefinitions] = useState<CustomFieldDefinition[]>(
+    seedCustomFieldDefinitions
+  );
   const [values, setValues] = useState<CustomFieldValue[]>([]);
 
   const addCustomField = useCallback(
     (input: NewCustomFieldInput): { definition?: CustomFieldDefinition; error?: string } => {
       const key = input.key.trim();
       if (!KEY_PATTERN.test(key)) {
-        return { error: 'מפתח פנימי חייב להיות באנגלית, אותיות קטנות, ספרות וקו תחתון בלבד, ולהתחיל באות.' };
+        return {
+          error: 'מפתח פנימי חייב להיות באנגלית, אותיות קטנות, ספרות וקו תחתון בלבד, ולהתחיל באות.',
+        };
       }
-      if (definitions.some((definition) => definition.key === key)) {
+      if (definitions.some(definition => definition.key === key)) {
         return { error: 'כבר קיים שדה מותאם אישית עם מפתח פנימי זהה.' };
       }
       if (!input.label.trim()) {
         return { error: 'יש להזין שם שדה בעברית.' };
       }
-      if ((input.fieldType === 'single_select' || input.fieldType === 'multi_select') && (!input.options || input.options.length === 0)) {
+      if (
+        (input.fieldType === 'single_select' || input.fieldType === 'multi_select') &&
+        (!input.options || input.options.length === 0)
+      ) {
         return { error: 'יש להגדיר לפחות אפשרות אחת עבור שדה מסוג רשימה.' };
       }
 
@@ -146,23 +162,41 @@ export function CustomFieldProvider({ children }: { children: ReactNode }) {
         updatedAt: now,
       };
 
-      setDefinitions((current) => [...current, definition]);
+      setDefinitions(current => [...current, definition]);
       return { definition };
     },
-    [definitions],
+    [definitions]
   );
 
   const setFieldStatus = useCallback((id: string, status: 'active' | 'inactive') => {
-    setDefinitions((current) => current.map((definition) => (definition.id === id ? { ...definition, status, updatedAt: new Date().toISOString() } : definition)));
+    setDefinitions(current =>
+      current.map(definition =>
+        definition.id === id
+          ? { ...definition, status, updatedAt: new Date().toISOString() }
+          : definition
+      )
+    );
   }, []);
 
-  const getValuesForEntity = useCallback((entityId: string) => getCustomFieldValuesForEntity(values, entityId), [values]);
+  const getValuesForEntity = useCallback(
+    (entityId: string) => getCustomFieldValuesForEntity(values, entityId),
+    [values]
+  );
 
-  const getValue = useCallback((entityId: string, definitionId: string) => findCustomFieldValue(values, entityId, definitionId), [values]);
+  const getValue = useCallback(
+    (entityId: string, definitionId: string) =>
+      findCustomFieldValue(values, entityId, definitionId),
+    [values]
+  );
 
   const setValue = useCallback(
-    (entityId: string, definitionId: string, value: CustomFieldValueData, updatedByUserId: string): string[] => {
-      const definition = definitions.find((entry) => entry.id === definitionId);
+    (
+      entityId: string,
+      definitionId: string,
+      value: CustomFieldValueData,
+      updatedByUserId: string
+    ): string[] => {
+      const definition = definitions.find(entry => entry.id === definitionId);
       if (!definition) {
         return ['שדה מותאם אישית לא נמצא.'];
       }
@@ -171,22 +205,45 @@ export function CustomFieldProvider({ children }: { children: ReactNode }) {
         return errors;
       }
 
-      setValues((current) => {
-        const existing = current.find((entry) => entry.entityId === entityId && entry.customFieldDefinitionId === definitionId);
+      setValues(current => {
+        const existing = current.find(
+          entry => entry.entityId === entityId && entry.customFieldDefinitionId === definitionId
+        );
         const now = new Date().toISOString();
         if (existing) {
-          return current.map((entry) => (entry.id === existing.id ? { ...entry, value, updatedAt: now, updatedByUserId } : entry));
+          return current.map(entry =>
+            entry.id === existing.id ? { ...entry, value, updatedAt: now, updatedByUserId } : entry
+          );
         }
-        return [...current, { id: createId('cf-val'), customFieldDefinitionId: definitionId, entityId, value, createdAt: now, updatedAt: now, updatedByUserId }];
+        return [
+          ...current,
+          {
+            id: createId('cf-val'),
+            customFieldDefinitionId: definitionId,
+            entityId,
+            value,
+            createdAt: now,
+            updatedAt: now,
+            updatedByUserId,
+          },
+        ];
       });
       return [];
     },
-    [definitions],
+    [definitions]
   );
 
   const contextValue = useMemo<CustomFieldContextValue>(
-    () => ({ definitions, values, addCustomField, setFieldStatus, getValuesForEntity, getValue, setValue }),
-    [definitions, values, addCustomField, setFieldStatus, getValuesForEntity, getValue, setValue],
+    () => ({
+      definitions,
+      values,
+      addCustomField,
+      setFieldStatus,
+      getValuesForEntity,
+      getValue,
+      setValue,
+    }),
+    [definitions, values, addCustomField, setFieldStatus, getValuesForEntity, getValue, setValue]
   );
 
   return <CustomFieldContext.Provider value={contextValue}>{children}</CustomFieldContext.Provider>;

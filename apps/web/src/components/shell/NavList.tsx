@@ -20,14 +20,22 @@ type NavListProps = {
  * by both the desktop AppSidebar and the MobileNavigation drawer so the
  * navigation data and active-state logic exist in exactly one place.
  */
-export function NavList({ pathname, railMode = false, collapsedSectionIds, onToggleSection, onNavigate }: NavListProps) {
+export function NavList({
+  pathname,
+  railMode = false,
+  collapsedSectionIds,
+  onToggleSection,
+  onNavigate,
+}: NavListProps) {
   if (railMode) {
     return (
       <nav aria-label="ניווט ראשי" className="flex flex-col items-center gap-1 py-2">
         {navigationSections.map((section, sectionIndex) => (
           <div key={section.id} className="flex w-full flex-col items-center gap-1">
-            {sectionIndex > 0 ? <div className="my-1 h-px w-8 bg-slate-200" aria-hidden="true" /> : null}
-            {section.items.map((item) => {
+            {sectionIndex > 0 ? (
+              <div className="my-1 h-px w-8 bg-slate-200" aria-hidden="true" />
+            ) : null}
+            {section.items.map(item => {
               const Icon = getNavIcon(item.icon);
               const active = isNavItemActive(item, pathname);
               return (
@@ -53,7 +61,7 @@ export function NavList({ pathname, railMode = false, collapsedSectionIds, onTog
 
   return (
     <nav aria-label="ניווט ראשי" className="flex flex-col gap-4">
-      {navigationSections.map((section) => {
+      {navigationSections.map(section => {
         const isSectionCollapsed = collapsedSectionIds.has(section.id);
 
         return (
@@ -74,7 +82,7 @@ export function NavList({ pathname, railMode = false, collapsedSectionIds, onTog
 
             {!isSectionCollapsed ? (
               <div className="mt-1 flex flex-col gap-0.5">
-                {section.items.map((item) => {
+                {section.items.map(item => {
                   const Icon = getNavIcon(item.icon);
                   const active = isNavItemActive(item, pathname);
                   return (

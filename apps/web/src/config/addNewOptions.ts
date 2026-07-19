@@ -38,13 +38,18 @@ export function useAddNewOptions(): AddNewOption[] {
   return useMemo(() => {
     const base: AddNewOption[] = [
       { id: 'person', label: 'אדם חדש', entityType: 'person', implemented: true },
-      { id: 'organization', label: 'חברה או ארגון חדש', entityType: 'organization', implemented: false },
+      {
+        id: 'organization',
+        label: 'חברה או ארגון חדש',
+        entityType: 'organization',
+        implemented: false,
+      },
     ];
 
     const roleOptions: AddNewOption[] = roles
-      .filter((role) => role.showInGlobalAddNew && role.status === 'active' && !role.deletedAt)
+      .filter(role => role.showInGlobalAddNew && role.status === 'active' && !role.deletedAt)
       .sort((a, b) => a.order - b.order)
-      .map((role) => {
+      .map(role => {
         const targetsPerson = role.applicableEntityTypes.includes('person');
         return {
           id: `role-${role.key}`,

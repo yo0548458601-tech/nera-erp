@@ -14,7 +14,9 @@ const accentClasses = {
 
 export function StatCard({ title, value, meta, accent }: StatCardProps) {
   return (
-    <div className={`rounded-2xl border border-slate-200 bg-gradient-to-br ${accentClasses[accent]} p-5 shadow-sm`}>
+    <div
+      className={`rounded-2xl border border-slate-200 bg-gradient-to-br ${accentClasses[accent]} p-5 shadow-sm`}
+    >
       <p className="text-sm font-medium text-slate-600">{title}</p>
       <p className="mt-3 text-2xl font-semibold">{value}</p>
       <p className="mt-2 text-sm text-slate-500">{meta}</p>

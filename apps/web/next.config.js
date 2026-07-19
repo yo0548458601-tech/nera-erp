@@ -6,7 +6,7 @@ loadEnvConfig(path.join(__dirname, '../..'), process.env.NODE_ENV !== 'productio
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['@nera/ui', '@nera/types']
+  transpilePackages: ['@nera/ui', '@nera/types'],
 };
 
 module.exports = nextConfig;

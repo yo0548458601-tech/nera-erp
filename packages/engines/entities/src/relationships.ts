@@ -33,7 +33,7 @@ export const relationshipRegistry: RelationshipDefinition[] = [
 ];
 
 export function getRelationshipLabel(type: RelationshipType): string {
-  return relationshipRegistry.find((entry) => entry.id === type)?.label ?? type;
+  return relationshipRegistry.find(entry => entry.id === type)?.label ?? type;
 }
 
 export type RelationshipStatus = 'active' | 'ended';

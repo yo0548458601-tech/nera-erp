@@ -16,8 +16,20 @@ const DEMO_ADMIN_USER_ID = 'demo-user';
 
 const neraIdSequence = createDemoNeraIdSequence(100);
 
-const phoneTypeLabels: Record<PhoneType, string> = { mobile: 'נייד', home: 'בית', work: 'עבודה', fax: 'פקס', other: 'אחר' };
-const emailTypeLabels: Record<EmailType, string> = { personal: 'אישי', work: 'עבודה', billing: 'חיוב', notifications: 'התראות', other: 'אחר' };
+const phoneTypeLabels: Record<PhoneType, string> = {
+  mobile: 'נייד',
+  home: 'בית',
+  work: 'עבודה',
+  fax: 'פקס',
+  other: 'אחר',
+};
+const emailTypeLabels: Record<EmailType, string> = {
+  personal: 'אישי',
+  work: 'עבודה',
+  billing: 'חיוב',
+  notifications: 'התראות',
+  other: 'אחר',
+};
 
 /** Builds one demo Phone record with sensible defaults, keeping the entity list below readable despite the richer P007.4 field set. */
 function phone(
@@ -28,7 +40,7 @@ function phone(
   isPrimary: boolean,
   order: number,
   createdAt: string,
-  overrides: Partial<Pick<Phone, 'label' | 'status' | 'notes'>> = {},
+  overrides: Partial<Pick<Phone, 'label' | 'status' | 'notes'>> = {}
 ): Phone {
   return {
     id,
@@ -54,7 +66,7 @@ function email(
   isPrimary: boolean,
   order: number,
   createdAt: string,
-  overrides: Partial<Pick<Email, 'label' | 'status' | 'notes'>> = {},
+  overrides: Partial<Pick<Email, 'label' | 'status' | 'notes'>> = {}
 ): Email {
   return {
     id,
@@ -79,7 +91,20 @@ function address(
   isPrimary: boolean,
   order: number,
   createdAt: string,
-  fields: Partial<Pick<Address, 'country' | 'city' | 'street' | 'houseNumber' | 'entrance' | 'floor' | 'apartment' | 'postalCode' | 'notes'>>,
+  fields: Partial<
+    Pick<
+      Address,
+      | 'country'
+      | 'city'
+      | 'street'
+      | 'houseNumber'
+      | 'entrance'
+      | 'floor'
+      | 'apartment'
+      | 'postalCode'
+      | 'notes'
+    >
+  >
 ): Address {
   return {
     id,
@@ -137,10 +162,28 @@ export const demoPersonEntities: PersonEntity[] = [
       hebrewDateAdjustmentDays: 0,
       gender: 'male',
       phones: [
-        phone('p1-phone-1', 'person-1', '050-1234567', 'mobile', true, 0, '2020-01-01T00:00:00.000Z'),
+        phone(
+          'p1-phone-1',
+          'person-1',
+          '050-1234567',
+          'mobile',
+          true,
+          0,
+          '2020-01-01T00:00:00.000Z'
+        ),
         phone('p1-phone-2', 'person-1', '02-5551234', 'work', false, 1, '2020-01-01T00:00:00.000Z'),
       ],
-      emails: [email('p1-email-1', 'person-1', 'yehuda.cohen@nera.local', 'work', true, 0, '2020-01-01T00:00:00.000Z')],
+      emails: [
+        email(
+          'p1-email-1',
+          'person-1',
+          'yehuda.cohen@nera.local',
+          'work',
+          true,
+          0,
+          '2020-01-01T00:00:00.000Z'
+        ),
+      ],
       addresses: [
         address('p1-address-1', 'person-1', 'home', true, 0, '2020-01-01T00:00:00.000Z', {
           street: 'הרב קוק',
@@ -170,14 +213,44 @@ export const demoPersonEntities: PersonEntity[] = [
       hebrewDateAdjustmentDays: 0,
       gender: 'female',
       phones: [
-        phone('p2-phone-1', 'person-2', '052-2345678', 'mobile', true, 0, '2021-06-01T00:00:00.000Z'),
+        phone(
+          'p2-phone-1',
+          'person-2',
+          '052-2345678',
+          'mobile',
+          true,
+          0,
+          '2021-06-01T00:00:00.000Z'
+        ),
         phone('p2-phone-2', 'person-2', '03-5551234', 'home', false, 1, '2021-06-01T00:00:00.000Z'),
       ],
       emails: [
-        email('p2-email-1', 'person-2', 'rivka.levi@nera.local', 'work', true, 0, '2021-06-01T00:00:00.000Z'),
-        email('p2-email-2', 'person-2', 'rivka.private@example.com', 'personal', false, 1, '2021-06-01T00:00:00.000Z'),
+        email(
+          'p2-email-1',
+          'person-2',
+          'rivka.levi@nera.local',
+          'work',
+          true,
+          0,
+          '2021-06-01T00:00:00.000Z'
+        ),
+        email(
+          'p2-email-2',
+          'person-2',
+          'rivka.private@example.com',
+          'personal',
+          false,
+          1,
+          '2021-06-01T00:00:00.000Z'
+        ),
       ],
-      addresses: [address('p2-address-1', 'person-2', 'home', true, 0, '2021-06-01T00:00:00.000Z', { city: 'בני ברק', street: 'רבי עקיבא', houseNumber: '45' })],
+      addresses: [
+        address('p2-address-1', 'person-2', 'home', true, 0, '2021-06-01T00:00:00.000Z', {
+          city: 'בני ברק',
+          street: 'רבי עקיבא',
+          houseNumber: '45',
+        }),
+      ],
     },
   },
   {
@@ -198,10 +271,34 @@ export const demoPersonEntities: PersonEntity[] = [
       birthDateGregorian: '1978-11-05',
       hebrewDateAdjustmentDays: 0,
       gender: 'male',
-      phones: [phone('p3-phone-1', 'person-3', '054-3456789', 'mobile', true, 0, '2019-09-01T00:00:00.000Z')],
-      emails: [email('p3-email-1', 'person-3', 'moshe.bd@example.com', 'personal', true, 0, '2019-09-01T00:00:00.000Z')],
+      phones: [
+        phone(
+          'p3-phone-1',
+          'person-3',
+          '054-3456789',
+          'mobile',
+          true,
+          0,
+          '2019-09-01T00:00:00.000Z'
+        ),
+      ],
+      emails: [
+        email(
+          'p3-email-1',
+          'person-3',
+          'moshe.bd@example.com',
+          'personal',
+          true,
+          0,
+          '2019-09-01T00:00:00.000Z'
+        ),
+      ],
       addresses: [
-        address('p3-address-1', 'person-3', 'home', true, 0, '2019-09-01T00:00:00.000Z', { city: 'ירושלים', street: 'מלכי ישראל', houseNumber: '8' }),
+        address('p3-address-1', 'person-3', 'home', true, 0, '2019-09-01T00:00:00.000Z', {
+          city: 'ירושלים',
+          street: 'מלכי ישראל',
+          houseNumber: '8',
+        }),
       ],
     },
   },
@@ -222,7 +319,17 @@ export const demoPersonEntities: PersonEntity[] = [
       birthDateGregorian: '1988-02-18',
       hebrewDateAdjustmentDays: 0,
       gender: 'female',
-      phones: [phone('p4-phone-1', 'person-4', '053-4567890', 'mobile', true, 0, '2023-03-01T00:00:00.000Z')],
+      phones: [
+        phone(
+          'p4-phone-1',
+          'person-4',
+          '053-4567890',
+          'mobile',
+          true,
+          0,
+          '2023-03-01T00:00:00.000Z'
+        ),
+      ],
       emails: [],
       addresses: [],
     },
@@ -245,13 +352,38 @@ export const demoPersonEntities: PersonEntity[] = [
       hebrewDateAdjustmentDays: 0,
       gender: 'male',
       phones: [
-        phone('p5-phone-1', 'person-5', '050-5678901', 'mobile', true, 0, '2018-04-10T00:00:00.000Z'),
+        phone(
+          'p5-phone-1',
+          'person-5',
+          '050-5678901',
+          'mobile',
+          true,
+          0,
+          '2018-04-10T00:00:00.000Z'
+        ),
         phone('p5-phone-2', 'person-5', '03-6667788', 'work', false, 1, '2018-04-10T00:00:00.000Z'),
-        phone('p5-phone-3', 'person-5', '03-6667789', 'fax', false, 2, '2018-04-10T00:00:00.000Z', { label: 'פקס המחסן' }),
+        phone('p5-phone-3', 'person-5', '03-6667789', 'fax', false, 2, '2018-04-10T00:00:00.000Z', {
+          label: 'פקס המחסן',
+        }),
       ],
-      emails: [email('p5-email-1', 'person-5', 'david@mizrahi-supply.co.il', 'work', true, 0, '2018-04-10T00:00:00.000Z')],
+      emails: [
+        email(
+          'p5-email-1',
+          'person-5',
+          'david@mizrahi-supply.co.il',
+          'work',
+          true,
+          0,
+          '2018-04-10T00:00:00.000Z'
+        ),
+      ],
       addresses: [
-        address('p5-address-1', 'person-5', 'work', true, 0, '2018-04-10T00:00:00.000Z', { city: 'תל אביב', street: 'הרצל', houseNumber: '3', floor: '2' }),
+        address('p5-address-1', 'person-5', 'work', true, 0, '2018-04-10T00:00:00.000Z', {
+          city: 'תל אביב',
+          street: 'הרצל',
+          houseNumber: '3',
+          floor: '2',
+        }),
       ],
     },
   },
@@ -295,8 +427,28 @@ export const demoPersonEntities: PersonEntity[] = [
       birthDateGregorian: '1982-01-30',
       hebrewDateAdjustmentDays: 0,
       gender: 'male',
-      phones: [phone('p7-phone-1', 'person-7', '058-6789012', 'mobile', true, 0, '2017-02-01T00:00:00.000Z')],
-      emails: [email('p7-email-1', 'person-7', 'yaakov.s@example.com', 'personal', true, 0, '2017-02-01T00:00:00.000Z')],
+      phones: [
+        phone(
+          'p7-phone-1',
+          'person-7',
+          '058-6789012',
+          'mobile',
+          true,
+          0,
+          '2017-02-01T00:00:00.000Z'
+        ),
+      ],
+      emails: [
+        email(
+          'p7-email-1',
+          'person-7',
+          'yaakov.s@example.com',
+          'personal',
+          true,
+          0,
+          '2017-02-01T00:00:00.000Z'
+        ),
+      ],
       addresses: [],
     },
   },
@@ -316,10 +468,34 @@ export const demoPersonEntities: PersonEntity[] = [
       lastName: 'כץ',
       hebrewDateAdjustmentDays: 0,
       gender: 'female',
-      phones: [phone('p8-phone-1', 'person-8', '054-7890123', 'mobile', true, 0, '2016-12-01T00:00:00.000Z')],
-      emails: [email('p8-email-1', 'person-8', 'miriam.katz@example.com', 'personal', true, 0, '2016-12-01T00:00:00.000Z')],
+      phones: [
+        phone(
+          'p8-phone-1',
+          'person-8',
+          '054-7890123',
+          'mobile',
+          true,
+          0,
+          '2016-12-01T00:00:00.000Z'
+        ),
+      ],
+      emails: [
+        email(
+          'p8-email-1',
+          'person-8',
+          'miriam.katz@example.com',
+          'personal',
+          true,
+          0,
+          '2016-12-01T00:00:00.000Z'
+        ),
+      ],
       addresses: [
-        address('p8-address-1', 'person-8', 'billing', true, 0, '2016-12-01T00:00:00.000Z', { city: 'רעננה', street: 'אחוזה', houseNumber: '22' }),
+        address('p8-address-1', 'person-8', 'billing', true, 0, '2016-12-01T00:00:00.000Z', {
+          city: 'רעננה',
+          street: 'אחוזה',
+          houseNumber: '22',
+        }),
       ],
     },
   },
@@ -341,8 +517,28 @@ export const demoPersonEntities: PersonEntity[] = [
       birthDateGregorian: '1975-06-14',
       hebrewDateAdjustmentDays: 0,
       gender: 'male',
-      phones: [phone('p9-phone-1', 'person-9', '050-8901234', 'mobile', true, 0, '2015-01-01T00:00:00.000Z')],
-      emails: [email('p9-email-1', 'person-9', 'eli.peretz@nera.local', 'work', true, 0, '2015-01-01T00:00:00.000Z')],
+      phones: [
+        phone(
+          'p9-phone-1',
+          'person-9',
+          '050-8901234',
+          'mobile',
+          true,
+          0,
+          '2015-01-01T00:00:00.000Z'
+        ),
+      ],
+      emails: [
+        email(
+          'p9-email-1',
+          'person-9',
+          'eli.peretz@nera.local',
+          'work',
+          true,
+          0,
+          '2015-01-01T00:00:00.000Z'
+        ),
+      ],
       addresses: [
         address('p9-address-1', 'person-9', 'home', true, 0, '2015-01-01T00:00:00.000Z', {
           city: 'ירושלים',
@@ -371,7 +567,17 @@ export const demoPersonEntities: PersonEntity[] = [
       lastName: 'אזולאי',
       hebrewDateAdjustmentDays: 0,
       gender: 'female',
-      phones: [phone('p10-phone-1', 'person-10', '052-9012345', 'mobile', true, 0, '2019-05-01T00:00:00.000Z')],
+      phones: [
+        phone(
+          'p10-phone-1',
+          'person-10',
+          '052-9012345',
+          'mobile',
+          true,
+          0,
+          '2019-05-01T00:00:00.000Z'
+        ),
+      ],
       emails: [],
       addresses: [],
     },
@@ -379,15 +585,73 @@ export const demoPersonEntities: PersonEntity[] = [
 ];
 
 export const demoRoleAssignments: RoleAssignment[] = [
-  { id: 'p1-role-1', entityId: 'person-1', role: 'employee', organizationId: 'org-main', status: 'active', createdAt: '2020-01-01T00:00:00.000Z' },
-  { id: 'p1-role-2', entityId: 'person-1', role: 'parent', status: 'active', createdAt: '2020-01-01T00:00:00.000Z' },
-  { id: 'p2-role-1', entityId: 'person-2', role: 'employee', organizationId: 'org-bnei-brak', status: 'active', createdAt: '2021-06-01T00:00:00.000Z' },
-  { id: 'p3-role-1', entityId: 'person-3', role: 'avreich', organizationId: 'org-jerusalem', status: 'active', createdAt: '2019-09-01T00:00:00.000Z' },
-  { id: 'p3-role-2', entityId: 'person-3', role: 'donor', status: 'active', createdAt: '2022-01-15T00:00:00.000Z' },
-  { id: 'p4-role-1', entityId: 'person-4', role: 'parent', status: 'active', createdAt: '2023-03-01T00:00:00.000Z' },
-  { id: 'p5-role-1', entityId: 'person-5', role: 'individual_supplier', status: 'active', createdAt: '2018-04-10T00:00:00.000Z' },
-  { id: 'p5-role-2', entityId: 'person-5', role: 'contact', status: 'active', createdAt: '2018-04-10T00:00:00.000Z' },
-  { id: 'p6-role-1', entityId: 'person-6', role: 'student', organizationId: 'org-jerusalem', status: 'active', createdAt: '2020-09-01T00:00:00.000Z' },
+  {
+    id: 'p1-role-1',
+    entityId: 'person-1',
+    role: 'employee',
+    organizationId: 'org-main',
+    status: 'active',
+    createdAt: '2020-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'p1-role-2',
+    entityId: 'person-1',
+    role: 'parent',
+    status: 'active',
+    createdAt: '2020-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'p2-role-1',
+    entityId: 'person-2',
+    role: 'employee',
+    organizationId: 'org-bnei-brak',
+    status: 'active',
+    createdAt: '2021-06-01T00:00:00.000Z',
+  },
+  {
+    id: 'p3-role-1',
+    entityId: 'person-3',
+    role: 'avreich',
+    organizationId: 'org-jerusalem',
+    status: 'active',
+    createdAt: '2019-09-01T00:00:00.000Z',
+  },
+  {
+    id: 'p3-role-2',
+    entityId: 'person-3',
+    role: 'donor',
+    status: 'active',
+    createdAt: '2022-01-15T00:00:00.000Z',
+  },
+  {
+    id: 'p4-role-1',
+    entityId: 'person-4',
+    role: 'parent',
+    status: 'active',
+    createdAt: '2023-03-01T00:00:00.000Z',
+  },
+  {
+    id: 'p5-role-1',
+    entityId: 'person-5',
+    role: 'individual_supplier',
+    status: 'active',
+    createdAt: '2018-04-10T00:00:00.000Z',
+  },
+  {
+    id: 'p5-role-2',
+    entityId: 'person-5',
+    role: 'contact',
+    status: 'active',
+    createdAt: '2018-04-10T00:00:00.000Z',
+  },
+  {
+    id: 'p6-role-1',
+    entityId: 'person-6',
+    role: 'student',
+    organizationId: 'org-jerusalem',
+    status: 'active',
+    createdAt: '2020-09-01T00:00:00.000Z',
+  },
   {
     id: 'p7-role-1',
     entityId: 'person-7',
@@ -397,10 +661,35 @@ export const demoRoleAssignments: RoleAssignment[] = [
     createdAt: '2017-02-01T00:00:00.000Z',
     endDate: '2025-08-01',
   },
-  { id: 'p8-role-1', entityId: 'person-8', role: 'donor', status: 'active', createdAt: '2016-12-01T00:00:00.000Z' },
-  { id: 'p9-role-1', entityId: 'person-9', role: 'employee', organizationId: 'org-main', status: 'active', createdAt: '2015-01-01T00:00:00.000Z' },
-  { id: 'p9-role-2', entityId: 'person-9', role: 'administrator', status: 'active', createdAt: '2015-01-01T00:00:00.000Z' },
-  { id: 'p10-role-1', entityId: 'person-10', role: 'contact', status: 'active', createdAt: '2019-05-01T00:00:00.000Z' },
+  {
+    id: 'p8-role-1',
+    entityId: 'person-8',
+    role: 'donor',
+    status: 'active',
+    createdAt: '2016-12-01T00:00:00.000Z',
+  },
+  {
+    id: 'p9-role-1',
+    entityId: 'person-9',
+    role: 'employee',
+    organizationId: 'org-main',
+    status: 'active',
+    createdAt: '2015-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'p9-role-2',
+    entityId: 'person-9',
+    role: 'administrator',
+    status: 'active',
+    createdAt: '2015-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'p10-role-1',
+    entityId: 'person-10',
+    role: 'contact',
+    status: 'active',
+    createdAt: '2019-05-01T00:00:00.000Z',
+  },
 ];
 
 export const demoNotes: Note[] = [

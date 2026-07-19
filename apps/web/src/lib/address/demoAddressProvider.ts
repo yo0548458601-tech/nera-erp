@@ -1,4 +1,9 @@
-import { type AddressProvider, type AddressProviderResult, type LocalitySuggestion, type StreetSuggestion } from '@nera/entity-engine';
+import {
+  type AddressProvider,
+  type AddressProviderResult,
+  type LocalitySuggestion,
+  type StreetSuggestion,
+} from '@nera/entity-engine';
 
 /**
  * A small, clearly-labeled demo/local AddressProvider - NOT an official or
@@ -48,7 +53,7 @@ function normalize(value: string): string {
 }
 
 async function delayed<T>(value: T): Promise<T> {
-  return new Promise((resolve) => window.setTimeout(() => resolve(value), 120));
+  return new Promise(resolve => window.setTimeout(() => resolve(value), 120));
 }
 
 export const demoAddressProvider: AddressProvider = {
@@ -57,14 +62,21 @@ export const demoAddressProvider: AddressProvider = {
 
   async searchLocalities(query: string): Promise<AddressProviderResult<LocalitySuggestion>> {
     const normalizedQuery = normalize(query);
-    const results = normalizedQuery ? DEMO_LOCALITIES.filter((locality) => normalize(locality.name).includes(normalizedQuery)) : DEMO_LOCALITIES;
+    const results = normalizedQuery
+      ? DEMO_LOCALITIES.filter(locality => normalize(locality.name).includes(normalizedQuery))
+      : DEMO_LOCALITIES;
     return delayed({ results, source: 'demo', verified: false });
   },
 
-  async searchStreets(localityId: string, query: string): Promise<AddressProviderResult<StreetSuggestion>> {
+  async searchStreets(
+    localityId: string,
+    query: string
+  ): Promise<AddressProviderResult<StreetSuggestion>> {
     const normalizedQuery = normalize(query);
     const results = DEMO_STREETS.filter(
-      (street) => street.localityId === localityId && (!normalizedQuery || normalize(street.name).includes(normalizedQuery)),
+      street =>
+        street.localityId === localityId &&
+        (!normalizedQuery || normalize(street.name).includes(normalizedQuery))
     );
     return delayed({ results, source: 'demo', verified: false });
   },
@@ -89,7 +101,9 @@ export const demoAddressProvider: AddressProvider = {
       address.floor ? `קומה ${address.floor}` : undefined,
       address.apartment ? `דירה ${address.apartment}` : undefined,
     ].filter(Boolean);
-    return [streetLine, unitParts.join(', '), address.city, address.postalCode, address.country].filter(Boolean).join(', ');
+    return [streetLine, unitParts.join(', '), address.city, address.postalCode, address.country]
+      .filter(Boolean)
+      .join(', ');
   },
 
   getProviderInfo() {

@@ -14,7 +14,9 @@ const statusLabels: Record<EntityStatus, string> = {
 
 export function StatusBadge({ status }: { status: EntityStatus }) {
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${statusStyles[status]}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${statusStyles[status]}`}
+    >
       {statusLabels[status]}
     </span>
   );

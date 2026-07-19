@@ -55,26 +55,34 @@ export function resolveFieldRequirement(
   fieldKey: string,
   context: FieldRequirementContext,
   rules: FieldRequirementRule[],
-  builtInDefault: FieldRequirementMode,
+  builtInDefault: FieldRequirementMode
 ): EffectiveFieldRequirement {
-  const forField = rules.filter((rule) => rule.fieldKey === fieldKey);
+  const forField = rules.filter(rule => rule.fieldKey === fieldKey);
 
-  const roleRule = context.roleKey ? forField.find((rule) => rule.scope === 'role' && rule.targetId === context.roleKey) : undefined;
+  const roleRule = context.roleKey
+    ? forField.find(rule => rule.scope === 'role' && rule.targetId === context.roleKey)
+    : undefined;
   if (roleRule) {
     return { fieldKey, mode: roleRule.mode, source: 'role' };
   }
 
-  const institutionRule = context.institutionId ? forField.find((rule) => rule.scope === 'institution' && rule.targetId === context.institutionId) : undefined;
+  const institutionRule = context.institutionId
+    ? forField.find(rule => rule.scope === 'institution' && rule.targetId === context.institutionId)
+    : undefined;
   if (institutionRule) {
     return { fieldKey, mode: institutionRule.mode, source: 'institution' };
   }
 
-  const entityTypeRule = forField.find((rule) => rule.scope === 'entity_type' && rule.targetId === context.entityType);
+  const entityTypeRule = forField.find(
+    rule => rule.scope === 'entity_type' && rule.targetId === context.entityType
+  );
   if (entityTypeRule) {
     return { fieldKey, mode: entityTypeRule.mode, source: 'entity_type' };
   }
 
-  const moduleRule = context.moduleId ? forField.find((rule) => rule.scope === 'module' && rule.targetId === context.moduleId) : undefined;
+  const moduleRule = context.moduleId
+    ? forField.find(rule => rule.scope === 'module' && rule.targetId === context.moduleId)
+    : undefined;
   if (moduleRule) {
     return { fieldKey, mode: moduleRule.mode, source: 'module' };
   }

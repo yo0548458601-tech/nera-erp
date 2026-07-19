@@ -7,6 +7,8 @@
   "types": "./src/index.ts",
   "scripts": {
     "build": "prisma generate --schema=./prisma/schema.prisma && tsc -p tsconfig.json --noEmit",
+    "typecheck": "prisma generate --schema=./prisma/schema.prisma && tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src --ext .ts",
     "db:generate": "prisma generate --schema=./prisma/schema.prisma",
     "db:validate": "prisma validate --schema=./prisma/schema.prisma",
     "db:migrate": "prisma migrate dev --schema=./prisma/schema.prisma --skip-generate",

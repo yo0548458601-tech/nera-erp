@@ -9,7 +9,13 @@ type PaginationProps = {
 };
 
 /** Generic pager reused by any future module list, not just People. */
-export function Pagination({ page, pageCount, onPageChange, totalItems, pageSize }: PaginationProps) {
+export function Pagination({
+  page,
+  pageCount,
+  onPageChange,
+  totalItems,
+  pageSize,
+}: PaginationProps) {
   if (pageCount <= 1) {
     return null;
   }

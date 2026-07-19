@@ -1,7 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { getEntityDisplayName, type DuplicateMatch, type DuplicateMatchReason } from '@nera/entity-engine';
+import {
+  getEntityDisplayName,
+  type DuplicateMatch,
+  type DuplicateMatchReason,
+} from '@nera/entity-engine';
 
 const reasonLabels: Record<DuplicateMatchReason, string> = {
   idNumber: 'מספר זהות',
@@ -26,7 +30,12 @@ type DuplicateConflictPanelProps = {
  * this panel exists so a deliberate, permission-checked human decision is
  * always required before a duplicate identifier is allowed to exist.
  */
-export function DuplicateConflictPanel({ matches, canOverride, onOpenExisting, onConfirmOverride }: DuplicateConflictPanelProps) {
+export function DuplicateConflictPanel({
+  matches,
+  canOverride,
+  onOpenExisting,
+  onConfirmOverride,
+}: DuplicateConflictPanelProps) {
   const [showOverrideForm, setShowOverrideForm] = useState(false);
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState('');
@@ -40,19 +49,27 @@ export function DuplicateConflictPanel({ matches, canOverride, onOpenExisting, o
   };
 
   return (
-    <div role="alert" className="rounded-2xl border-2 border-rose-300 bg-rose-50 p-4 text-sm text-rose-900">
+    <div
+      role="alert"
+      className="rounded-2xl border-2 border-rose-300 bg-rose-50 p-4 text-sm text-rose-900"
+    >
       <p className="font-semibold">נמצאה התאמה מדויקת עם רשומה קיימת</p>
-      <p className="mt-1 text-rose-800">המערכת לעולם לא ממזגת רשומות באופן אוטומטי - יש לבחור כיצד להמשיך:</p>
+      <p className="mt-1 text-rose-800">
+        המערכת לעולם לא ממזגת רשומות באופן אוטומטי - יש לבחור כיצד להמשיך:
+      </p>
 
       <ul className="mt-3 space-y-2">
-        {matches.map((match) => (
+        {matches.map(match => (
           <li key={match.entity.id} className="rounded-xl border border-rose-200 bg-white p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className="font-medium text-slate-900">
-                  {getEntityDisplayName(match.entity)} <span className="font-normal text-slate-500">({match.entity.neraId})</span>
+                  {getEntityDisplayName(match.entity)}{' '}
+                  <span className="font-normal text-slate-500">({match.entity.neraId})</span>
                 </p>
-                <p className="text-xs text-rose-700">התאמה לפי {match.reasons.map((entry) => reasonLabels[entry]).join(', ')}</p>
+                <p className="text-xs text-rose-700">
+                  התאמה לפי {match.reasons.map(entry => reasonLabels[entry]).join(', ')}
+                </p>
               </div>
               <button
                 type="button"
@@ -77,9 +94,15 @@ export function DuplicateConflictPanel({ matches, canOverride, onOpenExisting, o
 
       <div className="mt-4 border-t border-rose-200 pt-3">
         {!canOverride ? (
-          <p className="text-xs text-rose-700">אין לך הרשאה לאשר יצירת רשומה נפרדת חרף ההתאמה. פנה/י למנהל מערכת.</p>
+          <p className="text-xs text-rose-700">
+            אין לך הרשאה לאשר יצירת רשומה נפרדת חרף ההתאמה. פנה/י למנהל מערכת.
+          </p>
         ) : !showOverrideForm ? (
-          <button type="button" onClick={() => setShowOverrideForm(true)} className="text-xs font-semibold text-rose-800 underline">
+          <button
+            type="button"
+            onClick={() => setShowOverrideForm(true)}
+            className="text-xs font-semibold text-rose-800 underline"
+          >
             שמירה בנפרד בכל זאת (דורש הרשאה וסיבה מתועדת)
           </button>
         ) : (
@@ -88,7 +111,7 @@ export function DuplicateConflictPanel({ matches, canOverride, onOpenExisting, o
               סיבה לשמירה כרשומה נפרדת *
               <textarea
                 value={reason}
-                onChange={(event) => {
+                onChange={event => {
                   setReason(event.target.value);
                   setReasonError('');
                 }}
@@ -98,7 +121,11 @@ export function DuplicateConflictPanel({ matches, canOverride, onOpenExisting, o
             </label>
             {reasonError ? <p className="text-xs text-rose-700">{reasonError}</p> : null}
             <div className="flex gap-2">
-              <button type="button" onClick={handleConfirm} className="rounded-xl bg-rose-700 px-3 py-1.5 text-xs font-semibold text-white">
+              <button
+                type="button"
+                onClick={handleConfirm}
+                className="rounded-xl bg-rose-700 px-3 py-1.5 text-xs font-semibold text-white"
+              >
                 אשר יצירת רשומה נפרדת
               </button>
               <button

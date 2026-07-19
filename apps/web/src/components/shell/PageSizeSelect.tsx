@@ -21,13 +21,13 @@ export function PageSizeSelect({ value, onChange }: PageSizeSelectProps) {
       <select
         id="page-size-select"
         value={String(value)}
-        onChange={(event) => {
+        onChange={event => {
           const raw = event.target.value;
           onChange(raw === 'unlimited' ? 'unlimited' : (Number(raw) as PageSizeOption));
         }}
         className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm"
       >
-        {PAGE_SIZE_OPTIONS.map((option) => (
+        {PAGE_SIZE_OPTIONS.map(option => (
           <option key={String(option)} value={String(option)}>
             {optionLabel(option)}
           </option>

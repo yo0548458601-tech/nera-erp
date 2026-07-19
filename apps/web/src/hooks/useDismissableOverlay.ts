@@ -18,7 +18,7 @@ export function useDismissableOverlay(
   isOpen: boolean,
   onDismiss: () => void,
   boundaries: Boundary[],
-  options: UseDismissableOverlayOptions = {},
+  options: UseDismissableOverlayOptions = {}
 ) {
   const onDismissRef = useRef(onDismiss);
   onDismissRef.current = onDismiss;
@@ -35,7 +35,7 @@ export function useDismissableOverlay(
     }
 
     const isInsideBoundaries = (target: Node) =>
-      boundariesRef.current.some((ref) => ref.current?.contains(target));
+      boundariesRef.current.some(ref => ref.current?.contains(target));
 
     const handlePointerDown = (event: PointerEvent) => {
       if (event.target instanceof Node && !isInsideBoundaries(event.target)) {

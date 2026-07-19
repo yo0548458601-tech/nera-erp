@@ -32,7 +32,7 @@ export type EntityMergeResolution = {
  */
 export function prepareMergePreview(entities: AnyEntity[]): EntityMergePreview {
   return {
-    candidateEntityIds: entities.map((entity) => entity.id),
+    candidateEntityIds: entities.map(entity => entity.id),
     conflicts: [],
   };
 }

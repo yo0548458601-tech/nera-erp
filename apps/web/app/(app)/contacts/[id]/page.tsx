@@ -62,7 +62,10 @@ export default function PersonDetailPage({ params }: { params: { id: string } })
       />
 
       {successMessage ? (
-        <div role="status" className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+        <div
+          role="status"
+          className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
+        >
           {successMessage}
         </div>
       ) : null}

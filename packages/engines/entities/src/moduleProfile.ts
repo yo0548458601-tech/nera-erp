@@ -64,6 +64,5 @@ export type ModuleProfileBase = {
  * If `T` contains a forbidden key (e.g. `firstName`), this resolves to
  * `never` and any attempt to use it as a type produces a compiler error.
  */
-export type ModuleProfile<T extends Record<string, unknown>> = Extract<keyof T, ForbiddenIdentityFields> extends never
-  ? T & ModuleProfileBase
-  : never;
+export type ModuleProfile<T extends Record<string, unknown>> =
+  Extract<keyof T, ForbiddenIdentityFields> extends never ? T & ModuleProfileBase : never;

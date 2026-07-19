@@ -28,7 +28,15 @@ type EmailInputProps = {
  * regardless of the surrounding RTL page, since an email address is a
  * left-to-right token and must never visually reverse.
  */
-export function EmailInput({ value, onChange, additionalDomains = [], placeholder, ariaLabel, className, required }: EmailInputProps) {
+export function EmailInput({
+  value,
+  onChange,
+  additionalDomains = [],
+  placeholder,
+  ariaLabel,
+  className,
+  required,
+}: EmailInputProps) {
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -40,7 +48,13 @@ export function EmailInput({ value, onChange, additionalDomains = [], placeholde
   const allDomains = Array.from(new Set([...COMMON_EMAIL_DOMAINS, ...additionalDomains]));
   const normalizedQuery = domainQuery.trim().toLowerCase();
   const suggestions =
-    atIndex >= 0 ? (normalizedQuery ? allDomains.filter((domain) => domain.startsWith(normalizedQuery) && domain !== normalizedQuery) : allDomains) : [];
+    atIndex >= 0
+      ? normalizedQuery
+        ? allDomains.filter(
+            domain => domain.startsWith(normalizedQuery) && domain !== normalizedQuery
+          )
+        : allDomains
+      : [];
 
   useEffect(() => {
     setHighlightedIndex(0);
@@ -67,10 +81,10 @@ export function EmailInput({ value, onChange, additionalDomains = [], placeholde
     }
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      setHighlightedIndex((index) => (index + 1) % suggestions.length);
+      setHighlightedIndex(index => (index + 1) % suggestions.length);
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
-      setHighlightedIndex((index) => (index - 1 + suggestions.length) % suggestions.length);
+      setHighlightedIndex(index => (index - 1 + suggestions.length) % suggestions.length);
     } else if (event.key === 'Enter' && domainQuery !== suggestions[highlightedIndex]) {
       event.preventDefault();
       selectDomain(suggestions[highlightedIndex]);
@@ -86,7 +100,7 @@ export function EmailInput({ value, onChange, additionalDomains = [], placeholde
         dir="ltr"
         required={required}
         value={value}
-        onChange={(event) => {
+        onChange={event => {
           onChange(event.target.value);
           setOpen(event.target.value.includes('@'));
         }}
@@ -100,15 +114,21 @@ export function EmailInput({ value, onChange, additionalDomains = [], placeholde
         className={className}
       />
       {open && suggestions.length > 0 ? (
-        <ul role="listbox" className="absolute right-0 top-full z-10 mt-1 w-full max-h-48 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1 shadow-lg" dir="ltr">
+        <ul
+          role="listbox"
+          className="absolute right-0 top-full z-10 mt-1 w-full max-h-48 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1 shadow-lg"
+          dir="ltr"
+        >
           {suggestions.map((domain, index) => (
             <li key={domain} role="option" aria-selected={index === highlightedIndex}>
               <button
                 type="button"
-                onMouseDown={(event) => event.preventDefault()}
+                onMouseDown={event => event.preventDefault()}
                 onClick={() => selectDomain(domain)}
                 className={`w-full rounded-xl px-3 py-2 text-left text-sm ${
-                  index === highlightedIndex ? 'bg-cyan-50 text-cyan-700' : 'text-slate-700 hover:bg-slate-50'
+                  index === highlightedIndex
+                    ? 'bg-cyan-50 text-cyan-700'
+                    : 'text-slate-700 hover:bg-slate-50'
                 }`}
               >
                 {localPart}@{domain}

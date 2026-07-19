@@ -26,23 +26,34 @@ export function AddressProviderPanel() {
   const info = activeAddressProvider.getProviderInfo();
 
   return (
-    <PanelCard title="ספק כתובות" subtitle="מצב הדגמה - תצוגה בלבד. בחירת ספק כתובות מוגדרת תתווסף בעתיד.">
+    <PanelCard
+      title="ספק כתובות"
+      subtitle="מצב הדגמה - תצוגה בלבד. בחירת ספק כתובות מוגדרת תתווסף בעתיד."
+    >
       <dl className="grid gap-4 sm:grid-cols-2">
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">ספק פעיל</dt>
           <dd className="mt-0.5 text-sm text-slate-700">{info.label}</dd>
         </div>
         <div>
-          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">מקור הנתונים</dt>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            מקור הנתונים
+          </dt>
           <dd className="mt-0.5 text-sm text-slate-700">{info.datasetSource}</dd>
         </div>
         <div>
-          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">תאריך תמונת מצב</dt>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            תאריך תמונת מצב
+          </dt>
           <dd className="mt-0.5 text-sm text-slate-700">{info.snapshotDate}</dd>
         </div>
         <div>
-          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">סטטוס סנכרון</dt>
-          <dd className="mt-0.5 text-sm text-slate-700">{syncStatusLabels[info.syncStatus] ?? info.syncStatus}</dd>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            סטטוס סנכרון
+          </dt>
+          <dd className="mt-0.5 text-sm text-slate-700">
+            {syncStatusLabels[info.syncStatus] ?? info.syncStatus}
+          </dd>
         </div>
       </dl>
     </PanelCard>

@@ -21,11 +21,19 @@ type AuthorizationContextValue = {
   rules: PermissionRule[];
   systemUsers: DemoSystemUser[];
   /** Resolves the effective permission for an arbitrary user/role/institution context. */
-  resolvePermission: (permission: PermissionId, context: PermissionContext) => EffectivePermissionResult;
+  resolvePermission: (
+    permission: PermissionId,
+    context: PermissionContext
+  ) => EffectivePermissionResult;
   /** Resolves the effective permission for the currently signed-in demo user. */
   resolveMyPermission: (permission: PermissionId) => EffectivePermissionResult;
   /** Sets (or clears, via 'inherit') a user-level override for the given user + permission. */
-  setUserOverride: (userId: string, permission: PermissionId, decision: PermissionDecision, updatedByUserId: string) => void;
+  setUserOverride: (
+    userId: string,
+    permission: PermissionId,
+    decision: PermissionDecision,
+    updatedByUserId: string
+  ) => void;
   /** The current user-level override decision for a user + permission, or 'inherit' if none exists. */
   getUserOverride: (userId: string, permission: PermissionId) => PermissionDecision;
 };
@@ -47,8 +55,9 @@ export function AuthorizationProvider({ children }: { children: ReactNode }) {
   const [rules, setRules] = useState<PermissionRule[]>(demoPermissionRules);
 
   const resolvePermission = useCallback(
-    (permission: PermissionId, context: PermissionContext) => resolveEffectivePermission(permission, context, rules),
-    [rules],
+    (permission: PermissionId, context: PermissionContext) =>
+      resolveEffectivePermission(permission, context, rules),
+    [rules]
   );
 
   const resolveMyPermission = useCallback(
@@ -56,21 +65,31 @@ export function AuthorizationProvider({ children }: { children: ReactNode }) {
       if (!session) {
         return { permission, decision: 'deny', source: 'default' };
       }
-      const systemUser = demoSystemUsers.find((user) => user.id === session.user.id);
+      const systemUser = demoSystemUsers.find(user => user.id === session.user.id);
       return resolveEffectivePermission(
         permission,
-        { userId: session.user.id, roleIds: systemUser?.roleIds ?? [], institutionId: session.selectedOrganizationId },
-        rules,
+        {
+          userId: session.user.id,
+          roleIds: systemUser?.roleIds ?? [],
+          institutionId: session.selectedOrganizationId,
+        },
+        rules
       );
     },
-    [session, rules],
+    [session, rules]
   );
 
   const setUserOverride = useCallback(
-    (userId: string, permission: PermissionId, decision: PermissionDecision, updatedByUserId: string) => {
-      setRules((current) => {
+    (
+      userId: string,
+      permission: PermissionId,
+      decision: PermissionDecision,
+      updatedByUserId: string
+    ) => {
+      setRules(current => {
         const withoutExisting = current.filter(
-          (rule) => !(rule.scope === 'user' && rule.targetId === userId && rule.permission === permission),
+          rule =>
+            !(rule.scope === 'user' && rule.targetId === userId && rule.permission === permission)
         );
         if (decision === 'inherit') {
           return withoutExisting;
@@ -89,20 +108,30 @@ export function AuthorizationProvider({ children }: { children: ReactNode }) {
         ];
       });
     },
-    [],
+    []
   );
 
   const getUserOverride = useCallback(
     (userId: string, permission: PermissionId): PermissionDecision => {
-      const rule = rules.find((entry) => entry.scope === 'user' && entry.targetId === userId && entry.permission === permission);
+      const rule = rules.find(
+        entry =>
+          entry.scope === 'user' && entry.targetId === userId && entry.permission === permission
+      );
       return rule?.decision ?? 'inherit';
     },
-    [rules],
+    [rules]
   );
 
   const value = useMemo<AuthorizationContextValue>(
-    () => ({ rules, systemUsers: demoSystemUsers, resolvePermission, resolveMyPermission, setUserOverride, getUserOverride }),
-    [rules, resolvePermission, resolveMyPermission, setUserOverride, getUserOverride],
+    () => ({
+      rules,
+      systemUsers: demoSystemUsers,
+      resolvePermission,
+      resolveMyPermission,
+      setUserOverride,
+      getUserOverride,
+    }),
+    [rules, resolvePermission, resolveMyPermission, setUserOverride, getUserOverride]
   );
 
   return <AuthorizationContext.Provider value={value}>{children}</AuthorizationContext.Provider>;

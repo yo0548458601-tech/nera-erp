@@ -29,7 +29,12 @@ const BUILT_IN_DEFAULTS: Record<string, FieldRequirementMode> = {
 type FieldRequirementContextValue = {
   rules: FieldRequirementRule[];
   /** Resolves for ONE role-key context; see resolveForRoles for the multi-role merge a create/edit form needs. */
-  resolveForRole: (fieldKey: string, entityType: 'person' | 'organization', roleKey: string | undefined, institutionId: string | undefined) => EffectiveFieldRequirement;
+  resolveForRole: (
+    fieldKey: string,
+    entityType: 'person' | 'organization',
+    roleKey: string | undefined,
+    institutionId: string | undefined
+  ) => EffectiveFieldRequirement;
   /**
    * A form may have several roles selected/assigned simultaneously - each
    * can have its own configured requirement. Merge policy (documented,
@@ -39,8 +44,19 @@ type FieldRequirementContextValue = {
    * "Strictest visible wins" - a role that needs the field is never
    * silently overridden by one that doesn't care.
    */
-  resolveForRoles: (fieldKey: string, entityType: 'person' | 'organization', roleKeys: string[], institutionId: string | undefined) => FieldRequirementMode;
-  setRule: (fieldKey: string, scope: FieldRequirementScope, targetId: string | undefined, mode: FieldRequirementMode, updatedByUserId: string) => void;
+  resolveForRoles: (
+    fieldKey: string,
+    entityType: 'person' | 'organization',
+    roleKeys: string[],
+    institutionId: string | undefined
+  ) => FieldRequirementMode;
+  setRule: (
+    fieldKey: string,
+    scope: FieldRequirementScope,
+    targetId: string | undefined,
+    mode: FieldRequirementMode,
+    updatedByUserId: string
+  ) => void;
 };
 
 const FieldRequirementContext = createContext<FieldRequirementContextValue | undefined>(undefined);
@@ -65,33 +81,75 @@ export function FieldRequirementProvider({ children }: { children: ReactNode }) 
    * hardcode any specific field's entity-type rule.
    */
   const resolveForRole = useCallback(
-    (fieldKey: string, entityType: 'person' | 'organization', roleKey: string | undefined, institutionId: string | undefined): EffectiveFieldRequirement =>
-      resolveFieldRequirement(fieldKey, { entityType, roleKey, institutionId }, rules, BUILT_IN_DEFAULTS[fieldKey] ?? 'optional'),
-    [rules],
+    (
+      fieldKey: string,
+      entityType: 'person' | 'organization',
+      roleKey: string | undefined,
+      institutionId: string | undefined
+    ): EffectiveFieldRequirement =>
+      resolveFieldRequirement(
+        fieldKey,
+        { entityType, roleKey, institutionId },
+        rules,
+        BUILT_IN_DEFAULTS[fieldKey] ?? 'optional'
+      ),
+    [rules]
   );
 
   const resolveForRoles = useCallback(
-    (fieldKey: string, entityType: 'person' | 'organization', roleKeys: string[], institutionId: string | undefined): FieldRequirementMode => {
+    (
+      fieldKey: string,
+      entityType: 'person' | 'organization',
+      roleKeys: string[],
+      institutionId: string | undefined
+    ): FieldRequirementMode => {
       const keys = roleKeys.length > 0 ? roleKeys : [undefined];
-      const results = keys.map((roleKey) => resolveForRole(fieldKey, entityType, roleKey, institutionId).mode);
+      const results = keys.map(
+        roleKey => resolveForRole(fieldKey, entityType, roleKey, institutionId).mode
+      );
       return mergeFieldRequirementModes(results);
     },
-    [resolveForRole],
+    [resolveForRole]
   );
 
-  const setRule = useCallback((fieldKey: string, scope: FieldRequirementScope, targetId: string | undefined, mode: FieldRequirementMode, updatedByUserId: string) => {
-    setRules((current) => {
-      const withoutExisting = current.filter((rule) => !(rule.fieldKey === fieldKey && rule.scope === scope && rule.targetId === targetId));
-      return [...withoutExisting, { id: createId('field-req'), fieldKey, scope, targetId, mode, updatedAt: new Date().toISOString(), updatedByUserId }];
-    });
-  }, []);
+  const setRule = useCallback(
+    (
+      fieldKey: string,
+      scope: FieldRequirementScope,
+      targetId: string | undefined,
+      mode: FieldRequirementMode,
+      updatedByUserId: string
+    ) => {
+      setRules(current => {
+        const withoutExisting = current.filter(
+          rule =>
+            !(rule.fieldKey === fieldKey && rule.scope === scope && rule.targetId === targetId)
+        );
+        return [
+          ...withoutExisting,
+          {
+            id: createId('field-req'),
+            fieldKey,
+            scope,
+            targetId,
+            mode,
+            updatedAt: new Date().toISOString(),
+            updatedByUserId,
+          },
+        ];
+      });
+    },
+    []
+  );
 
   const value = useMemo<FieldRequirementContextValue>(
     () => ({ rules, resolveForRole, resolveForRoles, setRule }),
-    [rules, resolveForRole, resolveForRoles, setRule],
+    [rules, resolveForRole, resolveForRoles, setRule]
   );
 
-  return <FieldRequirementContext.Provider value={value}>{children}</FieldRequirementContext.Provider>;
+  return (
+    <FieldRequirementContext.Provider value={value}>{children}</FieldRequirementContext.Provider>
+  );
 }
 
 export function useFieldRequirements(): FieldRequirementContextValue {

@@ -3,10 +3,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Download, UserPlus } from 'lucide-react';
-import {
-  getBuiltInDefaultColumnKeys,
-  type ListColumnDefinition,
-} from '@nera/customization-engine';
+import { getBuiltInDefaultColumnKeys, type ListColumnDefinition } from '@nera/customization-engine';
 import {
   queryEntities,
   type EntityRoleId,
@@ -22,10 +19,17 @@ import { useSession } from '@/src/context/SessionContext';
 import { useListViewPreferences } from '@/src/context/ListViewPreferenceContext';
 import { usePageSize } from '@/src/hooks/usePageSize';
 import { getHebrewBirthDateParts } from '@/src/lib/dates/hebrewBirthDate';
-import { isUpcomingHebrewBirthday, matchesHebrewDay, matchesHebrewMonth } from '@/src/lib/dates/hebrewBirthdayFilters';
+import {
+  isUpcomingHebrewBirthday,
+  matchesHebrewDay,
+  matchesHebrewMonth,
+} from '@/src/lib/dates/hebrewBirthdayFilters';
 import { buildPersonExcelColumns } from '@/src/lib/excel/personColumns';
 import { buildExportFileName, buildXlsxWorkbookBuffer } from '@/src/lib/excel/xlsxWriter';
-import { CONTACTS_SCREEN_ID, useContactsListColumnDefinitions } from '@/src/config/contactsListColumns';
+import {
+  CONTACTS_SCREEN_ID,
+  useContactsListColumnDefinitions,
+} from '@/src/config/contactsListColumns';
 import { demoOrganizations } from '@/src/lib/auth/demoData';
 import { PageHeader } from '@/src/components/shell/PageHeader';
 import { Pagination } from '@/src/components/shell/Pagination';
@@ -64,15 +68,26 @@ export default function ContactsPage() {
 
   const allColumnDefinitions = useContactsListColumnDefinitions();
   const { getEffectiveColumns, setMyColumns, resetMyColumns } = useListViewPreferences();
-  const builtInDefaultColumnKeys = useMemo(() => getBuiltInDefaultColumnKeys(allColumnDefinitions), [allColumnDefinitions]);
+  const builtInDefaultColumnKeys = useMemo(
+    () => getBuiltInDefaultColumnKeys(allColumnDefinitions),
+    [allColumnDefinitions]
+  );
   const effectiveColumns = getEffectiveColumns(CONTACTS_SCREEN_ID, builtInDefaultColumnKeys);
   const visibleColumnKeys = effectiveColumns.visibleColumnKeys;
-  const columnByKey = useMemo(() => new Map(allColumnDefinitions.map((column) => [column.key, column])), [allColumnDefinitions]);
-  const visibleColumns: ListColumnDefinition[] = visibleColumnKeys.map((key) => columnByKey.get(key)).filter((column): column is ListColumnDefinition => Boolean(column));
+  const columnByKey = useMemo(
+    () => new Map(allColumnDefinitions.map(column => [column.key, column])),
+    [allColumnDefinitions]
+  );
+  const visibleColumns: ListColumnDefinition[] = visibleColumnKeys
+    .map(key => columnByKey.get(key))
+    .filter((column): column is ListColumnDefinition => Boolean(column));
 
   const availableTags = useMemo(
-    () => Array.from(new Set(entities.flatMap((entity) => entity.tags))).sort((a, b) => a.localeCompare(b, 'he')),
-    [entities],
+    () =>
+      Array.from(new Set(entities.flatMap(entity => entity.tags))).sort((a, b) =>
+        a.localeCompare(b, 'he')
+      ),
+    [entities]
   );
 
   const baseFilteredPeople = useMemo(
@@ -83,7 +98,7 @@ export default function ContactsPage() {
         sortKey,
         sortDirection,
       }),
-    [entities, roleAssignments, search, statusFilter, roleFilter, tagFilter, sortKey, sortDirection],
+    [entities, roleAssignments, search, statusFilter, roleFilter, tagFilter, sortKey, sortDirection]
   );
 
   const filteredPeople = useMemo(() => {
@@ -91,11 +106,14 @@ export default function ContactsPage() {
       return baseFilteredPeople;
     }
     const todayIso = getTodayIsoDate();
-    return baseFilteredPeople.filter((person) => {
+    return baseFilteredPeople.filter(person => {
       if (!person.profile.birthDateGregorian) {
         return false;
       }
-      const parts = getHebrewBirthDateParts(person.profile.birthDateGregorian, person.profile.hebrewDateAdjustmentDays);
+      const parts = getHebrewBirthDateParts(
+        person.profile.birthDateGregorian,
+        person.profile.hebrewDateAdjustmentDays
+      );
       if (hebrewMonthFilter && !matchesHebrewMonth(parts, hebrewMonthFilter)) {
         return false;
       }
@@ -104,7 +122,12 @@ export default function ContactsPage() {
       }
       if (
         upcomingBirthdaysOnly &&
-        !isUpcomingHebrewBirthday(person.profile.birthDateGregorian, person.profile.hebrewDateAdjustmentDays, todayIso, UPCOMING_BIRTHDAY_WINDOW_DAYS)
+        !isUpcomingHebrewBirthday(
+          person.profile.birthDateGregorian,
+          person.profile.hebrewDateAdjustmentDays,
+          todayIso,
+          UPCOMING_BIRTHDAY_WINDOW_DAYS
+        )
       ) {
         return false;
       }
@@ -112,11 +135,17 @@ export default function ContactsPage() {
     });
   }, [baseFilteredPeople, hebrewMonthFilter, hebrewDayFilter, upcomingBirthdaysOnly]);
 
-  const effectivePageSize = pageSize === 'unlimited' ? Math.max(filteredPeople.length, 1) : pageSize;
+  const effectivePageSize =
+    pageSize === 'unlimited' ? Math.max(filteredPeople.length, 1) : pageSize;
   const pageCount = Math.max(1, Math.ceil(filteredPeople.length / effectivePageSize));
   const currentPage = Math.min(page, pageCount);
   const paginatedPeople =
-    pageSize === 'unlimited' ? filteredPeople : filteredPeople.slice((currentPage - 1) * effectivePageSize, currentPage * effectivePageSize);
+    pageSize === 'unlimited'
+      ? filteredPeople
+      : filteredPeople.slice(
+          (currentPage - 1) * effectivePageSize,
+          currentPage * effectivePageSize
+        );
 
   function withFilterReset<T>(setter: (value: T) => void) {
     return (value: T) => {
@@ -142,13 +171,23 @@ export default function ContactsPage() {
     setIsExporting(true);
     try {
       const allExportColumns = buildPersonExcelColumns(customFieldDefinitions, customFieldValues);
-      const columns = exportVisibleColumnsOnly ? allExportColumns.filter((column) => visibleColumnKeys.includes(column.columnKey)) : allExportColumns;
+      const columns = exportVisibleColumnsOnly
+        ? allExportColumns.filter(column => visibleColumnKeys.includes(column.columnKey))
+        : allExportColumns;
 
-      const organizationName = demoOrganizations.find((organization) => organization.id === session?.selectedOrganizationId)?.name ?? 'Nera';
+      const organizationName =
+        demoOrganizations.find(organization => organization.id === session?.selectedOrganizationId)
+          ?.name ?? 'Nera';
       const fileName = buildExportFileName(organizationName, 'אנשי קשר');
 
-      const buffer = await buildXlsxWorkbookBuffer({ sheetName: 'אנשי קשר', columns, records: filteredPeople });
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const buffer = await buildXlsxWorkbookBuffer({
+        sheetName: 'אנשי קשר',
+        columns,
+        records: filteredPeople,
+      });
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -169,7 +208,11 @@ export default function ContactsPage() {
             {canExport ? (
               <div className="flex items-center gap-2">
                 <label className="flex items-center gap-1.5 text-xs text-slate-600">
-                  <input type="checkbox" checked={exportVisibleColumnsOnly} onChange={(event) => setExportVisibleColumnsOnly(event.target.checked)} />
+                  <input
+                    type="checkbox"
+                    checked={exportVisibleColumnsOnly}
+                    onChange={event => setExportVisibleColumnsOnly(event.target.checked)}
+                  />
                   עמודות מוצגות בלבד
                 </label>
                 <button
@@ -223,7 +266,7 @@ export default function ContactsPage() {
           <ColumnChooser
             allColumns={allColumnDefinitions}
             visibleColumnKeys={visibleColumnKeys}
-            onChange={(keys) => setMyColumns(CONTACTS_SCREEN_ID, keys)}
+            onChange={keys => setMyColumns(CONTACTS_SCREEN_ID, keys)}
             onReset={() => resetMyColumns(CONTACTS_SCREEN_ID)}
           />
           <PageSizeSelect value={pageSize} onChange={handlePageSizeChange} />
@@ -231,7 +274,10 @@ export default function ContactsPage() {
 
         <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
           {filteredPeople.length === 0 ? (
-            <EmptyState title="לא נמצאו אנשי קשר" description="נסו לשנות את מסנני החיפוש או להוסיף איש קשר חדש." />
+            <EmptyState
+              title="לא נמצאו אנשי קשר"
+              description="נסו לשנות את מסנני החיפוש או להוסיף איש קשר חדש."
+            />
           ) : (
             <>
               <PeopleTable
@@ -250,7 +296,9 @@ export default function ContactsPage() {
                   pageSize={effectivePageSize}
                 />
               ) : (
-                <p className="border-t border-slate-100 pt-4 text-sm text-slate-500">מוצגות כל {filteredPeople.length} התוצאות (ללא הגבלת עמודים).</p>
+                <p className="border-t border-slate-100 pt-4 text-sm text-slate-500">
+                  מוצגות כל {filteredPeople.length} התוצאות (ללא הגבלת עמודים).
+                </p>
               )}
             </>
           )}
@@ -261,7 +309,7 @@ export default function ContactsPage() {
         open={addDialogOpen}
         mode="create"
         onClose={() => setAddDialogOpen(false)}
-        onCreated={(person) => {
+        onCreated={person => {
           setAddDialogOpen(false);
           router.push(`/contacts/${person.id}`);
         }}

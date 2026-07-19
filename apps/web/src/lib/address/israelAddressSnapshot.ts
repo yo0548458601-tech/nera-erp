@@ -24,7 +24,8 @@ import { type LocalitySuggestion, type StreetSuggestion } from '@nera/entity-eng
  * stays a lightweight development snapshot rather than a large raw
  * dataset file bundled into the browser client.
  */
-export const ISRAEL_ADDRESS_SNAPSHOT_SOURCE = 'תמונת פיתוח מקומית - טרם סונכרנה מול מאגר רשמי (data.gov.il)';
+export const ISRAEL_ADDRESS_SNAPSHOT_SOURCE =
+  'תמונת פיתוח מקומית - טרם סונכרנה מול מאגר רשמי (data.gov.il)';
 export const ISRAEL_ADDRESS_SNAPSHOT_DATE = '2026-07-01';
 
 export const israelLocalitiesSnapshot: LocalitySuggestion[] = [

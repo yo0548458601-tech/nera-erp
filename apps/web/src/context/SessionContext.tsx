@@ -1,6 +1,14 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import { createDemoSession, type AuthSession } from '../lib/auth/demoAuth';
 
 const SESSION_STORAGE_KEY = 'nera:demo-session';
@@ -81,7 +89,7 @@ export function SessionProvider({ demoModeEnabled, children }: SessionProviderPr
       setSession(createDemoSession());
       return { success: true, message: 'התחברת בהצלחה למצב הדגמה' };
     },
-    [demoModeEnabled],
+    [demoModeEnabled]
   );
 
   const loginAsDemo = useCallback(() => {
@@ -89,7 +97,9 @@ export function SessionProvider({ demoModeEnabled, children }: SessionProviderPr
   }, []);
 
   const selectOrganization = useCallback((organizationId: string) => {
-    setSession((current) => (current ? { ...current, selectedOrganizationId: organizationId } : current));
+    setSession(current =>
+      current ? { ...current, selectedOrganizationId: organizationId } : current
+    );
   }, []);
 
   const logout = useCallback(() => {
@@ -97,8 +107,16 @@ export function SessionProvider({ demoModeEnabled, children }: SessionProviderPr
   }, []);
 
   const value = useMemo<SessionContextValue>(
-    () => ({ demoModeEnabled, session, isHydrated, login, loginAsDemo, selectOrganization, logout }),
-    [demoModeEnabled, session, isHydrated, login, loginAsDemo, selectOrganization, logout],
+    () => ({
+      demoModeEnabled,
+      session,
+      isHydrated,
+      login,
+      loginAsDemo,
+      selectOrganization,
+      logout,
+    }),
+    [demoModeEnabled, session, isHydrated, login, loginAsDemo, selectOrganization, logout]
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

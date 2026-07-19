@@ -57,7 +57,7 @@ export function AddressAutocompleteInput({
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
     const timeout = window.setTimeout(() => {
-      fetchSuggestions(value).then((results) => {
+      fetchSuggestions(value).then(results => {
         if (requestIdRef.current === requestId) {
           setSuggestions(results);
         }
@@ -84,7 +84,7 @@ export function AddressAutocompleteInput({
       <input
         value={value}
         disabled={disabled}
-        onChange={(event) => {
+        onChange={event => {
           onChange(event.target.value);
           setOpen(true);
         }}
@@ -97,7 +97,7 @@ export function AddressAutocompleteInput({
       />
       {open && !disabled && suggestions.length > 0 ? (
         <ul className="absolute top-full z-10 mt-1 w-full max-h-48 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1 shadow-lg">
-          {suggestions.map((suggestion) => (
+          {suggestions.map(suggestion => (
             <li key={suggestion.id}>
               <button
                 type="button"

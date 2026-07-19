@@ -6,7 +6,11 @@ type DateDisplayProps = {
   viewMode?: 'gregorian' | 'hebrew' | 'both';
 };
 
-export function DateDisplay({ value = new Date(), className = '', viewMode = 'both' }: DateDisplayProps) {
+export function DateDisplay({
+  value = new Date(),
+  className = '',
+  viewMode = 'both',
+}: DateDisplayProps) {
   const { gregorian, hebrew } = getDateDisplayPair(value);
 
   const showGregorian = viewMode === 'gregorian' || viewMode === 'both';
@@ -24,7 +28,9 @@ export function DateDisplay({ value = new Date(), className = '', viewMode = 'bo
         </div>
       ) : null}
       {showHebrew ? (
-        <div className={`mt-3 flex items-center justify-between gap-3 border-t border-slate-200 pt-3 ${showGregorian ? '' : 'border-t-0 pt-0'}`}>
+        <div
+          className={`mt-3 flex items-center justify-between gap-3 border-t border-slate-200 pt-3 ${showGregorian ? '' : 'border-t-0 pt-0'}`}
+        >
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">עברי</p>
             <p className="mt-1 text-sm text-slate-700">{hebrew.display}</p>

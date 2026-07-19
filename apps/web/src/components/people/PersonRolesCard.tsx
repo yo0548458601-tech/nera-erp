@@ -1,7 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { findRoleDefinition, getRolesForEntityType, type PersonEntity, type EntityRoleId } from '@nera/entity-engine';
+import {
+  findRoleDefinition,
+  getRolesForEntityType,
+  type PersonEntity,
+  type EntityRoleId,
+} from '@nera/entity-engine';
 import { demoOrganizations } from '../../lib/auth/demoData';
 import { useEntities } from '../../context/EntityContext';
 import { useRoleDefinitions } from '../../context/RoleDefinitionContext';
@@ -16,7 +21,13 @@ import { RoleBadge } from './RoleBadge';
  * billingProfile.ts), never by entityId, so the same person can carry a
  * different billing name per role.
  */
-function BillingNameField({ roleAssignmentId, entityId }: { roleAssignmentId: string; entityId: string }) {
+function BillingNameField({
+  roleAssignmentId,
+  entityId,
+}: {
+  roleAssignmentId: string;
+  entityId: string;
+}) {
   const { getBillingProfile, setBillingDisplayName } = useBillingProfiles();
   const existing = getBillingProfile(roleAssignmentId);
   const [draft, setDraft] = useState(existing?.billingDisplayName ?? '');
@@ -28,7 +39,7 @@ function BillingNameField({ roleAssignmentId, entityId }: { roleAssignmentId: st
         <span className="font-medium text-slate-600">שם לחשבונית</span>
         <input
           value={draft}
-          onChange={(event) => {
+          onChange={event => {
             setDraft(event.target.value);
             setSaved(false);
           }}
@@ -58,9 +69,13 @@ export function PersonRolesCard({ person }: { person: PersonEntity }) {
   const [selectedOrg, setSelectedOrg] = useState('');
   const [addError, setAddError] = useState('');
 
-  const assignments = roleAssignments.filter((assignment) => assignment.entityId === person.id);
-  const assignedRoleKeys = assignments.filter((assignment) => assignment.status === 'active').map((assignment) => assignment.role);
-  const availableRoles = personRoles.filter((role) => role.allowMultipleAssignments || !assignedRoleKeys.includes(role.key));
+  const assignments = roleAssignments.filter(assignment => assignment.entityId === person.id);
+  const assignedRoleKeys = assignments
+    .filter(assignment => assignment.status === 'active')
+    .map(assignment => assignment.role);
+  const availableRoles = personRoles.filter(
+    role => role.allowMultipleAssignments || !assignedRoleKeys.includes(role.key)
+  );
 
   const handleAdd = () => {
     if (!selectedRole) {
@@ -84,11 +99,14 @@ export function PersonRolesCard({ person }: { person: PersonEntity }) {
           <p className="text-sm text-slate-400">לא שויכו תפקידים.</p>
         ) : (
           <ul className="flex flex-col gap-2">
-            {assignments.map((assignment) => {
+            {assignments.map(assignment => {
               const definition = findRoleDefinition(roles, assignment.role);
               return (
                 <li key={assignment.id} className="flex flex-col gap-2">
-                  <RoleBadge role={assignment.role} onRemove={() => removeRoleFromEntity(person.id, assignment.id)} />
+                  <RoleBadge
+                    role={assignment.role}
+                    onRemove={() => removeRoleFromEntity(person.id, assignment.id)}
+                  />
                   {definition?.supportsBillingProfile ? (
                     <BillingNameField roleAssignmentId={assignment.id} entityId={person.id} />
                   ) : null}
@@ -104,11 +122,11 @@ export function PersonRolesCard({ person }: { person: PersonEntity }) {
               <span className="font-medium text-slate-700">הוספת תפקיד</span>
               <select
                 value={selectedRole}
-                onChange={(event) => setSelectedRole(event.target.value as EntityRoleId | '')}
+                onChange={event => setSelectedRole(event.target.value as EntityRoleId | '')}
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
               >
                 <option value="">בחר תפקיד</option>
-                {availableRoles.map((role) => (
+                {availableRoles.map(role => (
                   <option key={role.id} value={role.key}>
                     {role.label}
                   </option>
@@ -119,11 +137,11 @@ export function PersonRolesCard({ person }: { person: PersonEntity }) {
               <span className="font-medium text-slate-700">ארגון (אופציונלי)</span>
               <select
                 value={selectedOrg}
-                onChange={(event) => setSelectedOrg(event.target.value)}
+                onChange={event => setSelectedOrg(event.target.value)}
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
               >
                 <option value="">ללא שיוך ספציפי</option>
-                {demoOrganizations.map((organization) => (
+                {demoOrganizations.map(organization => (
                   <option key={organization.id} value={organization.id}>
                     {organization.name}
                   </option>

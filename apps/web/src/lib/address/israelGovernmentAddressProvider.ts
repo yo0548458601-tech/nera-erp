@@ -1,5 +1,15 @@
-import { type AddressProvider, type AddressProviderResult, type LocalitySuggestion, type StreetSuggestion } from '@nera/entity-engine';
-import { ISRAEL_ADDRESS_SNAPSHOT_DATE, ISRAEL_ADDRESS_SNAPSHOT_SOURCE, israelLocalitiesSnapshot, israelStreetsSnapshot } from './israelAddressSnapshot';
+import {
+  type AddressProvider,
+  type AddressProviderResult,
+  type LocalitySuggestion,
+  type StreetSuggestion,
+} from '@nera/entity-engine';
+import {
+  ISRAEL_ADDRESS_SNAPSHOT_DATE,
+  ISRAEL_ADDRESS_SNAPSHOT_SOURCE,
+  israelLocalitiesSnapshot,
+  israelStreetsSnapshot,
+} from './israelAddressSnapshot';
 
 /**
  * The primary AddressProvider for Nera ERP: Israeli localities and
@@ -24,7 +34,7 @@ const localitySearchCache = new Map<string, AddressProviderResult<LocalitySugges
 const streetSearchCache = new Map<string, AddressProviderResult<StreetSuggestion>>();
 
 async function delayed<T>(value: T): Promise<T> {
-  return new Promise((resolve) => window.setTimeout(() => resolve(value), 120));
+  return new Promise(resolve => window.setTimeout(() => resolve(value), 120));
 }
 
 export const israelGovernmentAddressProvider: AddressProvider = {
@@ -41,9 +51,15 @@ export const israelGovernmentAddressProvider: AddressProvider = {
 
     try {
       const results = normalizedQuery
-        ? israelLocalitiesSnapshot.filter((locality) => normalize(locality.name).includes(normalizedQuery))
+        ? israelLocalitiesSnapshot.filter(locality =>
+            normalize(locality.name).includes(normalizedQuery)
+          )
         : israelLocalitiesSnapshot;
-      const result: AddressProviderResult<LocalitySuggestion> = { results, source: 'government', verified: true };
+      const result: AddressProviderResult<LocalitySuggestion> = {
+        results,
+        source: 'government',
+        verified: true,
+      };
       localitySearchCache.set(cacheKey, result);
       return await delayed(result);
     } catch {
@@ -51,7 +67,10 @@ export const israelGovernmentAddressProvider: AddressProvider = {
     }
   },
 
-  async searchStreets(localityId: string, query: string): Promise<AddressProviderResult<StreetSuggestion>> {
+  async searchStreets(
+    localityId: string,
+    query: string
+  ): Promise<AddressProviderResult<StreetSuggestion>> {
     const normalizedQuery = normalize(query);
     const cacheKey = `${localityId}::${normalizedQuery}`;
     const cached = streetSearchCache.get(cacheKey);
@@ -61,9 +80,15 @@ export const israelGovernmentAddressProvider: AddressProvider = {
 
     try {
       const results = israelStreetsSnapshot.filter(
-        (street) => street.localityId === localityId && (!normalizedQuery || normalize(street.name).includes(normalizedQuery)),
+        street =>
+          street.localityId === localityId &&
+          (!normalizedQuery || normalize(street.name).includes(normalizedQuery))
       );
-      const result: AddressProviderResult<StreetSuggestion> = { results, source: 'government', verified: true };
+      const result: AddressProviderResult<StreetSuggestion> = {
+        results,
+        source: 'government',
+        verified: true,
+      };
       streetSearchCache.set(cacheKey, result);
       return await delayed(result);
     } catch {
@@ -91,7 +116,9 @@ export const israelGovernmentAddressProvider: AddressProvider = {
       address.floor ? `קומה ${address.floor}` : undefined,
       address.apartment ? `דירה ${address.apartment}` : undefined,
     ].filter(Boolean);
-    return [streetLine, unitParts.join(', '), address.city, address.postalCode, address.country].filter(Boolean).join(', ');
+    return [streetLine, unitParts.join(', '), address.city, address.postalCode, address.country]
+      .filter(Boolean)
+      .join(', ');
   },
 
   getProviderInfo() {

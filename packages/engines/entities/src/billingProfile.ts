@@ -28,6 +28,9 @@ export type NewBillingProfileInput = {
   notes?: string;
 };
 
-export function getBillingProfileForRoleAssignment(profiles: BillingProfile[], roleAssignmentId: string): BillingProfile | undefined {
-  return profiles.find((profile) => profile.roleAssignmentId === roleAssignmentId);
+export function getBillingProfileForRoleAssignment(
+  profiles: BillingProfile[],
+  roleAssignmentId: string
+): BillingProfile | undefined {
+  return profiles.find(profile => profile.roleAssignmentId === roleAssignmentId);
 }

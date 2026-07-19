@@ -21,12 +21,18 @@ const activityItems: ActivityItem[] = [
 const tasks = ['בדיקת הזמנות', 'אישור תשלום', 'סקירת תוכן'];
 const upcomingEvents = ['פגישה עם ספקים · 14:00', 'הדרכת צוות · 16:30', 'סקר ארגוני · 18:00'];
 
-export function DashboardContent({ dashboardState = 'ready', viewMode = 'both' }: DashboardContentProps) {
+export function DashboardContent({
+  dashboardState = 'ready',
+  viewMode = 'both',
+}: DashboardContentProps) {
   if (dashboardState === 'loading') {
     return (
       <div className="space-y-6">
-        {[1, 2, 3, 4].map((index) => (
-          <div key={index} className="h-24 animate-pulse rounded-[24px] border border-slate-200 bg-slate-100" />
+        {[1, 2, 3, 4].map(index => (
+          <div
+            key={index}
+            className="h-24 animate-pulse rounded-[24px] border border-slate-200 bg-slate-100"
+          />
         ))}
       </div>
     );
@@ -53,7 +59,12 @@ export function DashboardContent({ dashboardState = 'ready', viewMode = 'both' }
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="הכנסות החודש" value="₪ 184,320" meta="+12.4% מול חודש שעבר" accent="cyan" />
+        <StatCard
+          title="הכנסות החודש"
+          value="₪ 184,320"
+          meta="+12.4% מול חודש שעבר"
+          accent="cyan"
+        />
         <StatCard title="משימות פתוחות" value="24" meta="6 דורשות התערבות" accent="emerald" />
         <StatCard title="מסמכים שממתינים לאישור" value="11" meta="2 בתוך 24 שעות" accent="amber" />
         <StatCard title="אירועים קרובים" value="8" meta="3 עם נוכחות חובה" accent="violet" />
@@ -75,7 +86,10 @@ export function DashboardContent({ dashboardState = 'ready', viewMode = 'both' }
             <div className="mt-5 grid grid-cols-6 gap-2">
               {[40, 58, 62, 78, 60, 90].map((height, index) => (
                 <div key={height} className="flex items-end">
-                  <div className={`w-full rounded-t-xl ${index % 2 === 0 ? 'bg-cyan-500' : 'bg-slate-300'}`} style={{ height: `${height}px` }} />
+                  <div
+                    className={`w-full rounded-t-xl ${index % 2 === 0 ? 'bg-cyan-500' : 'bg-slate-300'}`}
+                    style={{ height: `${height}px` }}
+                  />
                 </div>
               ))}
             </div>
@@ -91,9 +105,14 @@ export function DashboardContent({ dashboardState = 'ready', viewMode = 'both' }
         <PanelCard title="משימות פתוחות" subtitle="רשימת עבודה עדכנית">
           <ul className="space-y-3">
             {tasks.map(task => (
-              <li key={task} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700">
+              <li
+                key={task}
+                className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700"
+              >
                 <span>{task}</span>
-                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs text-amber-700">בתהליך</span>
+                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs text-amber-700">
+                  בתהליך
+                </span>
               </li>
             ))}
           </ul>
@@ -102,7 +121,10 @@ export function DashboardContent({ dashboardState = 'ready', viewMode = 'both' }
         <PanelCard title="אירועים קרובים" subtitle="זמנים מרכזיים">
           <ul className="space-y-3">
             {upcomingEvents.map(event => (
-              <li key={event} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700">
+              <li
+                key={event}
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700"
+              >
                 {event}
               </li>
             ))}
@@ -112,7 +134,10 @@ export function DashboardContent({ dashboardState = 'ready', viewMode = 'both' }
         <PanelCard title="פעילות אחרונה" subtitle="עדכונים במערכת">
           <ul className="space-y-3">
             {activityItems.map(item => (
-              <li key={item.title} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+              <li
+                key={item.title}
+                className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3"
+              >
                 <p className="text-sm font-medium text-slate-900">{item.title}</p>
                 <p className="mt-1 text-sm text-slate-500">{item.meta}</p>
               </li>
@@ -123,10 +148,17 @@ export function DashboardContent({ dashboardState = 'ready', viewMode = 'both' }
 
       <PanelCard title="סיוע בינה מלאכותית" subtitle="שאל את Nera כל שאלה על הארגון">
         <div className="rounded-3xl border border-cyan-100 bg-cyan-50 p-4">
-          <p className="text-sm text-slate-600">המסייע הדיגיטלי יספק המלצות, סיכומים ותשובות עתידיות על בסיס הרשאות ואירועים.</p>
+          <p className="text-sm text-slate-600">
+            המסייע הדיגיטלי יספק המלצות, סיכומים ותשובות עתידיות על בסיס הרשאות ואירועים.
+          </p>
           <div className="mt-4 flex flex-col gap-3 md:flex-row">
-            <input className="flex-1 rounded-2xl border border-cyan-200 bg-white px-4 py-3 outline-none" placeholder="שאל את Nera כל שאלה על הארגון" />
-            <button className="rounded-2xl bg-cyan-600 px-4 py-3 text-sm font-semibold text-white">שלח</button>
+            <input
+              className="flex-1 rounded-2xl border border-cyan-200 bg-white px-4 py-3 outline-none"
+              placeholder="שאל את Nera כל שאלה על הארגון"
+            />
+            <button className="rounded-2xl bg-cyan-600 px-4 py-3 text-sm font-semibold text-white">
+              שלח
+            </button>
           </div>
         </div>
       </PanelCard>

@@ -2,7 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
-import { getHebrewMonthLength, getTodayIsoDate, listHebrewMonthNames, toHebrewNumeral } from '@nera/calendar-engine';
+import {
+  getHebrewMonthLength,
+  getTodayIsoDate,
+  listHebrewMonthNames,
+  toHebrewNumeral,
+} from '@nera/calendar-engine';
 import {
   getRolesForEntityType,
   type EntityRoleId,
@@ -38,7 +43,7 @@ type PeopleFiltersBarProps = {
 };
 
 function toggleValue<T>(list: T[], value: T): T[] {
-  return list.includes(value) ? list.filter((entry) => entry !== value) : [...list, value];
+  return list.includes(value) ? list.filter(entry => entry !== value) : [...list, value];
 }
 
 export function PeopleFiltersBar({
@@ -74,10 +79,12 @@ export function PeopleFiltersBar({
    * broadest possible range (1-30) is offered since the day filter alone
    * is not yet month-scoped.
    */
-  const hebrewMonthLength = hebrewMonthFilter ? getHebrewMonthLength(hebrewMonthFilter, todayIso) : 30;
+  const hebrewMonthLength = hebrewMonthFilter
+    ? getHebrewMonthLength(hebrewMonthFilter, todayIso)
+    : 30;
   const hebrewDayOptions = useMemo(
     () => Array.from({ length: hebrewMonthLength }, (_, index) => index + 1),
-    [hebrewMonthLength],
+    [hebrewMonthLength]
   );
 
   const [dayClearedMessage, setDayClearedMessage] = useState('');
@@ -86,7 +93,9 @@ export function PeopleFiltersBar({
   useEffect(() => {
     if (hebrewDayFilter && hebrewDayFilter > hebrewMonthLength) {
       onHebrewDayFilterChange('');
-      setDayClearedMessage(`בחירת היום אופסה - לחודש שנבחר אין יום ${toHebrewNumeral(hebrewDayFilter)}.`);
+      setDayClearedMessage(
+        `בחירת היום אופסה - לחודש שנבחר אין יום ${toHebrewNumeral(hebrewDayFilter)}.`
+      );
       window.setTimeout(() => setDayClearedMessage(''), 4000);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -99,8 +108,8 @@ export function PeopleFiltersBar({
           <Search size={16} className="text-slate-400" aria-hidden="true" />
           <input
             value={search}
-            onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="חיפוש לפי שם, טלפון, דוא&quot;ל, ת.ז. או תגית"
+            onChange={event => onSearchChange(event.target.value)}
+            placeholder='חיפוש לפי שם, טלפון, דוא"ל, ת.ז. או תגית'
             aria-label="חיפוש אנשי קשר"
             className="w-full bg-transparent text-sm text-slate-700 outline-none"
           />
@@ -113,7 +122,7 @@ export function PeopleFiltersBar({
           <select
             id="people-sort-key"
             value={sortKey}
-            onChange={(event) => onSortKeyChange(event.target.value as EntitySortKey)}
+            onChange={event => onSortKeyChange(event.target.value as EntitySortKey)}
             className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm"
           >
             <option value="name">שם</option>
@@ -133,7 +142,7 @@ export function PeopleFiltersBar({
 
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">סטטוס:</span>
-        {statusOptions.map((status) => (
+        {statusOptions.map(status => (
           <button
             key={status}
             type="button"
@@ -152,7 +161,7 @@ export function PeopleFiltersBar({
 
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">תפקיד:</span>
-        {personRoles.map((role) => (
+        {personRoles.map(role => (
           <button
             key={role.id}
             type="button"
@@ -170,13 +179,17 @@ export function PeopleFiltersBar({
       </div>
 
       <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-3">
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">תאריך לידה עברי:</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          תאריך לידה עברי:
+        </span>
 
         <label className="flex items-center gap-2 text-sm text-slate-600">
           חודש עברי:
           <select
             value={hebrewMonthFilter}
-            onChange={(event) => onHebrewMonthFilterChange(event.target.value ? Number(event.target.value) : '')}
+            onChange={event =>
+              onHebrewMonthFilterChange(event.target.value ? Number(event.target.value) : '')
+            }
             className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm"
           >
             <option value="">הכל</option>
@@ -192,11 +205,13 @@ export function PeopleFiltersBar({
           יום עברי בחודש:
           <select
             value={hebrewDayFilter}
-            onChange={(event) => onHebrewDayFilterChange(event.target.value ? Number(event.target.value) : '')}
+            onChange={event =>
+              onHebrewDayFilterChange(event.target.value ? Number(event.target.value) : '')
+            }
             className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm"
           >
             <option value="">הכל</option>
-            {hebrewDayOptions.map((day) => (
+            {hebrewDayOptions.map(day => (
               <option key={day} value={day}>
                 {toHebrewNumeral(day)}
               </option>
@@ -214,7 +229,9 @@ export function PeopleFiltersBar({
           onClick={() => onUpcomingBirthdaysOnlyChange(!upcomingBirthdaysOnly)}
           aria-pressed={upcomingBirthdaysOnly}
           className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-            upcomingBirthdaysOnly ? 'border-cyan-500 bg-cyan-50 text-cyan-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+            upcomingBirthdaysOnly
+              ? 'border-cyan-500 bg-cyan-50 text-cyan-700'
+              : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
           }`}
         >
           ימי הולדת עבריים קרובים (30 יום)
@@ -223,8 +240,10 @@ export function PeopleFiltersBar({
 
       {availableTags.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">תגיות:</span>
-          {availableTags.map((tag) => (
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            תגיות:
+          </span>
+          {availableTags.map(tag => (
             <button
               key={tag}
               type="button"

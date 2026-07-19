@@ -21,18 +21,23 @@ type ColumnChooserProps = {
  * can never be unchecked, so a list can never end up with zero identifying
  * columns visible.
  */
-export function ColumnChooser({ allColumns, visibleColumnKeys, onChange, onReset }: ColumnChooserProps) {
+export function ColumnChooser({
+  allColumns,
+  visibleColumnKeys,
+  onChange,
+  onReset,
+}: ColumnChooserProps) {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   useDismissableOverlay(open, () => setOpen(false), [panelRef, triggerRef]);
 
-  const byKey = new Map(allColumns.map((column) => [column.key, column]));
+  const byKey = new Map(allColumns.map(column => [column.key, column]));
   const hiddenKeysInDefaultOrder = allColumns
-    .filter((column) => !visibleColumnKeys.includes(column.key))
+    .filter(column => !visibleColumnKeys.includes(column.key))
     .sort((a, b) => a.defaultOrder - b.defaultOrder)
-    .map((column) => column.key);
+    .map(column => column.key);
   const displayOrder = [...visibleColumnKeys, ...hiddenKeysInDefaultOrder];
 
   const toggle = (key: string) => {
@@ -40,7 +45,11 @@ export function ColumnChooser({ allColumns, visibleColumnKeys, onChange, onReset
     if (definition?.required) {
       return;
     }
-    onChange(visibleColumnKeys.includes(key) ? visibleColumnKeys.filter((entry) => entry !== key) : [...visibleColumnKeys, key]);
+    onChange(
+      visibleColumnKeys.includes(key)
+        ? visibleColumnKeys.filter(entry => entry !== key)
+        : [...visibleColumnKeys, key]
+    );
   };
 
   const move = (key: string, direction: -1 | 1) => {
@@ -59,7 +68,7 @@ export function ColumnChooser({ allColumns, visibleColumnKeys, onChange, onReset
       <button
         ref={triggerRef}
         type="button"
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => setOpen(current => !current)}
         aria-haspopup="true"
         aria-expanded={open}
         className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600"
@@ -69,20 +78,33 @@ export function ColumnChooser({ allColumns, visibleColumnKeys, onChange, onReset
       </button>
 
       {open ? (
-        <div ref={panelRef} className="absolute left-0 z-20 mt-2 w-72 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl">
+        <div
+          ref={panelRef}
+          className="absolute left-0 z-20 mt-2 w-72 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl"
+        >
           <ul className="flex max-h-64 flex-col gap-0.5 overflow-y-auto">
-            {displayOrder.map((key) => {
+            {displayOrder.map(key => {
               const definition = byKey.get(key);
               if (!definition) {
                 return null;
               }
               const isVisible = visibleColumnKeys.includes(key);
               return (
-                <li key={key} className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50">
+                <li
+                  key={key}
+                  className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50"
+                >
                   <label className="flex items-center gap-2 text-sm text-slate-700">
-                    <input type="checkbox" checked={isVisible} disabled={definition.required} onChange={() => toggle(key)} />
+                    <input
+                      type="checkbox"
+                      checked={isVisible}
+                      disabled={definition.required}
+                      onChange={() => toggle(key)}
+                    />
                     {definition.hebrewHeader}
-                    {definition.required ? <span className="text-xs text-slate-400"> (חובה)</span> : null}
+                    {definition.required ? (
+                      <span className="text-xs text-slate-400"> (חובה)</span>
+                    ) : null}
                   </label>
                   {isVisible ? (
                     <div className="flex gap-1">

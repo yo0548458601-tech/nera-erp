@@ -32,11 +32,17 @@ export const defaultSettings: SettingDefinition[] = [
   },
 ];
 
-export function resolveSetting(settings: Partial<Record<string, RuntimeSetting>>, key: string): RuntimeSetting | undefined {
+export function resolveSetting(
+  settings: Partial<Record<string, RuntimeSetting>>,
+  key: string
+): RuntimeSetting | undefined {
   return settings[key];
 }
 
-export function createSettingValue(definition: SettingDefinition, value: string | boolean | number): RuntimeSetting {
+export function createSettingValue(
+  definition: SettingDefinition,
+  value: string | boolean | number
+): RuntimeSetting {
   return {
     ...definition,
     value,

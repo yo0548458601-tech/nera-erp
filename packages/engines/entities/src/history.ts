@@ -27,7 +27,7 @@ export function diffEntityFields(
   before: Record<string, unknown>,
   after: Record<string, unknown>,
   changedByUserId: string,
-  createId: () => string,
+  createId: () => string
 ): EntityFieldChange[] {
   const changes: EntityFieldChange[] = [];
   const now = new Date().toISOString();
@@ -38,7 +38,15 @@ export function diffEntityFields(
     if (JSON.stringify(previousValue) === JSON.stringify(newValue)) {
       continue;
     }
-    changes.push({ id: createId(), entityId, field, previousValue, newValue, changedByUserId, changedAt: now });
+    changes.push({
+      id: createId(),
+      entityId,
+      field,
+      previousValue,
+      newValue,
+      changedByUserId,
+      changedAt: now,
+    });
   }
 
   return changes;

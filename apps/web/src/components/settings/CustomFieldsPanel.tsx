@@ -73,7 +73,10 @@ export function CustomFieldsPanel() {
       targetScope,
       targetEntityType: targetScope === 'entity_type' ? targetEntityType : undefined,
       required,
-      options: fieldType === 'single_select' || fieldType === 'multi_select' ? [{ id: 'opt-1', label: 'אפשרות 1', value: 'option_1' }] : undefined,
+      options:
+        fieldType === 'single_select' || fieldType === 'multi_select'
+          ? [{ id: 'opt-1', label: 'אפשרות 1', value: 'option_1' }]
+          : undefined,
       showInList,
       showInDetail,
       filterable,
@@ -136,24 +139,37 @@ export function CustomFieldsPanel() {
               </tr>
             </thead>
             <tbody>
-              {definitions.map((definition) => (
+              {definitions.map(definition => (
                 <tr key={definition.id} className="border-b border-slate-100 last:border-0">
                   <td className="px-3 py-3">
                     <p className="font-medium text-slate-900">{definition.label}</p>
-                    {definition.description ? <p className="text-xs text-slate-400">{definition.description}</p> : null}
+                    {definition.description ? (
+                      <p className="text-xs text-slate-400">{definition.description}</p>
+                    ) : null}
                   </td>
                   <td className="px-3 py-3 font-mono text-xs text-slate-500">{definition.key}</td>
-                  <td className="px-3 py-3 text-slate-600">{fieldTypeLabels[definition.fieldType]}</td>
+                  <td className="px-3 py-3 text-slate-600">
+                    {fieldTypeLabels[definition.fieldType]}
+                  </td>
                   <td className="px-3 py-3 text-slate-600">
                     {scopeLabels[definition.targetScope]}
-                    {definition.targetEntityType ? ` (${definition.targetEntityType === 'person' ? 'אדם' : 'ארגון'})` : ''}
+                    {definition.targetEntityType
+                      ? ` (${definition.targetEntityType === 'person' ? 'אדם' : 'ארגון'})`
+                      : ''}
                   </td>
                   <td className="px-3 py-3 text-slate-600">{definition.required ? 'כן' : 'לא'}</td>
-                  <td className="px-3 py-3 text-slate-600">{definition.includeInExcelExport ? 'כן' : 'לא'}</td>
+                  <td className="px-3 py-3 text-slate-600">
+                    {definition.includeInExcelExport ? 'כן' : 'לא'}
+                  </td>
                   <td className="px-3 py-3">
                     <button
                       type="button"
-                      onClick={() => setFieldStatus(definition.id, definition.status === 'active' ? 'inactive' : 'active')}
+                      onClick={() =>
+                        setFieldStatus(
+                          definition.id,
+                          definition.status === 'active' ? 'inactive' : 'active'
+                        )
+                      }
                       className={`rounded-full border px-3 py-1 text-xs font-medium ${
                         definition.status === 'active'
                           ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
@@ -169,7 +185,10 @@ export function CustomFieldsPanel() {
           </table>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 border-t border-slate-100 pt-4">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-4 border-t border-slate-100 pt-4"
+        >
           <p className="text-sm font-semibold text-slate-700">הוספת שדה מותאם אישית</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-1.5 text-sm">
@@ -177,7 +196,7 @@ export function CustomFieldsPanel() {
               <input
                 required
                 value={key}
-                onChange={(event) => setKey(event.target.value)}
+                onChange={event => setKey(event.target.value)}
                 placeholder="לדוגמה: shirt_size"
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-400"
               />
@@ -187,7 +206,7 @@ export function CustomFieldsPanel() {
               <input
                 required
                 value={label}
-                onChange={(event) => setLabel(event.target.value)}
+                onChange={event => setLabel(event.target.value)}
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-400"
               />
             </label>
@@ -195,7 +214,7 @@ export function CustomFieldsPanel() {
               <span className="font-medium text-slate-700">סוג שדה</span>
               <select
                 value={fieldType}
-                onChange={(event) => setFieldType(event.target.value as CustomFieldType)}
+                onChange={event => setFieldType(event.target.value as CustomFieldType)}
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
               >
                 {Object.entries(fieldTypeLabels).map(([value, fieldLabel]) => (
@@ -209,7 +228,7 @@ export function CustomFieldsPanel() {
               <span className="font-medium text-slate-700">תחולה (Scope)</span>
               <select
                 value={targetScope}
-                onChange={(event) => setTargetScope(event.target.value as CustomFieldTargetScope)}
+                onChange={event => setTargetScope(event.target.value as CustomFieldTargetScope)}
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
               >
                 {Object.entries(scopeLabels).map(([value, scopeLabel]) => (
@@ -224,7 +243,9 @@ export function CustomFieldsPanel() {
                 <span className="font-medium text-slate-700">סוג ישות</span>
                 <select
                   value={targetEntityType}
-                  onChange={(event) => setTargetEntityType(event.target.value as 'person' | 'organization')}
+                  onChange={event =>
+                    setTargetEntityType(event.target.value as 'person' | 'organization')
+                  }
                   className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
                 >
                   <option value="person">אדם</option>
@@ -236,31 +257,59 @@ export function CustomFieldsPanel() {
 
           <div className="flex flex-wrap gap-4 text-sm text-slate-700">
             <label className="flex items-center gap-2">
-              <input type="checkbox" checked={required} onChange={(event) => setRequired(event.target.checked)} />
+              <input
+                type="checkbox"
+                checked={required}
+                onChange={event => setRequired(event.target.checked)}
+              />
               שדה חובה
             </label>
             <label className="flex items-center gap-2">
-              <input type="checkbox" checked={showInList} onChange={(event) => setShowInList(event.target.checked)} />
+              <input
+                type="checkbox"
+                checked={showInList}
+                onChange={event => setShowInList(event.target.checked)}
+              />
               הצג ברשימה
             </label>
             <label className="flex items-center gap-2">
-              <input type="checkbox" checked={showInDetail} onChange={(event) => setShowInDetail(event.target.checked)} />
+              <input
+                type="checkbox"
+                checked={showInDetail}
+                onChange={event => setShowInDetail(event.target.checked)}
+              />
               הצג בכרטיס פרטים
             </label>
             <label className="flex items-center gap-2">
-              <input type="checkbox" checked={filterable} onChange={(event) => setFilterable(event.target.checked)} />
+              <input
+                type="checkbox"
+                checked={filterable}
+                onChange={event => setFilterable(event.target.checked)}
+              />
               ניתן לסינון
             </label>
             <label className="flex items-center gap-2">
-              <input type="checkbox" checked={searchable} onChange={(event) => setSearchable(event.target.checked)} />
+              <input
+                type="checkbox"
+                checked={searchable}
+                onChange={event => setSearchable(event.target.checked)}
+              />
               ניתן לחיפוש
             </label>
             <label className="flex items-center gap-2">
-              <input type="checkbox" checked={includeInExcelExport} onChange={(event) => setIncludeInExcelExport(event.target.checked)} />
+              <input
+                type="checkbox"
+                checked={includeInExcelExport}
+                onChange={event => setIncludeInExcelExport(event.target.checked)}
+              />
               כלול בייצוא לאקסל
             </label>
             <label className="flex items-center gap-2">
-              <input type="checkbox" checked={includeInExcelImport} onChange={(event) => setIncludeInExcelImport(event.target.checked)} />
+              <input
+                type="checkbox"
+                checked={includeInExcelImport}
+                onChange={event => setIncludeInExcelImport(event.target.checked)}
+              />
               כלול בייבוא מאקסל
             </label>
           </div>
@@ -268,7 +317,10 @@ export function CustomFieldsPanel() {
           {error ? <p className="text-sm text-rose-600">{error}</p> : null}
           {successMessage ? <p className="text-sm text-emerald-600">{successMessage}</p> : null}
 
-          <button type="submit" className="self-start rounded-2xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white">
+          <button
+            type="submit"
+            className="self-start rounded-2xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white"
+          >
             הוסף שדה
           </button>
         </form>

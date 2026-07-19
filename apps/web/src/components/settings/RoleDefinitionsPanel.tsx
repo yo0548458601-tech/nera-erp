@@ -43,7 +43,9 @@ export function RoleDefinitionsPanel() {
   }
 
   const toggleEntityType = (type: EntityType) => {
-    setEntityTypes((current) => (current.includes(type) ? current.filter((entry) => entry !== type) : [...current, type]));
+    setEntityTypes(current =>
+      current.includes(type) ? current.filter(entry => entry !== type) : [...current, type]
+    );
   };
 
   const handleSubmit = (event: FormEvent) => {
@@ -82,7 +84,7 @@ export function RoleDefinitionsPanel() {
   return (
     <PanelCard
       title="הגדרות תפקידים עסקיים"
-      subtitle='מצב הדגמה - התפקידים המותאמים אישית נשמרים בזיכרון הדפדפן בלבד למשך ההדגמה. תפקידי המערכת המובנים אינם ניתנים למחיקה, ניתן רק להשבית אותם.'
+      subtitle="מצב הדגמה - התפקידים המותאמים אישית נשמרים בזיכרון הדפדפן בלבד למשך ההדגמה. תפקידי המערכת המובנים אינם ניתנים למחיקה, ניתן רק להשבית אותם."
     >
       <div className="flex flex-col gap-6">
         <div className="overflow-x-auto">
@@ -113,18 +115,27 @@ export function RoleDefinitionsPanel() {
               </tr>
             </thead>
             <tbody>
-              {roles.map((role) => (
+              {roles.map(role => (
                 <tr key={role.id} className="border-b border-slate-100 last:border-0">
                   <td className="px-3 py-3">
                     <p className="font-medium text-slate-900">{role.label}</p>
-                    {role.description ? <p className="text-xs text-slate-400">{role.description}</p> : null}
+                    {role.description ? (
+                      <p className="text-xs text-slate-400">{role.description}</p>
+                    ) : null}
                   </td>
                   <td className="px-3 py-3 font-mono text-xs text-slate-500">{role.key}</td>
-                  <td className="px-3 py-3 text-slate-600">{role.applicableEntityTypes.map((type) => entityTypeLabels[type]).join(', ')}</td>
                   <td className="px-3 py-3 text-slate-600">
-                    {role.institutionId ? demoOrganizations.find((org) => org.id === role.institutionId)?.name ?? role.institutionId : 'כל המוסדות'}
+                    {role.applicableEntityTypes.map(type => entityTypeLabels[type]).join(', ')}
                   </td>
-                  <td className="px-3 py-3 text-slate-600">{role.showInGlobalAddNew ? 'כן' : 'לא'}</td>
+                  <td className="px-3 py-3 text-slate-600">
+                    {role.institutionId
+                      ? (demoOrganizations.find(org => org.id === role.institutionId)?.name ??
+                        role.institutionId)
+                      : 'כל המוסדות'}
+                  </td>
+                  <td className="px-3 py-3 text-slate-600">
+                    {role.showInGlobalAddNew ? 'כן' : 'לא'}
+                  </td>
                   <td className="px-3 py-3">
                     <span
                       className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
@@ -137,9 +148,13 @@ export function RoleDefinitionsPanel() {
                   <td className="px-3 py-3">
                     <button
                       type="button"
-                      onClick={() => setRoleStatus(role.id, role.status === 'active' ? 'inactive' : 'active')}
+                      onClick={() =>
+                        setRoleStatus(role.id, role.status === 'active' ? 'inactive' : 'active')
+                      }
                       className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                        role.status === 'active' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500'
+                        role.status === 'active'
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-500'
                       }`}
                     >
                       {role.status === 'active' ? 'פעיל' : 'מושבת'}
@@ -151,7 +166,10 @@ export function RoleDefinitionsPanel() {
           </table>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 border-t border-slate-100 pt-4">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-4 border-t border-slate-100 pt-4"
+        >
           <p className="text-sm font-semibold text-slate-700">הוספת תפקיד מותאם אישית</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-1.5 text-sm">
@@ -159,7 +177,7 @@ export function RoleDefinitionsPanel() {
               <input
                 required
                 value={key}
-                onChange={(event) => setKey(event.target.value)}
+                onChange={event => setKey(event.target.value)}
                 placeholder="לדוגמה: volunteer"
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-400"
               />
@@ -169,7 +187,7 @@ export function RoleDefinitionsPanel() {
               <input
                 required
                 value={label}
-                onChange={(event) => setLabel(event.target.value)}
+                onChange={event => setLabel(event.target.value)}
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-400"
               />
             </label>
@@ -179,23 +197,27 @@ export function RoleDefinitionsPanel() {
             <span className="font-medium text-slate-700">תיאור</span>
             <input
               value={description}
-              onChange={(event) => setDescription(event.target.value)}
+              onChange={event => setDescription(event.target.value)}
               className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none focus:border-cyan-400"
             />
           </label>
 
           <div className="flex flex-wrap items-center gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">סוג ישות</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                סוג ישות
+              </p>
               <div className="mt-1.5 flex gap-2">
-                {(['person', 'organization'] as EntityType[]).map((type) => (
+                {(['person', 'organization'] as EntityType[]).map(type => (
                   <button
                     key={type}
                     type="button"
                     onClick={() => toggleEntityType(type)}
                     aria-pressed={entityTypes.includes(type)}
                     className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-                      entityTypes.includes(type) ? 'border-cyan-500 bg-cyan-50 text-cyan-700' : 'border-slate-200 bg-white text-slate-600'
+                      entityTypes.includes(type)
+                        ? 'border-cyan-500 bg-cyan-50 text-cyan-700'
+                        : 'border-slate-200 bg-white text-slate-600'
                     }`}
                   >
                     {entityTypeLabels[type]}
@@ -208,11 +230,11 @@ export function RoleDefinitionsPanel() {
               <span className="font-medium text-slate-700">תחולת מוסד</span>
               <select
                 value={institutionId}
-                onChange={(event) => setInstitutionId(event.target.value)}
+                onChange={event => setInstitutionId(event.target.value)}
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
               >
                 <option value="">כל המוסדות</option>
-                {demoOrganizations.map((organization) => (
+                {demoOrganizations.map(organization => (
                   <option key={organization.id} value={organization.id}>
                     {organization.name}
                   </option>
@@ -221,7 +243,11 @@ export function RoleDefinitionsPanel() {
             </label>
 
             <label className="flex items-center gap-2 text-sm text-slate-700">
-              <input type="checkbox" checked={showInGlobalAddNew} onChange={(event) => setShowInGlobalAddNew(event.target.checked)} />
+              <input
+                type="checkbox"
+                checked={showInGlobalAddNew}
+                onChange={event => setShowInGlobalAddNew(event.target.checked)}
+              />
               הצג בתפריט &quot;הוספה חדשה&quot;
             </label>
 
@@ -229,7 +255,7 @@ export function RoleDefinitionsPanel() {
               <input
                 type="checkbox"
                 checked={allowMultipleAssignments}
-                onChange={(event) => setAllowMultipleAssignments(event.target.checked)}
+                onChange={event => setAllowMultipleAssignments(event.target.checked)}
               />
               אפשר מספר שיוכים בו-זמנית לאותה ישות
             </label>
@@ -238,7 +264,7 @@ export function RoleDefinitionsPanel() {
               <input
                 type="checkbox"
                 checked={supportsBillingProfile}
-                onChange={(event) => setSupportsBillingProfile(event.target.checked)}
+                onChange={event => setSupportsBillingProfile(event.target.checked)}
               />
               תומך בשם לחשבונית
             </label>
@@ -247,7 +273,10 @@ export function RoleDefinitionsPanel() {
           {error ? <p className="text-sm text-rose-600">{error}</p> : null}
           {successMessage ? <p className="text-sm text-emerald-600">{successMessage}</p> : null}
 
-          <button type="submit" className="self-start rounded-2xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white">
+          <button
+            type="submit"
+            className="self-start rounded-2xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white"
+          >
             הוסף תפקיד
           </button>
         </form>

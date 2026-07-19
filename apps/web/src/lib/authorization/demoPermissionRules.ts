@@ -1,12 +1,25 @@
-import { permissionRegistry, type PermissionId, type PermissionRule } from '@nera/authorization-engine';
+import {
+  permissionRegistry,
+  type PermissionId,
+  type PermissionRule,
+} from '@nera/authorization-engine';
 
 const SEED_TIMESTAMP = '2026-01-01T00:00:00.000Z';
 
-function systemRule(permission: PermissionId, decision: 'allow' | 'deny', id: string): PermissionRule {
+function systemRule(
+  permission: PermissionId,
+  decision: 'allow' | 'deny',
+  id: string
+): PermissionRule {
   return { id, scope: 'system', permission, decision, updatedAt: SEED_TIMESTAMP };
 }
 
-function roleRule(roleId: string, permission: PermissionId, decision: 'allow' | 'deny', id: string): PermissionRule {
+function roleRule(
+  roleId: string,
+  permission: PermissionId,
+  decision: 'allow' | 'deny',
+  id: string
+): PermissionRule {
   return { id, scope: 'role', targetId: roleId, permission, decision, updatedAt: SEED_TIMESTAMP };
 }
 
@@ -21,10 +34,14 @@ function roleRule(roleId: string, permission: PermissionId, decision: 'allow' | 
  */
 export const demoPermissionRules: PermissionRule[] = [
   // System defaults: deny everything unless a more specific scope says otherwise.
-  ...permissionRegistry.map((definition, index) => systemRule(definition.id, 'deny', `sys-${index}`)),
+  ...permissionRegistry.map((definition, index) =>
+    systemRule(definition.id, 'deny', `sys-${index}`)
+  ),
 
   // Administrator role: broad demo access, matching "the current signed-in administrator may be granted broad demo permissions for testing".
-  ...permissionRegistry.map((definition, index) => roleRule('administrator', definition.id, 'allow', `role-admin-${index}`)),
+  ...permissionRegistry.map((definition, index) =>
+    roleRule('administrator', definition.id, 'allow', `role-admin-${index}`)
+  ),
 
   // Staff role: everyday capabilities only - notably NOT delete/restore/merge/override/finance-priority/import-export.
   roleRule('staff', 'notes.edit', 'allow', 'role-staff-notes-edit'),

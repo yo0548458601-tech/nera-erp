@@ -16,7 +16,11 @@ type HebrewBirthDateFieldProps = {
  * anywhere else a person's Hebrew birth date needs to be shown alongside
  * its adjustment.
  */
-export function HebrewBirthDateField({ birthDateGregorian, adjustmentDays, onAdjustmentChange }: HebrewBirthDateFieldProps) {
+export function HebrewBirthDateField({
+  birthDateGregorian,
+  adjustmentDays,
+  onAdjustmentChange,
+}: HebrewBirthDateFieldProps) {
   if (!birthDateGregorian) {
     return null;
   }
@@ -35,7 +39,11 @@ export function HebrewBirthDateField({ birthDateGregorian, adjustmentDays, onAdj
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
-          onClick={() => onAdjustmentChange(adjustmentDays > -1 ? ((adjustmentDays - 1) as HebrewDateAdjustment) : adjustmentDays)}
+          onClick={() =>
+            onAdjustmentChange(
+              adjustmentDays > -1 ? ((adjustmentDays - 1) as HebrewDateAdjustment) : adjustmentDays
+            )
+          }
           disabled={adjustmentDays <= -1}
           aria-label="הזז יום אחורה"
           className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 disabled:opacity-40"
@@ -53,7 +61,11 @@ export function HebrewBirthDateField({ birthDateGregorian, adjustmentDays, onAdj
         </button>
         <button
           type="button"
-          onClick={() => onAdjustmentChange(adjustmentDays < 1 ? ((adjustmentDays + 1) as HebrewDateAdjustment) : adjustmentDays)}
+          onClick={() =>
+            onAdjustmentChange(
+              adjustmentDays < 1 ? ((adjustmentDays + 1) as HebrewDateAdjustment) : adjustmentDays
+            )
+          }
           disabled={adjustmentDays >= 1}
           aria-label="הזז יום קדימה"
           className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 disabled:opacity-40"
@@ -61,13 +73,18 @@ export function HebrewBirthDateField({ birthDateGregorian, adjustmentDays, onAdj
           <ChevronLeft size={14} aria-hidden="true" />
         </button>
         <span className="text-xs text-slate-500">
-          {adjustmentDays === 0 ? 'ללא תיקון' : adjustmentDays > 0 ? `תוקן יום אחד קדימה` : `תוקן יום אחד אחורה`}
+          {adjustmentDays === 0
+            ? 'ללא תיקון'
+            : adjustmentDays > 0
+              ? `תוקן יום אחד קדימה`
+              : `תוקן יום אחד אחורה`}
         </span>
       </div>
 
       <p className="text-xs text-slate-400">
-        התאריך העברי מחושב אוטומטית מהתאריך הלועזי. אם קיים חוסר ודאות לגבי התאריך העברי המדויק (למשל תאריך לידה סמוך לשקיעה), ניתן
-        להזיז אותו יום אחד קדימה או אחורה - אין אפשרות להזין תאריך עברי חופשי.
+        התאריך העברי מחושב אוטומטית מהתאריך הלועזי. אם קיים חוסר ודאות לגבי התאריך העברי המדויק
+        (למשל תאריך לידה סמוך לשקיעה), ניתן להזיז אותו יום אחד קדימה או אחורה - אין אפשרות להזין
+        תאריך עברי חופשי.
       </p>
     </div>
   );

@@ -8,7 +8,8 @@ type CustomFieldInputProps = {
   onChange: (value: CustomFieldValueData) => void;
 };
 
-const inputClassName = 'rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-cyan-400';
+const inputClassName =
+  'rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-cyan-400';
 
 /**
  * Renders one editable control for one custom field, typed per fieldType.
@@ -22,7 +23,7 @@ export function CustomFieldInput({ definition, value, onChange }: CustomFieldInp
       return (
         <input
           value={value?.type === 'short_text' ? value.value : ''}
-          onChange={(event) => onChange({ type: 'short_text', value: event.target.value })}
+          onChange={event => onChange({ type: 'short_text', value: event.target.value })}
           className={inputClassName}
         />
       );
@@ -30,7 +31,7 @@ export function CustomFieldInput({ definition, value, onChange }: CustomFieldInp
       return (
         <textarea
           value={value?.type === 'long_text' ? value.value : ''}
-          onChange={(event) => onChange({ type: 'long_text', value: event.target.value })}
+          onChange={event => onChange({ type: 'long_text', value: event.target.value })}
           rows={3}
           className={inputClassName}
         />
@@ -40,7 +41,7 @@ export function CustomFieldInput({ definition, value, onChange }: CustomFieldInp
         <input
           type="number"
           value={value?.type === 'number' ? value.value : ''}
-          onChange={(event) => onChange({ type: 'number', value: Number(event.target.value) })}
+          onChange={event => onChange({ type: 'number', value: Number(event.target.value) })}
           className={inputClassName}
         />
       );
@@ -49,7 +50,9 @@ export function CustomFieldInput({ definition, value, onChange }: CustomFieldInp
         <input
           type="number"
           value={value?.type === 'currency' ? value.value : ''}
-          onChange={(event) => onChange({ type: 'currency', value: Number(event.target.value), currency: 'ILS' })}
+          onChange={event =>
+            onChange({ type: 'currency', value: Number(event.target.value), currency: 'ILS' })
+          }
           className={inputClassName}
         />
       );
@@ -58,7 +61,7 @@ export function CustomFieldInput({ definition, value, onChange }: CustomFieldInp
         <input
           type="date"
           value={value?.type === 'date' ? value.value : ''}
-          onChange={(event) => onChange({ type: 'date', value: event.target.value })}
+          onChange={event => onChange({ type: 'date', value: event.target.value })}
           className={inputClassName}
         />
       );
@@ -68,7 +71,7 @@ export function CustomFieldInput({ definition, value, onChange }: CustomFieldInp
           <input
             type="checkbox"
             checked={value?.type === 'boolean' ? value.value : false}
-            onChange={(event) => onChange({ type: 'boolean', value: event.target.checked })}
+            onChange={event => onChange({ type: 'boolean', value: event.target.checked })}
           />
           כן
         </label>
@@ -77,11 +80,11 @@ export function CustomFieldInput({ definition, value, onChange }: CustomFieldInp
       return (
         <select
           value={value?.type === 'single_select' ? value.value : ''}
-          onChange={(event) => onChange({ type: 'single_select', value: event.target.value })}
+          onChange={event => onChange({ type: 'single_select', value: event.target.value })}
           className={inputClassName}
         >
           <option value="">בחר</option>
-          {(definition.options ?? []).map((option) => (
+          {(definition.options ?? []).map(option => (
             <option key={option.id} value={option.value}>
               {option.label}
             </option>
@@ -92,7 +95,7 @@ export function CustomFieldInput({ definition, value, onChange }: CustomFieldInp
       const selected = value?.type === 'multi_select' ? value.value : [];
       return (
         <div className="flex flex-wrap gap-2">
-          {(definition.options ?? []).map((option) => {
+          {(definition.options ?? []).map(option => {
             const isSelected = selected.includes(option.value);
             return (
               <button
@@ -102,11 +105,15 @@ export function CustomFieldInput({ definition, value, onChange }: CustomFieldInp
                 onClick={() =>
                   onChange({
                     type: 'multi_select',
-                    value: isSelected ? selected.filter((entry) => entry !== option.value) : [...selected, option.value],
+                    value: isSelected
+                      ? selected.filter(entry => entry !== option.value)
+                      : [...selected, option.value],
                   })
                 }
                 className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-                  isSelected ? 'border-cyan-500 bg-cyan-50 text-cyan-700' : 'border-slate-200 bg-white text-slate-600'
+                  isSelected
+                    ? 'border-cyan-500 bg-cyan-50 text-cyan-700'
+                    : 'border-slate-200 bg-white text-slate-600'
                 }`}
               >
                 {option.label}
@@ -122,7 +129,12 @@ export function CustomFieldInput({ definition, value, onChange }: CustomFieldInp
         <input
           placeholder="שם קובץ (הדגמה - ללא העלאה בפועל)"
           value={value?.type === definition.fieldType ? value.value.fileName : ''}
-          onChange={(event) => onChange({ type: definition.fieldType, value: { fileName: event.target.value } } as CustomFieldValueData)}
+          onChange={event =>
+            onChange({
+              type: definition.fieldType,
+              value: { fileName: event.target.value },
+            } as CustomFieldValueData)
+          }
           className={inputClassName}
         />
       );

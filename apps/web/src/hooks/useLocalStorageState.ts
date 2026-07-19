@@ -9,7 +9,10 @@ import { useEffect, useState } from 'react';
  * what is a single piece of local UI preference (see TECH_STACK.md, which
  * does not list a state-management library for this kind of concern).
  */
-export function useLocalStorageState(key: string, defaultValue: boolean): [boolean, (value: boolean) => void] {
+export function useLocalStorageState(
+  key: string,
+  defaultValue: boolean
+): [boolean, (value: boolean) => void] {
   const [value, setValue] = useState(defaultValue);
 
   useEffect(() => {

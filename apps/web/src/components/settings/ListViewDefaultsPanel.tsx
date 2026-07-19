@@ -5,7 +5,10 @@ import { getBuiltInDefaultColumnKeys } from '@nera/customization-engine';
 import { useMyPermission } from '../../context/AuthorizationContext';
 import { useListViewPreferences } from '../../context/ListViewPreferenceContext';
 import { useSession } from '../../context/SessionContext';
-import { CONTACTS_SCREEN_ID, useContactsListColumnDefinitions } from '../../config/contactsListColumns';
+import {
+  CONTACTS_SCREEN_ID,
+  useContactsListColumnDefinitions,
+} from '../../config/contactsListColumns';
 import { ColumnChooser } from '../shell/ColumnChooser';
 import { PanelCard } from '../PanelCard';
 
@@ -62,8 +65,12 @@ export function ListViewDefaultsPanel() {
       <div className="flex flex-col gap-4">
         <label className="flex flex-col gap-1.5 text-sm sm:w-64">
           <span className="font-medium text-slate-700">מסך רשימה</span>
-          <select disabled value={screenId} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
-            {SCREEN_OPTIONS.map((option) => (
+          <select
+            disabled
+            value={screenId}
+            className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+          >
+            {SCREEN_OPTIONS.map(option => (
               <option key={option.id} value={option.id}>
                 {option.label}
               </option>
@@ -72,12 +79,15 @@ export function ListViewDefaultsPanel() {
         </label>
 
         <p className="text-sm text-slate-600">
-          מקור נוכחי עבור המשתמש המחובר: <span className="font-medium text-slate-800">{sourceLabels[effective.source]}</span>
+          מקור נוכחי עבור המשתמש המחובר:{' '}
+          <span className="font-medium text-slate-800">{sourceLabels[effective.source]}</span>
         </p>
 
         <ColumnChooser
           allColumns={contactsColumnDefinitions}
-          visibleColumnKeys={effective.source === 'system' ? effective.visibleColumnKeys : builtInDefaultColumnKeys}
+          visibleColumnKeys={
+            effective.source === 'system' ? effective.visibleColumnKeys : builtInDefaultColumnKeys
+          }
           onChange={handleSave}
           onReset={() => handleSave(builtInDefaultColumnKeys)}
         />

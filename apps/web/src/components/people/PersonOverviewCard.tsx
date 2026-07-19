@@ -13,8 +13,12 @@ const genderLabels: Record<PersonGender, string> = {
 
 export function PersonOverviewCard({ person }: { person: PersonEntity }) {
   const { birthDateGregorian, hebrewDateAdjustmentDays } = person.profile;
-  const gregorianDisplay = birthDateGregorian ? formatGregorianBirthDate(birthDateGregorian).display : undefined;
-  const hebrewDisplay = birthDateGregorian ? computeHebrewBirthDate(birthDateGregorian, hebrewDateAdjustmentDays).display : undefined;
+  const gregorianDisplay = birthDateGregorian
+    ? formatGregorianBirthDate(birthDateGregorian).display
+    : undefined;
+  const hebrewDisplay = birthDateGregorian
+    ? computeHebrewBirthDate(birthDateGregorian, hebrewDateAdjustmentDays).display
+    : undefined;
 
   return (
     <PanelCard title="פרטים כלליים">
@@ -22,7 +26,9 @@ export function PersonOverviewCard({ person }: { person: PersonEntity }) {
         <PersonAvatar profile={person.profile} size="lg" />
         <div className="flex-1 space-y-4">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-xl font-semibold text-slate-900">{getPersonFullName(person.profile)}</h2>
+            <h2 className="text-xl font-semibold text-slate-900">
+              {getPersonFullName(person.profile)}
+            </h2>
             <StatusBadge status={person.status} />
           </div>
 
@@ -36,8 +42,11 @@ export function PersonOverviewCard({ person }: { person: PersonEntity }) {
 
           {person.tags.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
-              {person.tags.map((tag) => (
-                <span key={tag} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
+              {person.tags.map(tag => (
+                <span
+                  key={tag}
+                  className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600"
+                >
                   {tag}
                 </span>
               ))}

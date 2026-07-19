@@ -37,30 +37,34 @@ export function searchEntities<T extends AnyEntity>(entities: T[], search: strin
     return entities;
   }
 
-  return entities.filter((entity) => {
+  return entities.filter(entity => {
     const haystacks = [
       getEntityDisplayName(entity),
       entity.neraId,
       getEntityIdentifierNumber(entity) ?? '',
-      ...entity.profile.phones.map((phone) => phone.number),
-      ...entity.profile.emails.map((email) => email.address),
-      ...entity.profile.addresses.map((address) => address.city ?? ''),
-      ...entity.profile.addresses.map((address) => address.street ?? ''),
+      ...entity.profile.phones.map(phone => phone.number),
+      ...entity.profile.emails.map(email => email.address),
+      ...entity.profile.addresses.map(address => address.city ?? ''),
+      ...entity.profile.addresses.map(address => address.street ?? ''),
       ...entity.tags,
     ];
-    return haystacks.some((value) => normalize(value).includes(normalizedQuery));
+    return haystacks.some(value => normalize(value).includes(normalizedQuery));
   });
 }
 
 export function filterEntitiesByStatusAndTags<T extends AnyEntity>(
   entities: T[],
-  filters: Pick<EntityFilters, 'status' | 'tags'> = {},
+  filters: Pick<EntityFilters, 'status' | 'tags'> = {}
 ): T[] {
-  return entities.filter((entity) => {
+  return entities.filter(entity => {
     if (filters.status && filters.status.length > 0 && !filters.status.includes(entity.status)) {
       return false;
     }
-    if (filters.tags && filters.tags.length > 0 && !filters.tags.some((tag) => entity.tags.includes(tag))) {
+    if (
+      filters.tags &&
+      filters.tags.length > 0 &&
+      !filters.tags.some(tag => entity.tags.includes(tag))
+    ) {
       return false;
     }
     return true;
@@ -68,17 +72,27 @@ export function filterEntitiesByStatusAndTags<T extends AnyEntity>(
 }
 
 /** Role assignments are a separate collection (keyed by entityId), so role filtering needs them passed in explicitly. */
-export function filterEntitiesByRole<T extends AnyEntity>(entities: T[], roleAssignments: RoleAssignment[], roles: EntityRoleId[]): T[] {
+export function filterEntitiesByRole<T extends AnyEntity>(
+  entities: T[],
+  roleAssignments: RoleAssignment[],
+  roles: EntityRoleId[]
+): T[] {
   if (roles.length === 0) {
     return entities;
   }
   const matchingEntityIds = new Set(
-    roleAssignments.filter((assignment) => roles.includes(assignment.role)).map((assignment) => assignment.entityId),
+    roleAssignments
+      .filter(assignment => roles.includes(assignment.role))
+      .map(assignment => assignment.entityId)
   );
-  return entities.filter((entity) => matchingEntityIds.has(entity.id));
+  return entities.filter(entity => matchingEntityIds.has(entity.id));
 }
 
-export function sortEntities<T extends AnyEntity>(entities: T[], sortKey: EntitySortKey = 'name', direction: SortDirection = 'asc'): T[] {
+export function sortEntities<T extends AnyEntity>(
+  entities: T[],
+  sortKey: EntitySortKey = 'name',
+  direction: SortDirection = 'asc'
+): T[] {
   const sorted = [...entities].sort((a, b) => {
     switch (sortKey) {
       case 'createdAt':
@@ -98,7 +112,7 @@ export function sortEntities<T extends AnyEntity>(entities: T[], sortKey: Entity
 export function queryEntities<T extends AnyEntity>(
   entities: T[],
   roleAssignments: RoleAssignment[],
-  options: EntityQueryOptions = {},
+  options: EntityQueryOptions = {}
 ): T[] {
   let result = entities;
   if (options.search) {

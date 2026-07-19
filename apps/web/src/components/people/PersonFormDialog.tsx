@@ -1,6 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import { useRouter } from 'next/navigation';
 import {
   detectPotentialDuplicates,
@@ -75,7 +83,8 @@ function toAddressDraft(address: PersonEntity['profile']['addresses'][number]): 
   return draft;
 }
 
-const inputClassName = 'rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-cyan-400';
+const inputClassName =
+  'rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-cyan-400';
 
 /**
  * One reusable form for both creating a new person and editing an
@@ -87,10 +96,20 @@ const inputClassName = 'rounded-2xl border border-slate-200 bg-slate-50 px-3 py-
  * explicitly removed by the user is preserved on save, and multiple
  * entries were never limited to one.
  */
-export function PersonFormDialog({ open, onClose, mode, person, onCreated, onSaved, restoreFocusRef, initialRoles }: PersonFormDialogProps) {
+export function PersonFormDialog({
+  open,
+  onClose,
+  mode,
+  person,
+  onCreated,
+  onSaved,
+  restoreFocusRef,
+  initialRoles,
+}: PersonFormDialogProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const { entities, roleAssignments, addPerson, updatePerson, recordDuplicateOverride } = useEntities();
+  const { entities, roleAssignments, addPerson, updatePerson, recordDuplicateOverride } =
+    useEntities();
   const { session } = useSession();
   const { roles } = useRoleDefinitions();
   const { resolveForRoles } = useFieldRequirements();
@@ -174,34 +193,61 @@ export function PersonFormDialog({ open, onClose, mode, person, onCreated, onSav
    * edit mode, since the picker UI itself is create-only).
    */
   const effectiveRoleKeysForBirthDate =
-    mode === 'create' ? selectedRoles : roleAssignments.filter((assignment) => assignment.entityId === person?.id && assignment.status === 'active').map((assignment) => assignment.role);
-  const birthDateMode = resolveForRoles('birthDate', 'person', effectiveRoleKeysForBirthDate, session?.selectedOrganizationId);
+    mode === 'create'
+      ? selectedRoles
+      : roleAssignments
+          .filter(
+            assignment => assignment.entityId === person?.id && assignment.status === 'active'
+          )
+          .map(assignment => assignment.role);
+  const birthDateMode = resolveForRoles(
+    'birthDate',
+    'person',
+    effectiveRoleKeysForBirthDate,
+    session?.selectedOrganizationId
+  );
   const showBirthDate = canViewBirthDate && birthDateMode !== 'hidden';
   const birthDateRequired = birthDateMode === 'required';
   /** Read-only when EITHER the configured field state says read-only, OR the signed-in user simply lacks the edit permission - two independent axes (configuration vs authorization) that both result in the same non-editable rendering. */
   const birthDateReadOnly = birthDateMode === 'read_only' || !canEditBirthDate;
 
-  const activePhones = useMemo(() => phones.filter((phone) => phone.status === 'active' && !phone.deletedAt && phone.number.trim()), [phones]);
-  const activeEmails = useMemo(() => emails.filter((email) => email.status === 'active' && !email.deletedAt && email.address.trim()), [emails]);
+  const activePhones = useMemo(
+    () =>
+      phones.filter(phone => phone.status === 'active' && !phone.deletedAt && phone.number.trim()),
+    [phones]
+  );
+  const activeEmails = useMemo(
+    () =>
+      emails.filter(email => email.status === 'active' && !email.deletedAt && email.address.trim()),
+    [emails]
+  );
 
   const duplicateMatches = useMemo(() => {
-    if (!idNumber.trim() && activePhones.length === 0 && activeEmails.length === 0 && !(firstName.trim() && lastName.trim())) {
+    if (
+      !idNumber.trim() &&
+      activePhones.length === 0 &&
+      activeEmails.length === 0 &&
+      !(firstName.trim() && lastName.trim())
+    ) {
       return [];
     }
     return detectPotentialDuplicates(
       {
         idNumber: idNumber.trim() || undefined,
-        displayName: firstName.trim() && lastName.trim() ? `${firstName.trim()} ${lastName.trim()}` : undefined,
-        phones: activePhones.map((phone) => ({ number: phone.number })),
-        emails: activeEmails.map((email) => ({ address: email.address })),
+        displayName:
+          firstName.trim() && lastName.trim()
+            ? `${firstName.trim()} ${lastName.trim()}`
+            : undefined,
+        phones: activePhones.map(phone => ({ number: phone.number })),
+        emails: activeEmails.map(email => ({ address: email.address })),
       },
       entities,
-      mode === 'edit' ? person?.id : undefined,
+      mode === 'edit' ? person?.id : undefined
     );
   }, [idNumber, activePhones, activeEmails, firstName, lastName, entities, mode, person?.id]);
 
-  const blockingMatches = duplicateMatches.filter((match) => match.isBlocking);
-  const nonBlockingMatches = duplicateMatches.filter((match) => !match.isBlocking);
+  const blockingMatches = duplicateMatches.filter(match => match.isBlocking);
+  const nonBlockingMatches = duplicateMatches.filter(match => !match.isBlocking);
 
   const handleClose = () => {
     loadFromPerson(mode === 'edit' ? person : undefined);
@@ -210,7 +256,9 @@ export function PersonFormDialog({ open, onClose, mode, person, onCreated, onSav
   };
 
   const toggleRole = (role: EntityRoleId) => {
-    setSelectedRoles((current) => (current.includes(role) ? current.filter((entry) => entry !== role) : [...current, role]));
+    setSelectedRoles(current =>
+      current.includes(role) ? current.filter(entry => entry !== role) : [...current, role]
+    );
   };
 
   const buildAndSave = (): PersonEntity | undefined => {
@@ -227,7 +275,7 @@ export function PersonFormDialog({ open, onClose, mode, person, onCreated, onSav
         addresses,
         tags: tagsInput
           .split(',')
-          .map((tag) => tag.trim())
+          .map(tag => tag.trim())
           .filter(Boolean),
         roles: selectedRoles,
       });
@@ -248,13 +296,13 @@ export function PersonFormDialog({ open, onClose, mode, person, onCreated, onSav
         status,
         tags: tagsInput
           .split(',')
-          .map((tag) => tag.trim())
+          .map(tag => tag.trim())
           .filter(Boolean),
         phones,
         emails,
         addresses,
       },
-      currentUserId,
+      currentUserId
     );
   };
 
@@ -291,7 +339,9 @@ export function PersonFormDialog({ open, onClose, mode, person, onCreated, onSav
     }
 
     if (blockingMatches.length > 0) {
-      setError('נמצאה התאמה מדויקת עם רשומה קיימת. יש לפתוח את הרשומה הקיימת או לאשר יצירת רשומה נפרדת בפאנל שלמעלה.');
+      setError(
+        'נמצאה התאמה מדויקת עם רשומה קיימת. יש לפתוח את הרשומה הקיימת או לאשר יצירת רשומה נפרדת בפאנל שלמעלה.'
+      );
       return;
     }
 
@@ -313,10 +363,10 @@ export function PersonFormDialog({ open, onClose, mode, person, onCreated, onSav
     }
     recordDuplicateOverride(
       result.id,
-      blockingMatches.map((match) => match.entity.id),
-      blockingMatches.flatMap((match) => match.reasons),
+      blockingMatches.map(match => match.entity.id),
+      blockingMatches.flatMap(match => match.reasons),
       reason,
-      currentUserId,
+      currentUserId
     );
     finishSuccess(result);
   };
@@ -347,22 +397,38 @@ export function PersonFormDialog({ open, onClose, mode, person, onCreated, onSav
         <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="שם פרטי *">
-              <input required value={firstName} onChange={(event) => setFirstName(event.target.value)} className={inputClassName} />
+              <input
+                required
+                value={firstName}
+                onChange={event => setFirstName(event.target.value)}
+                className={inputClassName}
+              />
             </Field>
             <Field label="שם משפחה *">
-              <input required value={lastName} onChange={(event) => setLastName(event.target.value)} className={inputClassName} />
+              <input
+                required
+                value={lastName}
+                onChange={event => setLastName(event.target.value)}
+                className={inputClassName}
+              />
             </Field>
             <Field label="מספר זהות">
-              <input value={idNumber} onChange={(event) => setIdNumber(event.target.value)} className={inputClassName} />
+              <input
+                value={idNumber}
+                onChange={event => setIdNumber(event.target.value)}
+                className={inputClassName}
+              />
             </Field>
             {showBirthDate ? (
-              <Field label={`תאריך לידה (לועזי)${birthDateRequired ? ' *' : ''}${birthDateReadOnly ? ' (לקריאה בלבד)' : ''}`}>
+              <Field
+                label={`תאריך לידה (לועזי)${birthDateRequired ? ' *' : ''}${birthDateReadOnly ? ' (לקריאה בלבד)' : ''}`}
+              >
                 <input
                   type="date"
                   required={birthDateRequired}
                   readOnly={birthDateReadOnly}
                   value={birthDateGregorian}
-                  onChange={(event) => handleBirthDateChange(event.target.value)}
+                  onChange={event => handleBirthDateChange(event.target.value)}
                   className={inputClassName}
                 />
               </Field>
@@ -371,11 +437,17 @@ export function PersonFormDialog({ open, onClose, mode, person, onCreated, onSav
               <HebrewBirthDateField
                 birthDateGregorian={birthDateGregorian}
                 adjustmentDays={hebrewDateAdjustmentDays}
-                onAdjustmentChange={birthDateReadOnly ? () => undefined : setHebrewDateAdjustmentDays}
+                onAdjustmentChange={
+                  birthDateReadOnly ? () => undefined : setHebrewDateAdjustmentDays
+                }
               />
             ) : null}
             <Field label="מגדר">
-              <select value={gender} onChange={(event) => setGender(event.target.value as PersonGender)} className={inputClassName}>
+              <select
+                value={gender}
+                onChange={event => setGender(event.target.value as PersonGender)}
+                className={inputClassName}
+              >
                 <option value="unspecified">לא מוגדר</option>
                 <option value="male">זכר</option>
                 <option value="female">נקבה</option>
@@ -383,7 +455,11 @@ export function PersonFormDialog({ open, onClose, mode, person, onCreated, onSav
             </Field>
             {mode === 'edit' ? (
               <Field label="סטטוס">
-                <select value={status} onChange={(event) => setStatus(event.target.value as EntityStatus)} className={inputClassName}>
+                <select
+                  value={status}
+                  onChange={event => setStatus(event.target.value as EntityStatus)}
+                  className={inputClassName}
+                >
                   <option value="active">פעיל</option>
                   <option value="inactive">לא פעיל</option>
                   <option value="archived">בארכיון</option>
@@ -395,7 +471,9 @@ export function PersonFormDialog({ open, onClose, mode, person, onCreated, onSav
           <div>
             <p className="text-sm font-medium text-slate-700">
               טלפון
-              {phones.filter((phone) => !phone.deletedAt).length > 1 ? ` (${phones.filter((phone) => !phone.deletedAt).length})` : ''}
+              {phones.filter(phone => !phone.deletedAt).length > 1
+                ? ` (${phones.filter(phone => !phone.deletedAt).length})`
+                : ''}
             </p>
             <div className="mt-2">
               <PhoneListEditor phones={phones} onChange={setPhones} currentUserId={currentUserId} />
@@ -405,7 +483,9 @@ export function PersonFormDialog({ open, onClose, mode, person, onCreated, onSav
           <div>
             <p className="text-sm font-medium text-slate-700">
               כתובת דוא&quot;ל
-              {emails.filter((email) => !email.deletedAt).length > 1 ? ` (${emails.filter((email) => !email.deletedAt).length})` : ''}
+              {emails.filter(email => !email.deletedAt).length > 1
+                ? ` (${emails.filter(email => !email.deletedAt).length})`
+                : ''}
             </p>
             <div className="mt-2">
               <EmailListEditor emails={emails} onChange={setEmails} currentUserId={currentUserId} />
@@ -415,22 +495,32 @@ export function PersonFormDialog({ open, onClose, mode, person, onCreated, onSav
           <div>
             <p className="text-sm font-medium text-slate-700">
               כתובת
-              {addresses.filter((address) => !address.deletedAt).length > 1 ? ` (${addresses.filter((address) => !address.deletedAt).length})` : ''}
+              {addresses.filter(address => !address.deletedAt).length > 1
+                ? ` (${addresses.filter(address => !address.deletedAt).length})`
+                : ''}
             </p>
             <div className="mt-2">
-              <AddressListEditor addresses={addresses} onChange={setAddresses} currentUserId={currentUserId} />
+              <AddressListEditor
+                addresses={addresses}
+                onChange={setAddresses}
+                currentUserId={currentUserId}
+              />
             </div>
           </div>
 
           <Field label="תגיות (מופרדות בפסיק)">
-            <input value={tagsInput} onChange={(event) => setTagsInput(event.target.value)} className={inputClassName} />
+            <input
+              value={tagsInput}
+              onChange={event => setTagsInput(event.target.value)}
+              className={inputClassName}
+            />
           </Field>
 
           {mode === 'create' ? (
             <div>
               <p className="text-sm font-medium text-slate-700">תפקידים ראשוניים</p>
               <div className="mt-2 flex flex-wrap gap-2">
-                {personRoles.map((role) => (
+                {personRoles.map(role => (
                   <button
                     key={role.id}
                     type="button"
@@ -450,12 +540,16 @@ export function PersonFormDialog({ open, onClose, mode, person, onCreated, onSav
           ) : null}
 
           {nonBlockingMatches.length > 0 ? (
-            <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            <div
+              role="alert"
+              className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
+            >
               <p className="font-semibold">ייתכן שרשומה זו כבר קיימת במערכת:</p>
               <ul className="mt-2 space-y-1">
-                {nonBlockingMatches.map((match) => (
+                {nonBlockingMatches.map(match => (
                   <li key={match.entity.id}>
-                    {match.entity.neraId} — התאמה לפי {match.reasons.map((reason) => duplicateReasonLabels[reason]).join(', ')}
+                    {match.entity.neraId} — התאמה לפי{' '}
+                    {match.reasons.map(reason => duplicateReasonLabels[reason]).join(', ')}
                   </li>
                 ))}
               </ul>
@@ -474,7 +568,11 @@ export function PersonFormDialog({ open, onClose, mode, person, onCreated, onSav
           {error ? <p className="text-sm text-rose-600">{error}</p> : null}
 
           <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-            <button type="button" onClick={handleClose} className="rounded-2xl border border-slate-200 px-4 py-2 text-sm text-slate-600">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="rounded-2xl border border-slate-200 px-4 py-2 text-sm text-slate-600"
+            >
               ביטול
             </button>
             <button

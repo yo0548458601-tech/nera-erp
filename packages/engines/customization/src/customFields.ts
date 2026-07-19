@@ -105,20 +105,39 @@ function isVisible(definition: CustomFieldDefinition): boolean {
 }
 
 /** Fields relevant to a given entity type (via targetScope 'entity_type' or a role targeting that type through targetRoleKey resolution happens at the app layer, which has the role registry). */
-export function getFieldsForEntityType(definitions: CustomFieldDefinition[], entityType: 'person' | 'organization'): CustomFieldDefinition[] {
+export function getFieldsForEntityType(
+  definitions: CustomFieldDefinition[],
+  entityType: 'person' | 'organization'
+): CustomFieldDefinition[] {
   return definitions
-    .filter((definition) => isVisible(definition) && definition.targetScope === 'entity_type' && definition.targetEntityType === entityType)
+    .filter(
+      definition =>
+        isVisible(definition) &&
+        definition.targetScope === 'entity_type' &&
+        definition.targetEntityType === entityType
+    )
     .sort((a, b) => a.order - b.order);
 }
 
-export function getFieldsForRole(definitions: CustomFieldDefinition[], roleKey: string): CustomFieldDefinition[] {
+export function getFieldsForRole(
+  definitions: CustomFieldDefinition[],
+  roleKey: string
+): CustomFieldDefinition[] {
   return definitions
-    .filter((definition) => isVisible(definition) && definition.targetScope === 'role' && definition.targetRoleKey === roleKey)
+    .filter(
+      definition =>
+        isVisible(definition) &&
+        definition.targetScope === 'role' &&
+        definition.targetRoleKey === roleKey
+    )
     .sort((a, b) => a.order - b.order);
 }
 
-export function findCustomFieldDefinition(definitions: CustomFieldDefinition[], key: string): CustomFieldDefinition | undefined {
-  return definitions.find((definition) => definition.key === key);
+export function findCustomFieldDefinition(
+  definitions: CustomFieldDefinition[],
+  key: string
+): CustomFieldDefinition | undefined {
+  return definitions.find(definition => definition.key === key);
 }
 
 function isEmptyValue(value: CustomFieldValueData | undefined): boolean {
@@ -140,7 +159,10 @@ function isEmptyValue(value: CustomFieldValueData | undefined): boolean {
  * validation error messages (empty array = valid). This is a demo-level
  * validation helper - a future server must re-validate independently.
  */
-export function validateCustomFieldValue(definition: CustomFieldDefinition, value: CustomFieldValueData | undefined): string[] {
+export function validateCustomFieldValue(
+  definition: CustomFieldDefinition,
+  value: CustomFieldValueData | undefined
+): string[] {
   const errors: string[] = [];
 
   if (definition.required && isEmptyValue(value)) {
@@ -162,7 +184,10 @@ export function validateCustomFieldValue(definition: CustomFieldDefinition, valu
     return errors;
   }
 
-  if ((value.type === 'short_text' || value.type === 'long_text') && typeof value.value === 'string') {
+  if (
+    (value.type === 'short_text' || value.type === 'long_text') &&
+    typeof value.value === 'string'
+  ) {
     if (rules.minLength !== undefined && value.value.length < rules.minLength) {
       errors.push(`השדה "${definition.label}" קצר מדי (מינימום ${rules.minLength} תווים).`);
     }

@@ -16,7 +16,12 @@ export function RoleBadge({ role, onRemove }: RoleBadgeProps) {
     <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-medium text-cyan-700">
       {label}
       {onRemove ? (
-        <button type="button" onClick={onRemove} aria-label={`הסר תפקיד ${label}`} className="rounded-full text-cyan-500 hover:text-cyan-800">
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label={`הסר תפקיד ${label}`}
+          className="rounded-full text-cyan-500 hover:text-cyan-800"
+        >
           ×
         </button>
       ) : null}

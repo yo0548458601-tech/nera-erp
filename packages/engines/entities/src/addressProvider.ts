@@ -75,9 +75,31 @@ export interface AddressProvider {
   readonly id: string;
   readonly label: string;
   searchLocalities(query: string): Promise<AddressProviderResult<LocalitySuggestion>>;
-  searchStreets(localityId: string, query: string): Promise<AddressProviderResult<StreetSuggestion>>;
+  searchStreets(
+    localityId: string,
+    query: string
+  ): Promise<AddressProviderResult<StreetSuggestion>>;
   resolvePostalCode(input: AddressResolvePostalCodeInput): Promise<string | undefined>;
-  validateAddress(address: Partial<{ country: string; city: string; street: string; houseNumber: string; postalCode: string }>): Promise<AddressValidationResult>;
-  formatAddress(address: Partial<{ country: string; city: string; street: string; houseNumber: string; entrance: string; floor: string; apartment: string; postalCode: string }>): string;
+  validateAddress(
+    address: Partial<{
+      country: string;
+      city: string;
+      street: string;
+      houseNumber: string;
+      postalCode: string;
+    }>
+  ): Promise<AddressValidationResult>;
+  formatAddress(
+    address: Partial<{
+      country: string;
+      city: string;
+      street: string;
+      houseNumber: string;
+      entrance: string;
+      floor: string;
+      apartment: string;
+      postalCode: string;
+    }>
+  ): string;
   getProviderInfo(): AddressProviderInfo;
 }

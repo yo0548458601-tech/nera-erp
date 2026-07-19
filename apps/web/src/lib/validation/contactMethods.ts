@@ -32,10 +32,18 @@ export function validateEmailAddress(value: string): string | null {
 }
 
 /** Whether every active phone draft has a valid number - used to block form submission without needing to lift per-row error state up to the parent form. */
-export function arePhoneDraftsValid(phones: Array<{ number: string; status: 'active' | 'inactive' }>): boolean {
-  return phones.filter((phone) => phone.status === 'active').every((phone) => validatePhoneNumber(phone.number) === null);
+export function arePhoneDraftsValid(
+  phones: Array<{ number: string; status: 'active' | 'inactive' }>
+): boolean {
+  return phones
+    .filter(phone => phone.status === 'active')
+    .every(phone => validatePhoneNumber(phone.number) === null);
 }
 
-export function areEmailDraftsValid(emails: Array<{ address: string; status: 'active' | 'inactive' }>): boolean {
-  return emails.filter((email) => email.status === 'active').every((email) => validateEmailAddress(email.address) === null);
+export function areEmailDraftsValid(
+  emails: Array<{ address: string; status: 'active' | 'inactive' }>
+): boolean {
+  return emails
+    .filter(email => email.status === 'active')
+    .every(email => validateEmailAddress(email.address) === null);
 }

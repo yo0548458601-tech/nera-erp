@@ -17,15 +17,27 @@ function ContactMethodRow({
   return (
     <li
       className={`flex flex-wrap items-center gap-2 rounded-2xl border px-3 py-2 text-sm ${
-        isInactive ? 'border-dashed border-slate-200 bg-slate-50 text-slate-400' : 'border-slate-100 bg-slate-50 text-slate-800'
+        isInactive
+          ? 'border-dashed border-slate-200 bg-slate-50 text-slate-400'
+          : 'border-slate-100 bg-slate-50 text-slate-800'
       }`}
     >
       <span>{label}</span>
-      {isPrimary ? <span className="rounded-full bg-cyan-100 px-2 py-0.5 text-xs font-medium text-cyan-700">ראשי</span> : null}
-      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${isInactive ? 'bg-slate-200 text-slate-600' : 'bg-emerald-50 text-emerald-700'}`}>
+      {isPrimary ? (
+        <span className="rounded-full bg-cyan-100 px-2 py-0.5 text-xs font-medium text-cyan-700">
+          ראשי
+        </span>
+      ) : null}
+      <span
+        className={`rounded-full px-2 py-0.5 text-xs font-medium ${isInactive ? 'bg-slate-200 text-slate-600' : 'bg-emerald-50 text-emerald-700'}`}
+      >
         {isInactive ? 'לא פעיל' : 'פעיל'}
       </span>
-      {extraBadge ? <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">{extraBadge}</span> : null}
+      {extraBadge ? (
+        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+          {extraBadge}
+        </span>
+      ) : null}
       {notes ? <span className="text-xs text-slate-400">{notes}</span> : null}
     </li>
   );
@@ -55,7 +67,7 @@ export function PersonContactMethodsCard({ person }: { person: PersonEntity }) {
             <ul className="mt-2 space-y-2">
               {[...phones]
                 .sort((a, b) => a.order - b.order)
-                .map((phone) => (
+                .map(phone => (
                   <ContactMethodRow
                     key={phone.id}
                     label={`${phone.number} (${phone.label})`}
@@ -69,14 +81,16 @@ export function PersonContactMethodsCard({ person }: { person: PersonEntity }) {
         </div>
 
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">כתובת דוא&quot;ל</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            כתובת דוא&quot;ל
+          </p>
           {emails.length === 0 ? (
             <p className="mt-2 text-sm text-slate-400">לא הוזנה כתובת דוא&quot;ל.</p>
           ) : (
             <ul className="mt-2 space-y-2">
               {[...emails]
                 .sort((a, b) => a.order - b.order)
-                .map((email) => (
+                .map(email => (
                   <ContactMethodRow
                     key={email.id}
                     label={`${email.address} (${email.label})`}
@@ -97,7 +111,7 @@ export function PersonContactMethodsCard({ person }: { person: PersonEntity }) {
             <ul className="mt-2 space-y-2">
               {[...addresses]
                 .sort((a, b) => a.order - b.order)
-                .map((address) => (
+                .map(address => (
                   <ContactMethodRow
                     key={address.id}
                     label={formatAddress(address) || 'כתובת ללא פרטים'}

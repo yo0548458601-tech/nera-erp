@@ -64,41 +64,67 @@ export type EffectivePermissionResult = {
 export function resolveEffectivePermission(
   permission: PermissionId,
   context: PermissionContext,
-  rules: PermissionRule[],
+  rules: PermissionRule[]
 ): EffectivePermissionResult {
   const userRule = rules.find(
-    (rule) => rule.scope === 'user' && rule.targetId === context.userId && rule.permission === permission && rule.decision !== 'inherit',
+    rule =>
+      rule.scope === 'user' &&
+      rule.targetId === context.userId &&
+      rule.permission === permission &&
+      rule.decision !== 'inherit'
   );
   if (userRule) {
-    return { permission, decision: userRule.decision as 'allow' | 'deny', source: 'user', sourceRuleId: userRule.id };
+    return {
+      permission,
+      decision: userRule.decision as 'allow' | 'deny',
+      source: 'user',
+      sourceRuleId: userRule.id,
+    };
   }
 
   const roleRule = rules.find(
-    (rule) =>
+    rule =>
       rule.scope === 'role' &&
       rule.targetId !== undefined &&
       context.roleIds.includes(rule.targetId) &&
       rule.permission === permission &&
-      rule.decision !== 'inherit',
+      rule.decision !== 'inherit'
   );
   if (roleRule) {
-    return { permission, decision: roleRule.decision as 'allow' | 'deny', source: 'role', sourceRuleId: roleRule.id };
+    return {
+      permission,
+      decision: roleRule.decision as 'allow' | 'deny',
+      source: 'role',
+      sourceRuleId: roleRule.id,
+    };
   }
 
   const institutionRule = rules.find(
-    (rule) =>
+    rule =>
       rule.scope === 'institution' &&
       rule.targetId === context.institutionId &&
       rule.permission === permission &&
-      rule.decision !== 'inherit',
+      rule.decision !== 'inherit'
   );
   if (institutionRule) {
-    return { permission, decision: institutionRule.decision as 'allow' | 'deny', source: 'institution', sourceRuleId: institutionRule.id };
+    return {
+      permission,
+      decision: institutionRule.decision as 'allow' | 'deny',
+      source: 'institution',
+      sourceRuleId: institutionRule.id,
+    };
   }
 
-  const systemRule = rules.find((rule) => rule.scope === 'system' && rule.permission === permission && rule.decision !== 'inherit');
+  const systemRule = rules.find(
+    rule => rule.scope === 'system' && rule.permission === permission && rule.decision !== 'inherit'
+  );
   if (systemRule) {
-    return { permission, decision: systemRule.decision as 'allow' | 'deny', source: 'system', sourceRuleId: systemRule.id };
+    return {
+      permission,
+      decision: systemRule.decision as 'allow' | 'deny',
+      source: 'system',
+      sourceRuleId: systemRule.id,
+    };
   }
 
   return { permission, decision: 'deny', source: 'default' };

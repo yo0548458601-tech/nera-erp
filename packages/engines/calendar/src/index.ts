@@ -196,7 +196,7 @@ export function addDays(value: string | Date, days: number): Date {
 function formatHebrewDisplay(formatter: Intl.DateTimeFormat, date: Date): string {
   return formatter
     .formatToParts(date)
-    .map((part) => {
+    .map(part => {
       if (part.type === 'day') {
         return toHebrewNumeral(Number(part.value));
       }
@@ -217,7 +217,8 @@ export function formatDate(
   const date = toDate(value);
   const isoDate = date.toISOString().slice(0, 10);
   const formatter = buildFormatter(system, mode, context);
-  const display = system === 'hebrew' ? formatHebrewDisplay(formatter, date) : formatter.format(date);
+  const display =
+    system === 'hebrew' ? formatHebrewDisplay(formatter, date) : formatter.format(date);
 
   return {
     system,
@@ -251,17 +252,25 @@ export type HebrewCalendarParts = {
  * the month name, with no attempt at a numeric month - that gap is closed
  * separately, see resolveHebrewMonthIndex.
  */
-function getRawHebrewParts(date: Date, context: CalendarContext): { day: number; monthName: string; year: number } {
+function getRawHebrewParts(
+  date: Date,
+  context: CalendarContext
+): { day: number; monthName: string; year: number } {
   const localeWithCalendar = `${context.locale}-u-ca-${CALENDAR_TAG.hebrew}`;
-  const dayYearParts = new Intl.DateTimeFormat(localeWithCalendar, { timeZone: context.timeZone, day: 'numeric', year: 'numeric' }).formatToParts(
-    date,
-  );
-  const namedParts = new Intl.DateTimeFormat(localeWithCalendar, { timeZone: context.timeZone, month: 'long' }).formatToParts(date);
+  const dayYearParts = new Intl.DateTimeFormat(localeWithCalendar, {
+    timeZone: context.timeZone,
+    day: 'numeric',
+    year: 'numeric',
+  }).formatToParts(date);
+  const namedParts = new Intl.DateTimeFormat(localeWithCalendar, {
+    timeZone: context.timeZone,
+    month: 'long',
+  }).formatToParts(date);
 
   return {
-    day: Number(dayYearParts.find((part) => part.type === 'day')?.value ?? 0),
-    year: Number(dayYearParts.find((part) => part.type === 'year')?.value ?? 0),
-    monthName: namedParts.find((part) => part.type === 'month')?.value ?? '',
+    day: Number(dayYearParts.find(part => part.type === 'day')?.value ?? 0),
+    year: Number(dayYearParts.find(part => part.type === 'year')?.value ?? 0),
+    monthName: namedParts.find(part => part.type === 'month')?.value ?? '',
   };
 }
 
@@ -282,7 +291,12 @@ const hebrewMonthIndexByYear = new Map<number, Map<string, number>>();
  * already named correctly. Results are cached per Hebrew year so this
  * backward walk runs at most once per distinct year encountered.
  */
-function resolveHebrewMonthIndex(date: Date, monthName: string, year: number, context: CalendarContext): number {
+function resolveHebrewMonthIndex(
+  date: Date,
+  monthName: string,
+  year: number,
+  context: CalendarContext
+): number {
   const cachedYear = hebrewMonthIndexByYear.get(year);
   const cachedIndex = cachedYear?.get(monthName);
   if (cachedIndex !== undefined) {
@@ -312,7 +326,10 @@ function resolveHebrewMonthIndex(date: Date, monthName: string, year: number, co
 }
 
 /** Structured Hebrew calendar parts (day/month/year as numbers, plus the month name) for filtering/grouping - formatDate('hebrew', ...) covers display strings, this covers structured access to the same underlying Intl conversion, with the month-index gap (see getRawHebrewParts) resolved via resolveHebrewMonthIndex. */
-export function getHebrewCalendarParts(value: string | Date, context: CalendarContext = defaultCalendarContext): HebrewCalendarParts {
+export function getHebrewCalendarParts(
+  value: string | Date,
+  context: CalendarContext = defaultCalendarContext
+): HebrewCalendarParts {
   const date = toDate(value);
   const raw = getRawHebrewParts(date, context);
   const month = resolveHebrewMonthIndex(date, raw.monthName, raw.year, context);
@@ -328,7 +345,10 @@ export function getHebrewCalendarParts(value: string | Date, context: CalendarCo
  * getHebrewCalendarParts (and its cache), so this never duplicates the
  * Hebrew-year-boundary walk.
  */
-export function listHebrewMonthNames(referenceDate: string | Date = new Date(), context: CalendarContext = defaultCalendarContext): string[] {
+export function listHebrewMonthNames(
+  referenceDate: string | Date = new Date(),
+  context: CalendarContext = defaultCalendarContext
+): string[] {
   const parts = getHebrewCalendarParts(referenceDate, context);
   const yearMap = hebrewMonthIndexByYear.get(parts.year);
   if (!yearMap) {
@@ -366,7 +386,7 @@ export function findNextHebrewAnniversary(
   targetMonth: number,
   targetDay: number,
   context: CalendarContext = defaultCalendarContext,
-  searchWindowDays = 400,
+  searchWindowDays = 400
 ): Date | undefined {
   let probe = toDate(fromDate);
 
@@ -394,7 +414,10 @@ export function findNextHebrewAnniversary(
  * Intl-derived day/monthName/year as every other Hebrew-date function in
  * this engine - no second numeral algorithm, no hardcoded month names.
  */
-export function formatHebrewDateField(value: string | Date, context: CalendarContext = defaultCalendarContext): string {
+export function formatHebrewDateField(
+  value: string | Date,
+  context: CalendarContext = defaultCalendarContext
+): string {
   const parts = getHebrewCalendarParts(value, context);
   return `${toHebrewNumeral(parts.day)} ${parts.monthName} ${toHebrewNumeral(parts.year % 1000)}`;
 }
@@ -421,7 +444,11 @@ export function formatHebrewDateField(value: string | Date, context: CalendarCon
  * both walks use only the same Intl-backed getHebrewCalendarParts oracle
  * used everywhere else in this engine.
  */
-export function getHebrewMonthLength(month: number, referenceDate: string | Date = new Date(), context: CalendarContext = defaultCalendarContext): number {
+export function getHebrewMonthLength(
+  month: number,
+  referenceDate: string | Date = new Date(),
+  context: CalendarContext = defaultCalendarContext
+): number {
   const refParts = getHebrewCalendarParts(referenceDate, context);
 
   let day1Probe = toDate(referenceDate);

@@ -1,7 +1,12 @@
 'use client';
 
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import { entityRoleRegistry, type EntityType, type RoleDefinition, type RoleDefinitionStatus } from '@nera/entity-engine';
+import {
+  entityRoleRegistry,
+  type EntityType,
+  type RoleDefinition,
+  type RoleDefinitionStatus,
+} from '@nera/entity-engine';
 
 function createId(prefix: string): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
@@ -67,9 +72,11 @@ export function RoleDefinitionProvider({ children }: { children: ReactNode }) {
     (input: NewRoleDefinitionInput): { role?: RoleDefinition; error?: string } => {
       const key = input.key.trim();
       if (!KEY_PATTERN.test(key)) {
-        return { error: 'מפתח פנימי חייב להיות באנגלית, אותיות קטנות, ספרות וקו תחתון בלבד, ולהתחיל באות.' };
+        return {
+          error: 'מפתח פנימי חייב להיות באנגלית, אותיות קטנות, ספרות וקו תחתון בלבד, ולהתחיל באות.',
+        };
       }
-      if (roles.some((role) => role.key === key)) {
+      if (roles.some(role => role.key === key)) {
         return { error: 'כבר קיים תפקיד עם מפתח פנימי זהה.' };
       }
       if (!input.label.trim()) {
@@ -101,25 +108,31 @@ export function RoleDefinitionProvider({ children }: { children: ReactNode }) {
         updatedAt: now,
       };
 
-      setRoles((current) => [...current, role]);
+      setRoles(current => [...current, role]);
       return { role };
     },
-    [roles],
+    [roles]
   );
 
   const updateRole = useCallback((id: string, patch: RoleDefinitionPatch) => {
-    setRoles((current) =>
-      current.map((role) => (role.id === id ? { ...role, ...patch, updatedAt: new Date().toISOString() } : role)),
+    setRoles(current =>
+      current.map(role =>
+        role.id === id ? { ...role, ...patch, updatedAt: new Date().toISOString() } : role
+      )
     );
   }, []);
 
   const setRoleStatus = useCallback((id: string, status: RoleDefinitionStatus) => {
-    setRoles((current) => current.map((role) => (role.id === id ? { ...role, status, updatedAt: new Date().toISOString() } : role)));
+    setRoles(current =>
+      current.map(role =>
+        role.id === id ? { ...role, status, updatedAt: new Date().toISOString() } : role
+      )
+    );
   }, []);
 
   const value = useMemo<RoleDefinitionContextValue>(
     () => ({ roles, addCustomRole, updateRole, setRoleStatus }),
-    [roles, addCustomRole, updateRole, setRoleStatus],
+    [roles, addCustomRole, updateRole, setRoleStatus]
   );
 
   return <RoleDefinitionContext.Provider value={value}>{children}</RoleDefinitionContext.Provider>;

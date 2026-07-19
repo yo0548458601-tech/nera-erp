@@ -7,7 +7,11 @@ import {
   type PersonEntity,
   type RoleAssignment,
 } from '@nera/entity-engine';
-import { type CustomFieldDefinition, type CustomFieldValue, type ListColumnDefinition } from '@nera/customization-engine';
+import {
+  type CustomFieldDefinition,
+  type CustomFieldValue,
+  type ListColumnDefinition,
+} from '@nera/customization-engine';
 import { useRowClickNavigate } from '../../hooks/useRowNavigation';
 import { computeHebrewBirthDate, formatGregorianBirthDate } from '../../lib/dates/hebrewBirthDate';
 import { RowPrimaryLink } from '../shell/RowPrimaryLink';
@@ -37,7 +41,7 @@ function renderCell(
   person: PersonEntity,
   roleAssignments: RoleAssignment[],
   customFieldDefinitions: CustomFieldDefinition[],
-  customFieldValues: CustomFieldValue[],
+  customFieldValues: CustomFieldValue[]
 ) {
   switch (column.key) {
     case 'name': {
@@ -53,18 +57,31 @@ function renderCell(
       );
     }
     case 'roles': {
-      const personRoles = roleAssignments.filter((assignment) => assignment.entityId === person.id);
+      const personRoles = roleAssignments.filter(assignment => assignment.entityId === person.id);
       return (
         <div className="flex flex-wrap gap-1.5">
-          {personRoles.length === 0 ? <span className="text-slate-400">—</span> : personRoles.map((assignment) => <RoleBadge key={assignment.id} role={assignment.role} />)}
+          {personRoles.length === 0 ? (
+            <span className="text-slate-400">—</span>
+          ) : (
+            personRoles.map(assignment => <RoleBadge key={assignment.id} role={assignment.role} />)
+          )}
         </div>
       );
     }
     case 'birthDateGregorian':
-      return person.profile.birthDateGregorian ? formatGregorianBirthDate(person.profile.birthDateGregorian).display : '—';
+      return person.profile.birthDateGregorian
+        ? formatGregorianBirthDate(person.profile.birthDateGregorian).display
+        : '—';
     case 'birthDateHebrew':
       return person.profile.birthDateGregorian ? (
-        <span dir="rtl">{computeHebrewBirthDate(person.profile.birthDateGregorian, person.profile.hebrewDateAdjustmentDays).display}</span>
+        <span dir="rtl">
+          {
+            computeHebrewBirthDate(
+              person.profile.birthDateGregorian,
+              person.profile.hebrewDateAdjustmentDays
+            ).display
+          }
+        </span>
       ) : (
         '—'
       );
@@ -82,8 +99,11 @@ function renderCell(
           {person.tags.length === 0 ? (
             <span className="text-slate-400">—</span>
           ) : (
-            person.tags.map((tag) => (
-              <span key={tag} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+            person.tags.map(tag => (
+              <span
+                key={tag}
+                className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
+              >
                 {tag}
               </span>
             ))
@@ -94,11 +114,13 @@ function renderCell(
       return <StatusBadge status={person.status} />;
     default: {
       if (column.source === 'custom_field') {
-        const definition = customFieldDefinitions.find((entry) => entry.key === column.key);
+        const definition = customFieldDefinitions.find(entry => entry.key === column.key);
         if (!definition) {
           return '—';
         }
-        const value = customFieldValues.find((entry) => entry.entityId === person.id && entry.customFieldDefinitionId === definition.id);
+        const value = customFieldValues.find(
+          entry => entry.entityId === person.id && entry.customFieldDefinitionId === definition.id
+        );
         return formatCustomFieldValue(value?.value);
       }
       return '—';
@@ -106,7 +128,13 @@ function renderCell(
   }
 }
 
-export function PeopleTable({ people, roleAssignments, columns, customFieldDefinitions, customFieldValues }: PeopleTableProps) {
+export function PeopleTable({
+  people,
+  roleAssignments,
+  columns,
+  customFieldDefinitions,
+  customFieldValues,
+}: PeopleTableProps) {
   const getRowClickHandler = useRowClickNavigate();
 
   return (
@@ -114,7 +142,7 @@ export function PeopleTable({ people, roleAssignments, columns, customFieldDefin
       <table className="w-full min-w-[720px] border-collapse text-right text-sm">
         <thead>
           <tr className="border-b border-slate-200 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            {columns.map((column) => (
+            {columns.map(column => (
               <th key={column.key} scope="col" className="px-3 py-2">
                 {column.hebrewHeader}
               </th>
@@ -122,7 +150,7 @@ export function PeopleTable({ people, roleAssignments, columns, customFieldDefin
           </tr>
         </thead>
         <tbody>
-          {people.map((person) => {
+          {people.map(person => {
             const href = `/contacts/${person.id}`;
             return (
               <tr
@@ -130,9 +158,15 @@ export function PeopleTable({ people, roleAssignments, columns, customFieldDefin
                 onClick={getRowClickHandler(href)}
                 className="cursor-pointer border-b border-slate-100 transition last:border-0 hover:bg-slate-50 focus-within:bg-slate-50"
               >
-                {columns.map((column) => (
+                {columns.map(column => (
                   <td key={column.key} className="px-3 py-3 text-slate-600">
-                    {renderCell(column, person, roleAssignments, customFieldDefinitions, customFieldValues)}
+                    {renderCell(
+                      column,
+                      person,
+                      roleAssignments,
+                      customFieldDefinitions,
+                      customFieldValues
+                    )}
                   </td>
                 ))}
               </tr>

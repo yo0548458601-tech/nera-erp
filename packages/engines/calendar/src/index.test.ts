@@ -17,18 +17,51 @@ import {
 } from './index';
 
 describe('parseIsoCalendarDate / formatIsraeliShortDate - no day/month ambiguity', () => {
-  const ambiguousCases: Array<{ iso: string; expectedShort: string; expectedDay: number; expectedMonth: number; expectedYear: number }> = [
-    { iso: '1999-06-05', expectedShort: '05/06/1999', expectedDay: 5, expectedMonth: 6, expectedYear: 1999 },
-    { iso: '1999-05-06', expectedShort: '06/05/1999', expectedDay: 6, expectedMonth: 5, expectedYear: 1999 },
-    { iso: '1975-06-14', expectedShort: '14/06/1975', expectedDay: 14, expectedMonth: 6, expectedYear: 1975 },
-    { iso: '2013-09-01', expectedShort: '01/09/2013', expectedDay: 1, expectedMonth: 9, expectedYear: 2013 },
+  const ambiguousCases: Array<{
+    iso: string;
+    expectedShort: string;
+    expectedDay: number;
+    expectedMonth: number;
+    expectedYear: number;
+  }> = [
+    {
+      iso: '1999-06-05',
+      expectedShort: '05/06/1999',
+      expectedDay: 5,
+      expectedMonth: 6,
+      expectedYear: 1999,
+    },
+    {
+      iso: '1999-05-06',
+      expectedShort: '06/05/1999',
+      expectedDay: 6,
+      expectedMonth: 5,
+      expectedYear: 1999,
+    },
+    {
+      iso: '1975-06-14',
+      expectedShort: '14/06/1975',
+      expectedDay: 14,
+      expectedMonth: 6,
+      expectedYear: 1975,
+    },
+    {
+      iso: '2013-09-01',
+      expectedShort: '01/09/2013',
+      expectedDay: 1,
+      expectedMonth: 9,
+      expectedYear: 2013,
+    },
   ];
 
-  it.each(ambiguousCases)('parses and formats $iso without swapping day/month', ({ iso, expectedShort, expectedDay, expectedMonth, expectedYear }) => {
-    const parts = parseIsoCalendarDate(iso);
-    expect(parts).toEqual({ year: expectedYear, month: expectedMonth, day: expectedDay });
-    expect(formatIsraeliShortDate(iso)).toBe(expectedShort);
-  });
+  it.each(ambiguousCases)(
+    'parses and formats $iso without swapping day/month',
+    ({ iso, expectedShort, expectedDay, expectedMonth, expectedYear }) => {
+      const parts = parseIsoCalendarDate(iso);
+      expect(parts).toEqual({ year: expectedYear, month: expectedMonth, day: expectedDay });
+      expect(formatIsraeliShortDate(iso)).toBe(expectedShort);
+    }
+  );
 
   it('rejects non-ISO / ambiguous DD/MM/YYYY input rather than guessing', () => {
     expect(() => parseIsoCalendarDate('14/06/1975')).toThrow();
@@ -38,7 +71,13 @@ describe('parseIsoCalendarDate / formatIsraeliShortDate - no day/month ambiguity
 
 describe('toCalendarDateUTC - timezone-safe, never rolls to the adjacent day', () => {
   it('keeps the same UTC calendar day for a range of IANA timezones', () => {
-    const zones = ['Pacific/Kiritimati', 'Asia/Jerusalem', 'UTC', 'America/Los_Angeles', 'Pacific/Niue'];
+    const zones = [
+      'Pacific/Kiritimati',
+      'Asia/Jerusalem',
+      'UTC',
+      'America/Los_Angeles',
+      'Pacific/Niue',
+    ];
     for (const timeZone of zones) {
       const date = toCalendarDateUTC('1975-06-14');
       const formatted = new Intl.DateTimeFormat('en-CA', { timeZone }).format(date);
@@ -88,7 +127,11 @@ describe('findNextHebrewAnniversary - exact search, not an approximation', () =>
   it('finds a future occurrence within the same Hebrew year', () => {
     const from = '2026-01-01';
     const fromHebrew = getHebrewCalendarParts(from);
-    const next = findNextHebrewAnniversary(from, fromHebrew.month, fromHebrew.day + 1 <= 29 ? fromHebrew.day + 1 : fromHebrew.day);
+    const next = findNextHebrewAnniversary(
+      from,
+      fromHebrew.month,
+      fromHebrew.day + 1 <= 29 ? fromHebrew.day + 1 : fromHebrew.day
+    );
     expect(next).toBeDefined();
   });
 
@@ -115,7 +158,9 @@ describe('findNextHebrewAnniversary - exact search, not an approximation', () =>
         leapDate = probe;
         leapParts = { month: parts.month, day: parts.day };
       }
-      probe = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(addDays(probe, 1));
+      probe = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(
+        addDays(probe, 1)
+      );
     }
 
     expect(leapParts).toBeDefined();

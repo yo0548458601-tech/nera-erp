@@ -24,16 +24,66 @@ async function main() {
   });
 
   const permissions = [
-    { permissionKey: 'platform.organization.create', resource: 'organization', action: 'create', description: 'Create organizations' },
-    { permissionKey: 'platform.organization.read', resource: 'organization', action: 'read', description: 'Read organizations' },
-    { permissionKey: 'platform.organization.update', resource: 'organization', action: 'update', description: 'Update organizations' },
-    { permissionKey: 'platform.organization.delete', resource: 'organization', action: 'delete', description: 'Delete organizations' },
-    { permissionKey: 'platform.organization.approve', resource: 'organization', action: 'approve', description: 'Approve organizations' },
-    { permissionKey: 'platform.organization.cancel', resource: 'organization', action: 'cancel', description: 'Cancel organizations' },
-    { permissionKey: 'platform.organization.export', resource: 'organization', action: 'export', description: 'Export organizations' },
-    { permissionKey: 'platform.organization.import', resource: 'organization', action: 'import', description: 'Import organizations' },
-    { permissionKey: 'platform.organization.print', resource: 'organization', action: 'print', description: 'Print organizations' },
-    { permissionKey: 'platform.organization.manage', resource: 'organization', action: 'manage', description: 'Manage organizations' },
+    {
+      permissionKey: 'platform.organization.create',
+      resource: 'organization',
+      action: 'create',
+      description: 'Create organizations',
+    },
+    {
+      permissionKey: 'platform.organization.read',
+      resource: 'organization',
+      action: 'read',
+      description: 'Read organizations',
+    },
+    {
+      permissionKey: 'platform.organization.update',
+      resource: 'organization',
+      action: 'update',
+      description: 'Update organizations',
+    },
+    {
+      permissionKey: 'platform.organization.delete',
+      resource: 'organization',
+      action: 'delete',
+      description: 'Delete organizations',
+    },
+    {
+      permissionKey: 'platform.organization.approve',
+      resource: 'organization',
+      action: 'approve',
+      description: 'Approve organizations',
+    },
+    {
+      permissionKey: 'platform.organization.cancel',
+      resource: 'organization',
+      action: 'cancel',
+      description: 'Cancel organizations',
+    },
+    {
+      permissionKey: 'platform.organization.export',
+      resource: 'organization',
+      action: 'export',
+      description: 'Export organizations',
+    },
+    {
+      permissionKey: 'platform.organization.import',
+      resource: 'organization',
+      action: 'import',
+      description: 'Import organizations',
+    },
+    {
+      permissionKey: 'platform.organization.print',
+      resource: 'organization',
+      action: 'print',
+      description: 'Print organizations',
+    },
+    {
+      permissionKey: 'platform.organization.manage',
+      resource: 'organization',
+      action: 'manage',
+      description: 'Manage organizations',
+    },
   ];
 
   for (const permission of permissions) {
@@ -61,7 +111,7 @@ async function main() {
   for (const permission of allPermissions) {
     await prisma.rolePermission.upsert({
       where: {
-        organizationId_roleId_permissionId: {
+        role_permissions_org_role_permission_unique: {
           organizationId: organization.id,
           roleId: systemRole.id,
           permissionId: permission.id,
@@ -81,7 +131,7 @@ async function main() {
 }
 
 main()
-  .catch((error) => {
+  .catch(error => {
     console.error(error);
     process.exit(1);
   })

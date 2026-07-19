@@ -20,7 +20,12 @@ export default function SettingsPage() {
         <FieldRequirementsPanel />
         <AddressProviderPanel />
         <ComingSoonState
-          capabilities={['פרטי ארגון', 'העדפות תצוגה ושפה', 'ניהול מודולים פעילים', 'הגדרות אבטחה נוספות']}
+          capabilities={[
+            'פרטי ארגון',
+            'העדפות תצוגה ושפה',
+            'ניהול מודולים פעילים',
+            'הגדרות אבטחה נוספות',
+          ]}
         />
       </div>
     </>

@@ -56,7 +56,7 @@ function AddressFields({ item, update }: AddressFieldsProps) {
       return;
     }
     let cancelled = false;
-    activeAddressProvider.searchStreets(item.cityProviderId, '').then((result) => {
+    activeAddressProvider.searchStreets(item.cityProviderId, '').then(result => {
       if (cancelled) {
         return;
       }
@@ -73,7 +73,7 @@ function AddressFields({ item, update }: AddressFieldsProps) {
         <span className="font-medium text-slate-600">מדינה</span>
         <input
           value={item.country ?? ''}
-          onChange={(event) => update({ country: event.target.value })}
+          onChange={event => update({ country: event.target.value })}
           className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-sm"
         />
       </label>
@@ -84,22 +84,38 @@ function AddressFields({ item, update }: AddressFieldsProps) {
         label="עיר / יישוב"
         value={item.city ?? ''}
         placeholder="הקלד לחיפוש..."
-        onChange={(text) =>
-          update({ city: text, cityProviderId: undefined, street: item.city === text ? item.street : undefined, streetProviderId: undefined, verified: false })
+        onChange={text =>
+          update({
+            city: text,
+            cityProviderId: undefined,
+            street: item.city === text ? item.street : undefined,
+            streetProviderId: undefined,
+            verified: false,
+          })
         }
-        onSelectSuggestion={(suggestion) =>
-          update({ city: suggestion.name, cityProviderId: suggestion.id, street: undefined, streetProviderId: undefined, verified: true })
+        onSelectSuggestion={suggestion =>
+          update({
+            city: suggestion.name,
+            cityProviderId: suggestion.id,
+            street: undefined,
+            streetProviderId: undefined,
+            verified: true,
+          })
         }
-        fetchSuggestions={async (query) => {
+        fetchSuggestions={async query => {
           const result = await activeAddressProvider.searchLocalities(query);
-          setProviderWarning(result.unavailable ? 'ספק הכתובות אינו זמין כרגע - ניתן להזין את הכתובת ידנית.' : '');
-          return result.results.map((entry) => ({ id: entry.id, name: entry.name }));
+          setProviderWarning(
+            result.unavailable ? 'ספק הכתובות אינו זמין כרגע - ניתן להזין את הכתובת ידנית.' : ''
+          );
+          return result.results.map(entry => ({ id: entry.id, name: entry.name }));
         }}
       />
       <AddressAutocompleteInput
         label="רחוב"
         value={item.street ?? ''}
-        placeholder={item.cityProviderId ? 'הקלד לחיפוש...' : 'יש לבחור עיר/יישוב תחילה, או להקליד ידנית'}
+        placeholder={
+          item.cityProviderId ? 'הקלד לחיפוש...' : 'יש לבחור עיר/יישוב תחילה, או להקליד ידנית'
+        }
         /**
          * The street field's own text/open state does not change the
          * moment the user picks a locality, so its fetch effect would
@@ -114,15 +130,25 @@ function AddressFields({ item, update }: AddressFieldsProps) {
          * locality id.
          */
         contextKey={item.cityProviderId}
-        onChange={(text) => update({ street: text, streetProviderId: undefined, verified: item.cityProviderId ? item.verified : false })}
-        onSelectSuggestion={(suggestion) => update({ street: suggestion.name, streetProviderId: suggestion.id, verified: true })}
-        fetchSuggestions={async (query) => {
+        onChange={text =>
+          update({
+            street: text,
+            streetProviderId: undefined,
+            verified: item.cityProviderId ? item.verified : false,
+          })
+        }
+        onSelectSuggestion={suggestion =>
+          update({ street: suggestion.name, streetProviderId: suggestion.id, verified: true })
+        }
+        fetchSuggestions={async query => {
           if (!item.cityProviderId) {
             return [];
           }
           const result = await activeAddressProvider.searchStreets(item.cityProviderId, query);
-          setProviderWarning(result.unavailable ? 'ספק הכתובות אינו זמין כרגע - ניתן להזין את הכתובת ידנית.' : '');
-          return result.results.map((entry) => ({ id: entry.id, name: entry.name }));
+          setProviderWarning(
+            result.unavailable ? 'ספק הכתובות אינו זמין כרגע - ניתן להזין את הכתובת ידנית.' : ''
+          );
+          return result.results.map(entry => ({ id: entry.id, name: entry.name }));
         }}
       />
 
@@ -130,7 +156,7 @@ function AddressFields({ item, update }: AddressFieldsProps) {
         <span className="font-medium text-slate-600">מספר בית</span>
         <input
           value={item.houseNumber ?? ''}
-          onChange={(event) => update({ houseNumber: event.target.value })}
+          onChange={event => update({ houseNumber: event.target.value })}
           className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-sm"
         />
       </label>
@@ -138,7 +164,7 @@ function AddressFields({ item, update }: AddressFieldsProps) {
         <span className="font-medium text-slate-600">כניסה</span>
         <input
           value={item.entrance ?? ''}
-          onChange={(event) => update({ entrance: event.target.value })}
+          onChange={event => update({ entrance: event.target.value })}
           className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-sm"
         />
       </label>
@@ -146,7 +172,7 @@ function AddressFields({ item, update }: AddressFieldsProps) {
         <span className="font-medium text-slate-600">קומה</span>
         <input
           value={item.floor ?? ''}
-          onChange={(event) => update({ floor: event.target.value })}
+          onChange={event => update({ floor: event.target.value })}
           className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-sm"
         />
       </label>
@@ -154,7 +180,7 @@ function AddressFields({ item, update }: AddressFieldsProps) {
         <span className="font-medium text-slate-600">דירה</span>
         <input
           value={item.apartment ?? ''}
-          onChange={(event) => update({ apartment: event.target.value })}
+          onChange={event => update({ apartment: event.target.value })}
           className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-sm"
         />
       </label>
@@ -162,7 +188,7 @@ function AddressFields({ item, update }: AddressFieldsProps) {
         <span className="font-medium text-slate-600">מיקוד</span>
         <input
           value={item.postalCode ?? ''}
-          onChange={(event) => update({ postalCode: event.target.value })}
+          onChange={event => update({ postalCode: event.target.value })}
           className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-sm"
         />
       </label>
@@ -170,10 +196,10 @@ function AddressFields({ item, update }: AddressFieldsProps) {
         <span className="font-medium text-slate-600">סוג כתובת</span>
         <select
           value={item.type}
-          onChange={(event) => update({ type: event.target.value as AddressType })}
+          onChange={event => update({ type: event.target.value as AddressType })}
           className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-sm"
         >
-          {addressTypes.map((type) => (
+          {addressTypes.map(type => (
             <option key={type} value={type}>
               {addressTypeLabels[type]}
             </option>
@@ -184,13 +210,15 @@ function AddressFields({ item, update }: AddressFieldsProps) {
         <span className="font-medium text-slate-600">הערות</span>
         <input
           value={item.notes ?? ''}
-          onChange={(event) => update({ notes: event.target.value })}
+          onChange={event => update({ notes: event.target.value })}
           className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-sm"
         />
       </label>
 
       <p className="text-[11px] text-slate-400 sm:col-span-2">
-        {item.verified ? 'כתובת מאומתת מול ספק הכתובות.' : 'כתובת הוזנה ידנית - לא מאומתת מול ספק הכתובות.'}
+        {item.verified
+          ? 'כתובת מאומתת מול ספק הכתובות.'
+          : 'כתובת הוזנה ידנית - לא מאומתת מול ספק הכתובות.'}
       </p>
       {noStreetsForLocality ? (
         <p role="status" className="text-[11px] text-slate-500 sm:col-span-2">
@@ -221,7 +249,15 @@ function AddressFields({ item, update }: AddressFieldsProps) {
  * search comes back `unavailable` (see AddressProviderResult), a warning is
  * shown and manual entry remains fully available (it always is, regardless).
  */
-export function AddressListEditor({ addresses, onChange, currentUserId }: { addresses: AddressDraft[]; onChange: (addresses: AddressDraft[]) => void; currentUserId: string }) {
+export function AddressListEditor({
+  addresses,
+  onChange,
+  currentUserId,
+}: {
+  addresses: AddressDraft[];
+  onChange: (addresses: AddressDraft[]) => void;
+  currentUserId: string;
+}) {
   const canEdit = useMyPermission('contact_methods.edit');
   const canDeactivate = useMyPermission('contact_methods.deactivate');
   const canRemove = useMyPermission('contact_methods.remove');
@@ -235,7 +271,7 @@ export function AddressListEditor({ addresses, onChange, currentUserId }: { addr
       createItem={createEmptyAddressDraft}
       addLabel="הוסף כתובת נוספת"
       emptyLabel="לא הוזנה כתובת."
-      itemAriaLabel={(item) => `כתובת ${item.city ?? item.street ?? 'חדשה'}`}
+      itemAriaLabel={item => `כתובת ${item.city ?? item.street ?? 'חדשה'}`}
       currentUserId={currentUserId}
       activeStatusLabel="פעילה"
       inactiveStatusLabel="לא פעילה"

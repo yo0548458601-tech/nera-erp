@@ -31,12 +31,14 @@ export const BUILT_IN_CONFIGURABLE_FIELDS: ConfigurableFieldDefinition[] = [
 export function useConfigurableFields(): ConfigurableFieldDefinition[] {
   const { definitions } = useCustomFields();
   const customFieldEntries: ConfigurableFieldDefinition[] = definitions
-    .filter((definition) => definition.status === 'active')
-    .map((definition) => ({
+    .filter(definition => definition.status === 'active')
+    .map(definition => ({
       key: definition.key,
       label: definition.label,
       source: 'custom_field',
-      applicableEntityTypes: definition.targetEntityType ? [definition.targetEntityType] : ['person', 'organization'],
+      applicableEntityTypes: definition.targetEntityType
+        ? [definition.targetEntityType]
+        : ['person', 'organization'],
     }));
 
   return [...BUILT_IN_CONFIGURABLE_FIELDS, ...customFieldEntries];

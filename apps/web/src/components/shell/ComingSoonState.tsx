@@ -22,9 +22,12 @@ export function ComingSoonState({ capabilities }: ComingSoonStateProps) {
         <div>
           <p className="text-sm font-semibold text-slate-700">יכולות מתוכננות</p>
           <ul className="mt-2 space-y-2">
-            {capabilities.map((capability) => (
+            {capabilities.map(capability => (
               <li key={capability} className="flex items-center gap-2 text-sm text-slate-600">
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-500" aria-hidden="true" />
+                <span
+                  className="h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-500"
+                  aria-hidden="true"
+                />
                 {capability}
               </li>
             ))}

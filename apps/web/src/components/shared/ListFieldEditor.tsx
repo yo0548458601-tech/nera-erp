@@ -77,25 +77,34 @@ export function ListFieldEditor<T extends ListEditorItem>({
 }: ListFieldEditorProps<T>) {
   const [showRemoved, setShowRemoved] = useState(false);
 
-  const visibleItems = items.filter((item) => !item.deletedAt);
-  const removedItems = items.filter((item) => item.deletedAt);
+  const visibleItems = items.filter(item => !item.deletedAt);
+  const removedItems = items.filter(item => item.deletedAt);
   const sorted = [...visibleItems].sort((a, b) => a.order - b.order);
 
   const handleAdd = () => {
     const created = createItem();
-    onChange([...items, { ...created, isPrimary: visibleItems.length === 0, order: visibleItems.length }]);
+    onChange([
+      ...items,
+      { ...created, isPrimary: visibleItems.length === 0, order: visibleItems.length },
+    ]);
   };
 
   const updateItem = (id: string, patch: Partial<T>) => {
-    onChange(items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+    onChange(items.map(item => (item.id === id ? { ...item, ...patch } : item)));
   };
 
   const setPrimary = (id: string) => {
-    onChange(items.map((item) => (item.deletedAt ? item : { ...item, isPrimary: item.id === id })));
+    onChange(items.map(item => (item.deletedAt ? item : { ...item, isPrimary: item.id === id })));
   };
 
   const toggleActive = (id: string) => {
-    onChange(items.map((item) => (item.id === id ? { ...item, status: item.status === 'active' ? 'inactive' : 'active' } : item)));
+    onChange(
+      items.map(item =>
+        item.id === id
+          ? { ...item, status: item.status === 'active' ? 'inactive' : 'active' }
+          : item
+      )
+    );
   };
 
   const removeItem = (id: string) => {
@@ -103,31 +112,50 @@ export function ListFieldEditor<T extends ListEditorItem>({
       return;
     }
     const now = new Date().toISOString();
-    const target = items.find((item) => item.id === id);
-    let next = items.map((item) => (item.id === id ? { ...item, deletedAt: now, deletedByUserId: currentUserId, isPrimary: false } : item));
-    const remainingVisible = next.filter((item) => !item.deletedAt);
-    if (target?.isPrimary && remainingVisible.length > 0 && !remainingVisible.some((item) => item.isPrimary)) {
+    const target = items.find(item => item.id === id);
+    let next = items.map(item =>
+      item.id === id
+        ? { ...item, deletedAt: now, deletedByUserId: currentUserId, isPrimary: false }
+        : item
+    );
+    const remainingVisible = next.filter(item => !item.deletedAt);
+    if (
+      target?.isPrimary &&
+      remainingVisible.length > 0 &&
+      !remainingVisible.some(item => item.isPrimary)
+    ) {
       const firstId = remainingVisible[0].id;
-      next = next.map((item) => (item.id === firstId ? { ...item, isPrimary: true } : item));
+      next = next.map(item => (item.id === firstId ? { ...item, isPrimary: true } : item));
     }
     onChange(next);
   };
 
   const restoreItem = (id: string) => {
-    onChange(items.map((item) => (item.id === id ? { ...item, deletedAt: null, deletedByUserId: undefined } : item)));
+    onChange(
+      items.map(item =>
+        item.id === id ? { ...item, deletedAt: null, deletedByUserId: undefined } : item
+      )
+    );
   };
 
   const moveItem = (id: string, direction: -1 | 1) => {
-    const currentIndex = sorted.findIndex((item) => item.id === id);
+    const currentIndex = sorted.findIndex(item => item.id === id);
     const targetIndex = currentIndex + direction;
     if (targetIndex < 0 || targetIndex >= sorted.length) {
       return;
     }
     const reordered = [...sorted];
-    [reordered[currentIndex], reordered[targetIndex]] = [reordered[targetIndex], reordered[currentIndex]];
-    const reorderedIds = new Set(reordered.map((item) => item.id));
+    [reordered[currentIndex], reordered[targetIndex]] = [
+      reordered[targetIndex],
+      reordered[currentIndex],
+    ];
+    const reorderedIds = new Set(reordered.map(item => item.id));
     const orderById = new Map(reordered.map((item, index) => [item.id, index]));
-    onChange(items.map((item) => (reorderedIds.has(item.id) ? { ...item, order: orderById.get(item.id)! } : item)));
+    onChange(
+      items.map(item =>
+        reorderedIds.has(item.id) ? { ...item, order: orderById.get(item.id)! } : item
+      )
+    );
   };
 
   return (
@@ -140,11 +168,15 @@ export function ListFieldEditor<T extends ListEditorItem>({
           role="group"
           aria-label={itemAriaLabel(item, index)}
           className={`rounded-2xl border p-3 ${
-            item.status === 'inactive' ? 'border-dashed border-slate-200 bg-slate-50 opacity-70' : 'border-slate-200 bg-white'
+            item.status === 'inactive'
+              ? 'border-dashed border-slate-200 bg-slate-50 opacity-70'
+              : 'border-slate-200 bg-white'
           }`}
         >
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-[220px] flex-1">{renderFields(item, canEdit ? (patch) => updateItem(item.id, patch) : () => undefined)}</div>
+            <div className="min-w-[220px] flex-1">
+              {renderFields(item, canEdit ? patch => updateItem(item.id, patch) : () => undefined)}
+            </div>
 
             <div className="flex flex-col items-end gap-1.5">
               {canEdit ? (
@@ -172,7 +204,12 @@ export function ListFieldEditor<T extends ListEditorItem>({
 
               {canEdit ? (
                 <label className="flex items-center gap-1.5 text-xs text-slate-600">
-                  <input type="radio" name={groupName} checked={item.isPrimary} onChange={() => setPrimary(item.id)} />
+                  <input
+                    type="radio"
+                    name={groupName}
+                    checked={item.isPrimary}
+                    onChange={() => setPrimary(item.id)}
+                  />
                   {primaryLabel}
                 </label>
               ) : item.isPrimary ? (
@@ -181,20 +218,30 @@ export function ListFieldEditor<T extends ListEditorItem>({
 
               <span
                 className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                  item.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-200 text-slate-600'
+                  item.status === 'active'
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'bg-slate-200 text-slate-600'
                 }`}
               >
                 {item.status === 'active' ? activeStatusLabel : inactiveStatusLabel}
               </span>
 
               {canDeactivate ? (
-                <button type="button" onClick={() => toggleActive(item.id)} className="text-xs font-medium text-slate-500 hover:text-slate-700">
+                <button
+                  type="button"
+                  onClick={() => toggleActive(item.id)}
+                  className="text-xs font-medium text-slate-500 hover:text-slate-700"
+                >
                   {item.status === 'active' ? deactivateActionLabel : reactivateActionLabel}
                 </button>
               ) : null}
 
               {canRemove ? (
-                <button type="button" onClick={() => removeItem(item.id)} className="text-xs font-medium text-rose-600 hover:text-rose-700">
+                <button
+                  type="button"
+                  onClick={() => removeItem(item.id)}
+                  className="text-xs font-medium text-rose-600 hover:text-rose-700"
+                >
                   {removeActionLabel}
                 </button>
               ) : null}
@@ -215,7 +262,11 @@ export function ListFieldEditor<T extends ListEditorItem>({
 
       {canRestore && removedItems.length > 0 ? (
         <div className="border-t border-slate-100 pt-2">
-          <button type="button" onClick={() => setShowRemoved((value) => !value)} className="text-xs font-medium text-slate-500 hover:text-slate-700">
+          <button
+            type="button"
+            onClick={() => setShowRemoved(value => !value)}
+            className="text-xs font-medium text-slate-500 hover:text-slate-700"
+          >
             {showRemoved ? 'הסתר' : 'הצג'} {removedSectionLabel} ({removedItems.length})
           </button>
           {showRemoved ? (
@@ -226,7 +277,11 @@ export function ListFieldEditor<T extends ListEditorItem>({
                   className="flex items-center justify-between gap-2 rounded-xl border border-dashed border-slate-200 bg-white px-3 py-2 text-xs text-slate-500"
                 >
                   <span className="line-through">{itemAriaLabel(item, index)}</span>
-                  <button type="button" onClick={() => restoreItem(item.id)} className="font-medium text-cyan-700 hover:underline">
+                  <button
+                    type="button"
+                    onClick={() => restoreItem(item.id)}
+                    className="font-medium text-cyan-700 hover:underline"
+                  >
                     {restoreActionLabel}
                   </button>
                 </li>

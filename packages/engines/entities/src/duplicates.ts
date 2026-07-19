@@ -1,6 +1,7 @@
 import { type AnyEntity, getEntityDisplayName, isPersonEntity } from './unified';
 
-export type DuplicateMatchReason = 'idNumber' | 'registrationNumber' | 'phone' | 'email' | 'similarName';
+export type DuplicateMatchReason =
+  'idNumber' | 'registrationNumber' | 'phone' | 'email' | 'similarName';
 
 export type DuplicateMatch = {
   entity: AnyEntity;
@@ -52,10 +53,14 @@ function normalizeName(value: string): string {
 export function detectPotentialDuplicates(
   candidate: DuplicateCandidate,
   existingEntities: AnyEntity[],
-  excludeEntityId?: string,
+  excludeEntityId?: string
 ): DuplicateMatch[] {
-  const candidatePhones = new Set(candidate.phones.map((phone) => normalizePhone(phone.number)).filter(Boolean));
-  const candidateEmails = new Set(candidate.emails.map((email) => normalizeEmail(email.address)).filter(Boolean));
+  const candidatePhones = new Set(
+    candidate.phones.map(phone => normalizePhone(phone.number)).filter(Boolean)
+  );
+  const candidateEmails = new Set(
+    candidate.emails.map(email => normalizeEmail(email.address)).filter(Boolean)
+  );
   const candidateIdNumber = candidate.idNumber?.trim();
   const candidateRegistrationNumber = candidate.registrationNumber?.trim();
   const candidateName = candidate.displayName ? normalizeName(candidate.displayName) : undefined;
@@ -71,7 +76,11 @@ export function detectPotentialDuplicates(
     let isBlocking = false;
 
     if (isPersonEntity(entity)) {
-      if (candidateIdNumber && entity.profile.idNumber && candidateIdNumber === entity.profile.idNumber.trim()) {
+      if (
+        candidateIdNumber &&
+        entity.profile.idNumber &&
+        candidateIdNumber === entity.profile.idNumber.trim()
+      ) {
         reasons.push('idNumber');
         isBlocking = true;
       }
@@ -84,10 +93,16 @@ export function detectPotentialDuplicates(
       isBlocking = true;
     }
 
-    if (candidatePhones.size > 0 && entity.profile.phones.some((phone) => candidatePhones.has(normalizePhone(phone.number)))) {
+    if (
+      candidatePhones.size > 0 &&
+      entity.profile.phones.some(phone => candidatePhones.has(normalizePhone(phone.number)))
+    ) {
       reasons.push('phone');
     }
-    if (candidateEmails.size > 0 && entity.profile.emails.some((email) => candidateEmails.has(normalizeEmail(email.address)))) {
+    if (
+      candidateEmails.size > 0 &&
+      entity.profile.emails.some(email => candidateEmails.has(normalizeEmail(email.address)))
+    ) {
       reasons.push('email');
     }
     if (candidateName && normalizeName(getEntityDisplayName(entity)) === candidateName) {
@@ -103,7 +118,7 @@ export function detectPotentialDuplicates(
 }
 
 export function hasBlockingDuplicate(matches: DuplicateMatch[]): boolean {
-  return matches.some((match) => match.isBlocking);
+  return matches.some(match => match.isBlocking);
 }
 
 /**

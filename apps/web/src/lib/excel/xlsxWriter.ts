@@ -52,16 +52,18 @@ function resolveCellValue<TRecord>(record: TRecord, column: ExcelColumnContract<
  * DD/MM/YYYY date number formats. RTL sheet orientation is applied where
  * the exceljs/Excel view model supports it.
  */
-export async function buildXlsxWorkbookBuffer<TRecord>(options: XlsxExportOptions<TRecord>): Promise<ArrayBuffer> {
+export async function buildXlsxWorkbookBuffer<TRecord>(
+  options: XlsxExportOptions<TRecord>
+): Promise<ArrayBuffer> {
   const ExcelJS = (await import('exceljs')).default;
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet(sanitizeSheetName(options.sheetName), {
     views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }],
   });
 
-  const enabledColumns = options.columns.filter((column) => column.exportEnabled);
+  const enabledColumns = options.columns.filter(column => column.exportEnabled);
 
-  sheet.columns = enabledColumns.map((column) => ({
+  sheet.columns = enabledColumns.map(column => ({
     header: column.hebrewHeader,
     key: column.columnKey,
     width: Math.max(column.hebrewHeader.length + 4, 14),

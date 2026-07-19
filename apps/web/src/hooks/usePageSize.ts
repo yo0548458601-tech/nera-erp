@@ -7,7 +7,10 @@ export type PageSizeOption = 10 | 25 | 50 | 100 | 'unlimited';
 export const PAGE_SIZE_OPTIONS: PageSizeOption[] = [10, 25, 50, 100, 'unlimited'];
 
 function isValidPageSize(value: unknown): value is PageSizeOption {
-  return value === 'unlimited' || (typeof value === 'number' && PAGE_SIZE_OPTIONS.includes(value as PageSizeOption));
+  return (
+    value === 'unlimited' ||
+    (typeof value === 'number' && PAGE_SIZE_OPTIONS.includes(value as PageSizeOption))
+  );
 }
 
 /**
@@ -18,7 +21,10 @@ function isValidPageSize(value: unknown): value is PageSizeOption {
  * rendering <PageSizeSelect />; no list needs to reinvent pagination-size
  * state or storage.
  */
-export function usePageSize(storageKey: string, defaultValue: PageSizeOption = 25): [PageSizeOption, (value: PageSizeOption) => void] {
+export function usePageSize(
+  storageKey: string,
+  defaultValue: PageSizeOption = 25
+): [PageSizeOption, (value: PageSizeOption) => void] {
   const [pageSize, setPageSizeState] = useState<PageSizeOption>(defaultValue);
 
   useEffect(() => {
