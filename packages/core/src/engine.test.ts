@@ -100,6 +100,20 @@ describe('engineRegistry', () => {
       expect(findEngineRegistryIssues()).toEqual([]);
     });
   });
+
+  describe('P012 (Organization / Institution Engine)', () => {
+    it('organization-institution is implemented by @nera/organization-engine', () => {
+      expect(getEngine('organization-institution')?.packageName).toBe('@nera/organization-engine');
+    });
+
+    it('organization-institution remains "partial", not "existing" - real, tested infrastructure exists but nothing calls it yet (no real caller wired into apps/web)', () => {
+      expect(getEngine('organization-institution')?.status).toBe('partial');
+    });
+
+    it('the registry is still valid after the P012 packageName update - no duplicate ids, no unknown references, no cycles', () => {
+      expect(findEngineRegistryIssues()).toEqual([]);
+    });
+  });
 });
 
 describe('findEngineRegistryIssues', () => {

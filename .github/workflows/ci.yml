@@ -24,6 +24,27 @@ jobs:
   validate:
     name: Validate
     runs-on: ubuntu-latest
+    # PostgreSQL-backed CI (P012 - see docs/ROADMAP.md): behavioral Row Level
+    # Security tests need a real database - RLS cannot be honestly verified
+    # against a fake/mocked client. This is a throwaway, CI-local database
+    # with a fixed, non-secret password (not a production credential) - no
+    # GitHub Actions secret is introduced.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: nera_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nera_test
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,13 +62,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # No environment variables are set anywhere in this workflow, on
-      # purpose: none of the steps below (format/lint/typecheck/test/build)
-      # read any secret or require a database connection. Prisma Client
-      # generation (chained into the database package's own typecheck/build
-      # scripts) only reads the schema file - it never connects to a real
-      # database. If a future sprint adds a check that genuinely needs an
-      # environment variable, add it explicitly here rather than assuming.
+      # Apply every migration (including P012's institutions table and
+      # FORCE ROW LEVEL SECURITY retrofit) to the CI-local database, then
+      # bootstrap the restricted, NOLOGIN, NOSUPERUSER, NOBYPASSRLS role
+      # behavioral RLS tests run under - see packages/database/README.md.
+      # Both steps are idempotent and reusable locally against any
+      # DATABASE_URL, not just this CI database.
+      - name: Apply database migrations
+        run: npm run db:migrate:deploy --workspace=@nera/database
+
+      - name: Bootstrap RLS test role
+        run: npm run db:bootstrap-rls-role --workspace=@nera/database
 
       - name: Check formatting
         run: npm run check-format
