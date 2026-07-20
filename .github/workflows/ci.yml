@@ -62,6 +62,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # npm ci does not generate the Prisma Client (no postinstall hook does
+      # this here) - only @nera/database's own build/typecheck scripts chain
+      # `prisma generate` in, and those run later in this workflow. Anything
+      # that imports @prisma/client before then - such as the bootstrap
+      # script below, which constructs a real PrismaClient - fails with
+      # "@prisma/client did not initialize yet." `prisma migrate deploy`
+      # doesn't need the generated client (it uses its own migration engine),
+      # which is why that step alone wouldn't have surfaced this gap.
+      - name: Generate Prisma Client
+        run: npm run db:generate --workspace=@nera/database
+
       # Apply every migration (including P012's institutions table and
       # FORCE ROW LEVEL SECURITY retrofit) to the CI-local database, then
       # bootstrap the restricted, NOLOGIN, NOSUPERUSER, NOBYPASSRLS role
