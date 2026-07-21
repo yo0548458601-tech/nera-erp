@@ -145,6 +145,49 @@ async function main() {
     });
   }
 
+  // Real demo identity (P013A - see docs/ROADMAP.md). The demo session
+  // (apps/web's demoAuth.ts) points at these exact ids so checkPermission()/
+  // getOrganizationContext() resolve against real rows instead of
+  // placeholder strings matching nothing in the database - this is still
+  // demo-mode, not real authentication: no login flow is introduced.
+  const demoUserProfile = await prisma.userProfile.upsert({
+    where: { id: '22222222-2222-2222-2222-222222222222' },
+    update: {},
+    create: {
+      id: '22222222-2222-2222-2222-222222222222',
+      authenticationUserId: 'demo-user',
+      displayName: 'Demo User',
+      status: 'active',
+    },
+  });
+
+  const demoMembership = await prisma.organizationMembership.upsert({
+    where: { id: '33333333-3333-3333-3333-333333333333' },
+    update: {},
+    create: {
+      id: '33333333-3333-3333-3333-333333333333',
+      organizationId: organization.id,
+      userProfileId: demoUserProfile.id,
+      status: 'active',
+    },
+  });
+
+  await prisma.membershipRole.upsert({
+    where: {
+      membership_roles_membership_role_unique: {
+        organizationMembershipId: demoMembership.id,
+        roleId: systemRole.id,
+      },
+    },
+    update: {},
+    create: {
+      id: '44444444-4444-4444-4444-444444444444',
+      organizationId: organization.id,
+      organizationMembershipId: demoMembership.id,
+      roleId: systemRole.id,
+    },
+  });
+
   console.info('Database seed completed.');
 }
 
