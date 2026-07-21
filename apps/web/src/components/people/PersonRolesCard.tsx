@@ -77,12 +77,17 @@ export function PersonRolesCard({ person }: { person: PersonEntity }) {
     role => role.allowMultipleAssignments || !assignedRoleKeys.includes(role.key)
   );
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!selectedRole) {
       return;
     }
     const definition = findRoleDefinition(roles, selectedRole);
-    const added = addRoleToEntity(person.id, selectedRole, definition, selectedOrg || undefined);
+    const added = await addRoleToEntity(
+      person.id,
+      selectedRole,
+      definition,
+      selectedOrg || undefined
+    );
     if (!added) {
       setAddError('לתפקיד זה כבר קיים שיוך פעיל, ולא מוגדר כתפקיד המאפשר מספר שיוכים בו-זמנית.');
       return;

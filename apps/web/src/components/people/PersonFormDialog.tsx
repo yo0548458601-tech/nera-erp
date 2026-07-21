@@ -261,7 +261,7 @@ export function PersonFormDialog({
     );
   };
 
-  const buildAndSave = (): PersonEntity | undefined => {
+  const buildAndSave = async (): Promise<PersonEntity | undefined> => {
     if (mode === 'create') {
       return addPerson({
         firstName: firstName.trim(),
@@ -315,7 +315,7 @@ export function PersonFormDialog({
     }
   };
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
 
     if (!firstName.trim() || !lastName.trim()) {
@@ -345,9 +345,11 @@ export function PersonFormDialog({
       return;
     }
 
-    const result = buildAndSave();
+    const result = await buildAndSave();
     if (result) {
       finishSuccess(result);
+    } else {
+      setError('שמירת הרשומה נכשלה. נסו שוב.');
     }
   };
 
@@ -356,12 +358,12 @@ export function PersonFormDialog({
     router.push(`/contacts/${entityId}`);
   };
 
-  const handleConfirmOverride = (reason: string) => {
-    const result = buildAndSave();
+  const handleConfirmOverride = async (reason: string) => {
+    const result = await buildAndSave();
     if (!result) {
       return;
     }
-    recordDuplicateOverride(
+    await recordDuplicateOverride(
       result.id,
       blockingMatches.map(match => match.entity.id),
       blockingMatches.flatMap(match => match.reasons),

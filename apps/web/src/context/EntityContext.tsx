@@ -1,19 +1,21 @@
 'use client';
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import {
-  canAssignRole,
-  diffEntityFields,
-  formatNeraId,
-  getPrimaryEmail,
-  getPrimaryPhone,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
+import {
   type Address,
   type AddressDraft,
   type DuplicateMatchReason,
   type DuplicateOverrideRecord,
   type Email,
   type EmailDraft,
-  type EntityFieldChange,
   type EntityRoleId,
   type NewPersonInput,
   type Note,
@@ -24,36 +26,23 @@ import {
   type RoleDefinition,
   type UpdatePersonInput,
 } from '@nera/entity-engine';
+import { useSession } from './SessionContext';
 import {
-  demoNotes,
-  demoPersonEntities,
-  demoRoleAssignments,
-} from '../lib/entities/demoEntitiesData';
-
-const DEMO_TENANT_ID = 'tenant-demo';
-const NEXT_NERA_ID_SEQUENCE_START = 200;
+  addNoteAction,
+  assignRoleAction,
+  createPersonAction,
+  editNoteAction,
+  listEntitiesAction,
+  recordDuplicateOverrideAction,
+  removeNoteAction,
+  removeRoleAssignmentAction,
+  restoreNoteAction,
+  updatePersonAction,
+  type LoadedEntityData,
+} from '@/src/lib/actions/entityActions';
 
 function createId(prefix: string): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-/**
- * Stamps a list of form drafts (phones/emails/addresses) into full
- * records for `entityId`: createdAt is preserved from the matching
- * previous record when one exists (by id), or set to `now` for a
- * genuinely new entry; updatedAt is always `now`. This is what lets the
- * edit form submit its complete, user-managed list on every save without
- * losing each record's original creation time or silently touching
- * entries the user didn't change.
- */
-function stampContactMethods<
-  TDraft extends { id: string },
-  TFull extends TDraft & { entityId: string; createdAt: string; updatedAt: string },
->(drafts: TDraft[], entityId: string, previous: TFull[], now: string): TFull[] {
-  return drafts.map(draft => {
-    const existing = previous.find(entry => entry.id === draft.id);
-    return { ...draft, entityId, createdAt: existing?.createdAt ?? now, updatedAt: now } as TFull;
-  });
 }
 
 type EntityContextValue = {
@@ -61,55 +50,87 @@ type EntityContextValue = {
   entities: PersonEntity[];
   roleAssignments: RoleAssignment[];
   notes: Note[];
-  fieldHistory: EntityFieldChange[];
   duplicateOverrides: DuplicateOverrideRecord[];
+  isLoading: boolean;
   getEntityById: (id: string) => PersonEntity | undefined;
-  addPerson: (input: NewPersonInput) => PersonEntity;
+  addPerson: (input: NewPersonInput) => Promise<PersonEntity | undefined>;
   updatePerson: (
     entityId: string,
     input: UpdatePersonInput,
     updatedByUserId: string
-  ) => PersonEntity | undefined;
+  ) => Promise<PersonEntity | undefined>;
   addRoleToEntity: (
     entityId: string,
     role: EntityRoleId,
     roleDefinition: RoleDefinition | undefined,
     organizationId?: string
-  ) => boolean;
-  removeRoleFromEntity: (entityId: string, roleAssignmentId: string) => void;
+  ) => Promise<boolean>;
+  removeRoleFromEntity: (entityId: string, roleAssignmentId: string) => Promise<void>;
   getNotesForEntity: (entityId: string) => Note[];
-  addNote: (entityId: string, content: string, authorUserId: string) => void;
-  editNote: (noteId: string, content: string, editorUserId: string) => void;
-  softDeleteNote: (noteId: string, deleterUserId: string) => void;
-  restoreNote: (noteId: string) => void;
-  getHistoryForEntity: (entityId: string) => EntityFieldChange[];
+  addNote: (entityId: string, content: string, authorUserId: string) => Promise<void>;
+  editNote: (noteId: string, content: string, editorUserId: string) => Promise<void>;
+  softDeleteNote: (noteId: string, deleterUserId: string) => Promise<void>;
+  restoreNote: (noteId: string) => Promise<void>;
   recordDuplicateOverride: (
     entityId: string,
     matchedEntityIds: string[],
     reasons: DuplicateMatchReason[],
     reason: string,
     decidedByUserId: string
-  ) => void;
+  ) => Promise<void>;
 };
 
 const EntityContext = createContext<EntityContextValue | undefined>(undefined);
 
 /**
- * Holds the Entity Engine's in-memory demo dataset for the whole
- * authenticated app: entities, their role assignments, their notes, their
- * field-change history and their recorded duplicate-override decisions are
- * five separate collections (each referencing entityId), so the list page,
- * detail pages, global search and the "add new" quick action all read and
- * write the same data. There is no backend in this sprint - state resets
- * on reload, same as the rest of the P006 demo shell.
+ * Real, persisted entity data (P013A - see docs/ROADMAP.md). Loads once per
+ * selected organization via `listEntitiesAction` (a plain async function,
+ * not a Route Handler - the approved server boundary for this platform);
+ * every mutation calls its own Server Action (`entityActions.ts`), which
+ * writes through `@nera/entity-engine`'s persistence repositories inside a
+ * real `getOrganizationContext` transaction, records an audit row
+ * atomically, and publishes the one approved event for that mutation (if
+ * any). Local React state is then updated from the real, returned result -
+ * this context is a client-side cache/orchestration layer over the Server
+ * Actions, never an in-memory database of its own (the pre-P013A
+ * `demoEntitiesData.ts` seed is no longer used anywhere).
+ *
+ * `fieldHistory`/`getHistoryForEntity` (previously exposed here) are removed:
+ * P013A does not persist entity field-change history - see
+ * PersonHistoryCard.tsx, now a placeholder.
  */
 export function EntityProvider({ children }: { children: ReactNode }) {
-  const [entities, setEntities] = useState<PersonEntity[]>(demoPersonEntities);
-  const [roleAssignments, setRoleAssignments] = useState<RoleAssignment[]>(demoRoleAssignments);
-  const [notes, setNotes] = useState<Note[]>(demoNotes);
-  const [fieldHistory, setFieldHistory] = useState<EntityFieldChange[]>([]);
+  const { session } = useSession();
+  const organizationId = session?.selectedOrganizationId;
+
+  const [entities, setEntities] = useState<PersonEntity[]>([]);
+  const [roleAssignments, setRoleAssignments] = useState<RoleAssignment[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
   const [duplicateOverrides, setDuplicateOverrides] = useState<DuplicateOverrideRecord[]>([]);
-  const [nextNeraIdSequence, setNextNeraIdSequence] = useState(NEXT_NERA_ID_SEQUENCE_START);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!organizationId) {
+      return;
+    }
+    let cancelled = false;
+    setIsLoading(true);
+    listEntitiesAction(organizationId).then(result => {
+      if (cancelled) {
+        return;
+      }
+      if (result.ok) {
+        const data: LoadedEntityData = result.data;
+        setEntities(data.entities);
+        setRoleAssignments(data.roleAssignments);
+        setNotes(data.notes);
+      }
+      setIsLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationId]);
 
   const getEntityById = useCallback(
     (id: string) => entities.find(entity => entity.id === id),
@@ -117,387 +138,180 @@ export function EntityProvider({ children }: { children: ReactNode }) {
   );
 
   const addPerson = useCallback(
-    (input: NewPersonInput): PersonEntity => {
-      const now = new Date().toISOString();
-      const entityId = createId('person');
-      const neraId = formatNeraId(nextNeraIdSequence);
-
-      const newEntity: PersonEntity = {
-        id: entityId,
-        neraId,
-        entityType: 'person',
-        status: 'active',
-        tenantId: DEMO_TENANT_ID,
-        tags: input.tags,
-        notesMetadata: { count: 0 },
-        createdAt: now,
-        updatedAt: now,
-        profile: {
-          entityId,
-          firstName: input.firstName,
-          lastName: input.lastName,
-          idNumber: input.idNumber,
-          birthDateGregorian: input.birthDateGregorian,
-          hebrewDateAdjustmentDays: input.hebrewDateAdjustmentDays,
-          gender: input.gender,
-          phones: stampContactMethods<PhoneDraft, Phone>(input.phones, entityId, [], now),
-          emails: stampContactMethods<EmailDraft, Email>(input.emails, entityId, [], now),
-          addresses: stampContactMethods<AddressDraft, Address>(input.addresses, entityId, [], now),
-        },
-      };
-
-      const newRoleAssignments: RoleAssignment[] = input.roles.map(role => ({
-        id: createId('role'),
-        entityId,
-        role,
-        status: 'active',
-        createdAt: now,
-      }));
-
-      setEntities(current => [...current, newEntity]);
-      setRoleAssignments(current => [...current, ...newRoleAssignments]);
-      setNextNeraIdSequence(current => current + 1);
-
-      return newEntity;
+    async (input: NewPersonInput): Promise<PersonEntity | undefined> => {
+      if (!organizationId) {
+        return undefined;
+      }
+      const result = await createPersonAction(organizationId, input);
+      if (!result.ok) {
+        return undefined;
+      }
+      setEntities(current => [...current, result.data]);
+      return result.data;
     },
-    [nextNeraIdSequence]
+    [organizationId]
   );
 
-  /**
-   * Updates an existing person's identity/contact fields. The permanent
-   * neraId, id and tenantId are never touched. Phones, emails and
-   * addresses are each replaced by the input's full array (see
-   * UpdatePersonInput / PersonFormDialog) - the edit form is itself the
-   * complete source of truth for these lists while open, so nothing is
-   * silently dropped; stampContactMethods preserves each existing record's
-   * original createdAt by matching on id. Every changed field is recorded
-   * in fieldHistory (see history.ts) rather than silently overwritten.
-   */
   const updatePerson = useCallback(
-    (
+    async (
       entityId: string,
       input: UpdatePersonInput,
-      updatedByUserId: string
-    ): PersonEntity | undefined => {
-      let updated: PersonEntity | undefined;
-
+      _updatedByUserId: string
+    ): Promise<PersonEntity | undefined> => {
+      if (!organizationId) {
+        return undefined;
+      }
+      const result = await updatePersonAction(organizationId, entityId, input);
+      if (!result.ok) {
+        return undefined;
+      }
       setEntities(current =>
-        current.map(entity => {
-          if (entity.id !== entityId) {
-            return entity;
-          }
-
-          const now = new Date().toISOString();
-
-          const phones = stampContactMethods<PhoneDraft, Phone>(
-            input.phones,
-            entityId,
-            entity.profile.phones,
-            now
-          );
-          const emails = stampContactMethods<EmailDraft, Email>(
-            input.emails,
-            entityId,
-            entity.profile.emails,
-            now
-          );
-          const addresses = stampContactMethods<AddressDraft, Address>(
-            input.addresses,
-            entityId,
-            entity.profile.addresses,
-            now
-          );
-
-          const before: Record<string, unknown> = {
-            firstName: entity.profile.firstName,
-            lastName: entity.profile.lastName,
-            idNumber: entity.profile.idNumber,
-            birthDateGregorian: entity.profile.birthDateGregorian,
-            hebrewDateAdjustmentDays: entity.profile.hebrewDateAdjustmentDays,
-            gender: entity.profile.gender,
-            status: entity.status,
-            tags: entity.tags,
-            primaryPhone: getPrimaryPhone(entity.profile)?.number,
-            primaryEmail: getPrimaryEmail(entity.profile)?.address,
-            phones: entity.profile.phones.map(phone => ({
-              number: phone.number,
-              type: phone.type,
-              isPrimary: phone.isPrimary,
-              status: phone.status,
-            })),
-            emails: entity.profile.emails.map(email => ({
-              address: email.address,
-              type: email.type,
-              isPrimary: email.isPrimary,
-              status: email.status,
-            })),
-            addresses: entity.profile.addresses.map(address => ({
-              city: address.city,
-              street: address.street,
-              isPrimary: address.isPrimary,
-              status: address.status,
-            })),
-          };
-          const after: Record<string, unknown> = {
-            firstName: input.firstName,
-            lastName: input.lastName,
-            idNumber: input.idNumber,
-            birthDateGregorian: input.birthDateGregorian,
-            hebrewDateAdjustmentDays: input.hebrewDateAdjustmentDays,
-            gender: input.gender,
-            status: input.status,
-            tags: input.tags,
-            primaryPhone: phones.find(phone => phone.isPrimary)?.number,
-            primaryEmail: emails.find(email => email.isPrimary)?.address,
-            phones: phones.map(phone => ({
-              number: phone.number,
-              type: phone.type,
-              isPrimary: phone.isPrimary,
-              status: phone.status,
-            })),
-            emails: emails.map(email => ({
-              address: email.address,
-              type: email.type,
-              isPrimary: email.isPrimary,
-              status: email.status,
-            })),
-            addresses: addresses.map(address => ({
-              city: address.city,
-              street: address.street,
-              isPrimary: address.isPrimary,
-              status: address.status,
-            })),
-          };
-          const changes = diffEntityFields(entityId, before, after, updatedByUserId, () =>
-            createId('change')
-          );
-          if (changes.length > 0) {
-            setFieldHistory(currentHistory => [...changes, ...currentHistory]);
-          }
-
-          updated = {
-            ...entity,
-            status: input.status,
-            tags: input.tags,
-            updatedAt: now,
-            profile: {
-              ...entity.profile,
-              firstName: input.firstName,
-              lastName: input.lastName,
-              idNumber: input.idNumber,
-              birthDateGregorian: input.birthDateGregorian,
-              hebrewDateAdjustmentDays: input.hebrewDateAdjustmentDays,
-              gender: input.gender,
-              phones,
-              emails,
-              addresses,
-            },
-          };
-          return updated;
-        })
+        current.map(entity => (entity.id === entityId ? result.data : entity))
       );
-
-      return updated;
+      return result.data;
     },
-    []
+    [organizationId]
   );
 
   const addRoleToEntity = useCallback(
-    (
+    async (
       entityId: string,
       role: EntityRoleId,
-      roleDefinition: RoleDefinition | undefined,
-      organizationId?: string
-    ) => {
-      let didAdd = false;
-      setRoleAssignments(current => {
-        if (!canAssignRole(entityId, role, current, roleDefinition)) {
-          return current;
-        }
-        didAdd = true;
-        return [
-          ...current,
-          {
-            id: createId('role'),
-            entityId,
-            role,
-            organizationId,
-            status: 'active',
-            createdAt: new Date().toISOString(),
-          },
-        ];
-      });
-      if (didAdd) {
-        setEntities(current =>
-          current.map(entity =>
-            entity.id === entityId ? { ...entity, updatedAt: new Date().toISOString() } : entity
-          )
-        );
+      _roleDefinition: RoleDefinition | undefined,
+      orgIdOverride?: string
+    ): Promise<boolean> => {
+      const orgId = orgIdOverride ?? organizationId;
+      if (!orgId) {
+        return false;
       }
-      return didAdd;
+      const result = await assignRoleAction(orgId, entityId, role);
+      if (!result.ok || !result.data) {
+        return false;
+      }
+      setRoleAssignments(current => [...current, result.data as RoleAssignment]);
+      return true;
     },
-    []
+    [organizationId]
   );
 
-  const removeRoleFromEntity = useCallback((entityId: string, roleAssignmentId: string) => {
-    setRoleAssignments(current => current.filter(assignment => assignment.id !== roleAssignmentId));
-    setEntities(current =>
-      current.map(entity =>
-        entity.id === entityId ? { ...entity, updatedAt: new Date().toISOString() } : entity
-      )
-    );
-  }, []);
+  const removeRoleFromEntity = useCallback(
+    async (entityId: string, roleAssignmentId: string) => {
+      if (!organizationId) {
+        return;
+      }
+      const result = await removeRoleAssignmentAction(organizationId, entityId, roleAssignmentId);
+      if (result.ok) {
+        setRoleAssignments(current => current.filter(a => a.id !== roleAssignmentId));
+      }
+    },
+    [organizationId]
+  );
 
   const getNotesForEntity = useCallback(
     (entityId: string) => notes.filter(note => note.entityId === entityId),
     [notes]
   );
 
-  /** Recomputes an entity's note-count summary; only a genuinely new note advances lastNoteAt. */
-  const touchEntityNotesMetadata = useCallback(
-    (entityId: string, count: number, newestNoteAt?: string) => {
-      setEntities(current =>
-        current.map(entity =>
-          entity.id === entityId
-            ? {
-                ...entity,
-                notesMetadata: {
-                  count,
-                  lastNoteAt: newestNoteAt ?? entity.notesMetadata.lastNoteAt,
-                },
-                updatedAt: new Date().toISOString(),
-              }
-            : entity
-        )
-      );
-    },
-    []
-  );
-
   const addNote = useCallback(
-    (entityId: string, content: string, authorUserId: string) => {
-      if (!content.trim()) {
+    async (entityId: string, content: string, _authorUserId: string) => {
+      if (!organizationId || !content.trim()) {
         return;
       }
-      const now = new Date().toISOString();
-      const newNote: Note = {
-        id: createId('note'),
-        entityId,
-        content: content.trim(),
-        createdByUserId: authorUserId,
-        createdAt: now,
-        updatedAt: now,
-        revisions: [],
-      };
-      setNotes(current => {
-        const next = [newNote, ...current];
-        const activeCount = next.filter(
-          note => note.entityId === entityId && !note.deletedAt
-        ).length;
-        touchEntityNotesMetadata(entityId, activeCount, now);
-        return next;
-      });
+      const result = await addNoteAction(organizationId, entityId, content.trim());
+      if (result.ok) {
+        setNotes(current => [result.data, ...current]);
+      }
     },
-    [touchEntityNotesMetadata]
+    [organizationId]
   );
 
-  const editNote = useCallback((noteId: string, content: string, editorUserId: string) => {
-    if (!content.trim()) {
-      return;
-    }
-    setNotes(current =>
-      current.map(note => {
-        if (note.id !== noteId) {
-          return note;
-        }
-        const now = new Date().toISOString();
-        return {
-          ...note,
-          content: content.trim(),
-          updatedAt: now,
-          updatedByUserId: editorUserId,
-          revisions: [
-            ...note.revisions,
-            {
-              id: createId('rev'),
-              content: note.content,
-              editedAt: note.updatedAt,
-              editedByUserId: note.updatedByUserId ?? note.createdByUserId,
-            },
-          ],
-        };
-      })
-    );
-  }, []);
+  const editNote = useCallback(
+    async (noteId: string, content: string, _editorUserId: string) => {
+      if (!organizationId || !content.trim()) {
+        return;
+      }
+      const note = notes.find(n => n.id === noteId);
+      if (!note) {
+        return;
+      }
+      const result = await editNoteAction(organizationId, note.entityId, noteId, content.trim());
+      if (result.ok) {
+        setNotes(current => current.map(n => (n.id === noteId ? result.data : n)));
+      }
+    },
+    [organizationId, notes]
+  );
 
   const softDeleteNote = useCallback(
-    (noteId: string, deleterUserId: string) => {
-      setNotes(current => {
-        const target = current.find(note => note.id === noteId);
-        if (!target) {
-          return current;
-        }
-        const now = new Date().toISOString();
-        const next = current.map(note =>
-          note.id === noteId ? { ...note, deletedAt: now, deletedByUserId: deleterUserId } : note
+    async (noteId: string, _deleterUserId: string) => {
+      if (!organizationId) {
+        return;
+      }
+      const note = notes.find(n => n.id === noteId);
+      if (!note) {
+        return;
+      }
+      const result = await removeNoteAction(organizationId, note.entityId, noteId);
+      if (result.ok) {
+        setNotes(current =>
+          current.map(n => (n.id === noteId ? { ...n, deletedAt: new Date().toISOString() } : n))
         );
-        const activeCount = next.filter(
-          note => note.entityId === target.entityId && !note.deletedAt
-        ).length;
-        touchEntityNotesMetadata(target.entityId, activeCount);
-        return next;
-      });
+      }
     },
-    [touchEntityNotesMetadata]
+    [organizationId, notes]
   );
 
   const restoreNote = useCallback(
-    (noteId: string) => {
-      setNotes(current => {
-        const target = current.find(note => note.id === noteId);
-        if (!target) {
-          return current;
-        }
-        const next = current.map(note =>
-          note.id === noteId ? { ...note, deletedAt: null, deletedByUserId: null } : note
-        );
-        const activeCount = next.filter(
-          note => note.entityId === target.entityId && !note.deletedAt
-        ).length;
-        touchEntityNotesMetadata(target.entityId, activeCount);
-        return next;
-      });
+    async (noteId: string) => {
+      if (!organizationId) {
+        return;
+      }
+      const note = notes.find(n => n.id === noteId);
+      if (!note) {
+        return;
+      }
+      const result = await restoreNoteAction(organizationId, note.entityId, noteId);
+      if (result.ok) {
+        setNotes(current => current.map(n => (n.id === noteId ? { ...n, deletedAt: null } : n)));
+      }
     },
-    [touchEntityNotesMetadata]
-  );
-
-  const getHistoryForEntity = useCallback(
-    (entityId: string) => fieldHistory.filter(change => change.entityId === entityId),
-    [fieldHistory]
+    [organizationId, notes]
   );
 
   const recordDuplicateOverride = useCallback(
-    (
+    async (
       entityId: string,
       matchedEntityIds: string[],
       reasons: DuplicateMatchReason[],
       reason: string,
       decidedByUserId: string
     ) => {
-      setDuplicateOverrides(current => [
-        ...current,
-        {
-          id: createId('override'),
-          entityId,
-          matchedEntityIds,
-          reasons,
-          reason,
-          decidedByUserId,
-          decidedAt: new Date().toISOString(),
-        },
-      ]);
+      if (!organizationId) {
+        return;
+      }
+      const result = await recordDuplicateOverrideAction(
+        organizationId,
+        entityId,
+        matchedEntityIds,
+        reasons,
+        reason
+      );
+      if (result.ok) {
+        setDuplicateOverrides(current => [
+          ...current,
+          {
+            id: createId('override'),
+            entityId,
+            matchedEntityIds,
+            reasons,
+            reason,
+            decidedByUserId,
+            decidedAt: new Date().toISOString(),
+          },
+        ]);
+      }
     },
-    []
+    [organizationId]
   );
 
   const value = useMemo<EntityContextValue>(
@@ -505,8 +319,8 @@ export function EntityProvider({ children }: { children: ReactNode }) {
       entities,
       roleAssignments,
       notes,
-      fieldHistory,
       duplicateOverrides,
+      isLoading,
       getEntityById,
       addPerson,
       updatePerson,
@@ -517,15 +331,14 @@ export function EntityProvider({ children }: { children: ReactNode }) {
       editNote,
       softDeleteNote,
       restoreNote,
-      getHistoryForEntity,
       recordDuplicateOverride,
     }),
     [
       entities,
       roleAssignments,
       notes,
-      fieldHistory,
       duplicateOverrides,
+      isLoading,
       getEntityById,
       addPerson,
       updatePerson,
@@ -536,7 +349,6 @@ export function EntityProvider({ children }: { children: ReactNode }) {
       editNote,
       softDeleteNote,
       restoreNote,
-      getHistoryForEntity,
       recordDuplicateOverride,
     ]
   );

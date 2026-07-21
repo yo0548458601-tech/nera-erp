@@ -17,7 +17,7 @@ import { PersonCustomFieldsCard } from '@/src/components/people/PersonCustomFiel
 import { PersonFormDialog } from '@/src/components/people/PersonFormDialog';
 
 export default function PersonDetailPage({ params }: { params: { id: string } }) {
-  const { getEntityById, getHistoryForEntity } = useEntities();
+  const { getEntityById } = useEntities();
   const canEditEntity = useMyPermission('entities.edit');
   const person = getEntityById(params.id);
   const [editOpen, setEditOpen] = useState(false);
@@ -76,7 +76,7 @@ export default function PersonDetailPage({ params }: { params: { id: string } })
         <PersonContactMethodsCard person={person} />
         <PersonNotesCard person={person} />
         <PersonCustomFieldsCard person={person} />
-        <PersonHistoryCard history={getHistoryForEntity(person.id)} />
+        <PersonHistoryCard />
 
         <div className="grid gap-6 sm:grid-cols-2">
           <EmptyState
