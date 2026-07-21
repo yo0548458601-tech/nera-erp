@@ -45,6 +45,11 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/nera_test
+      # Fixed, non-secret CI-local credential for the least-privilege
+      # application role (P013A) - never a production credential, no GitHub
+      # Actions secret needed, matching the Postgres service password above.
+      APP_DATABASE_URL: postgresql://nera_app_role:nera_app_role_ci_password@localhost:5432/nera_test
+      APP_DB_PASSWORD: nera_app_role_ci_password
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -84,6 +89,18 @@ jobs:
 
       - name: Bootstrap RLS test role
         run: npm run db:bootstrap-rls-role --workspace=@nera/database
+
+      # Least-privilege application role (P013A - see
+      # packages/database/README.md). Must run after migrations (it revokes
+      # access to _prisma_migrations, which migrate deploy creates) and
+      # before the seed step below (seed.ts itself still uses the
+      # administrative `prisma` client, but real application code - and any
+      # future test relying on it - needs this role to already exist).
+      - name: Bootstrap application role
+        run: npm run db:bootstrap-app-role --workspace=@nera/database
+
+      - name: Seed database
+        run: npm run db:seed --workspace=@nera/database
 
       - name: Check formatting
         run: npm run check-format
