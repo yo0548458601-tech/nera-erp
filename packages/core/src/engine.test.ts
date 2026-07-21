@@ -38,8 +38,13 @@ describe('engineRegistry', () => {
     }
   });
 
-  it('the Calendar engine is the only "existing" entry, matching ENGINE_MAP.md', () => {
-    expect(getEnginesByStatus('existing').map(entry => entry.id)).toEqual(['calendar']);
+  it('authorization, organization-institution, audit and calendar are "existing" - the four engines with real callers wired into apps/web (P013A)', () => {
+    expect(getEnginesByStatus('existing').map(entry => entry.id)).toEqual([
+      'authorization',
+      'organization-institution',
+      'audit',
+      'calendar',
+    ]);
   });
 
   it('classifies exactly the 16 engines in ENGINE_MAP.md\'s required list as "required", and only Calendar as "optional"', () => {
@@ -83,8 +88,8 @@ describe('engineRegistry', () => {
       expect(getEngine('business-event-bus')?.packageName).toBe('@nera/event-bus-engine');
     });
 
-    it('audit remains "partial", not "existing" - a real writer exists but nothing calls it yet (no real caller wired into apps/web until P011+)', () => {
-      expect(getEngine('audit')?.status).toBe('partial');
+    it('audit was "partial" through P012 - a real writer existed but nothing called it yet (no real caller wired into apps/web until P013A - see the P013A describe block below)', () => {
+      expect(getEngine('audit')?.status).toBe('existing');
     });
 
     it('business-event-bus is now "partial", not "planned" - a real in-process implementation exists but nothing publishes/subscribes yet', () => {
@@ -106,11 +111,31 @@ describe('engineRegistry', () => {
       expect(getEngine('organization-institution')?.packageName).toBe('@nera/organization-engine');
     });
 
-    it('organization-institution remains "partial", not "existing" - real, tested infrastructure exists but nothing calls it yet (no real caller wired into apps/web)', () => {
-      expect(getEngine('organization-institution')?.status).toBe('partial');
+    it('organization-institution was "partial" through P012 - real, tested infrastructure existed but nothing called it yet (no real caller wired into apps/web until P013A)', () => {
+      expect(getEngine('organization-institution')?.status).toBe('existing');
     });
 
     it('the registry is still valid after the P012 packageName update - no duplicate ids, no unknown references, no cycles', () => {
+      expect(findEngineRegistryIssues()).toEqual([]);
+    });
+  });
+
+  describe('P013A (Entity Persistence & Real Contacts)', () => {
+    it('authorization, organization-institution and audit are now "existing" - Server Actions in apps/web call checkPermission/getOrganizationContext/recordAudit for real for the first time', () => {
+      expect(getEngine('authorization')?.status).toBe('existing');
+      expect(getEngine('organization-institution')?.status).toBe('existing');
+      expect(getEngine('audit')?.status).toBe('existing');
+    });
+
+    it('entity remains "partial", not "existing" - the person-side slice (entities, person_profiles, contact methods, notes, role_assignments, duplicate_override_records) is real, but organization_profiles/module_profiles/merge/financial remain unbuilt', () => {
+      expect(getEngine('entity')?.status).toBe('partial');
+      expect(getEngine('entity')?.ownedData).toContain('phones');
+      expect(getEngine('entity')?.ownedData).toContain(
+        'organization_profiles and module_profiles remain modeled as TypeScript types only'
+      );
+    });
+
+    it('the registry is still valid after the P013A status updates - no duplicate ids, no unknown references, no cycles', () => {
       expect(findEngineRegistryIssues()).toEqual([]);
     });
   });
