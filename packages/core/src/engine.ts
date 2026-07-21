@@ -138,18 +138,19 @@ export const engineRegistry: EngineDescriptor[] = [
     id: 'organization-institution',
     classification: 'required',
     name: 'Organization / Institution (Tenant Engine)',
+    packageName: '@nera/organization-engine',
     responsibility:
       'Define the tenant boundary (Organization) every engine/module scopes data by, and the optional Institution business hierarchy beneath it. Guarantee the boundary is enforced at the database level.',
     boundaries:
       'Owns what the tenant boundary is and that it is enforced; does not own business data itself.',
     ownedData:
-      'Organization, OrganizationUnit, OrganizationMembership (exist from P004); a future institutions table (not yet implemented, see ADR-002).',
+      'Organization, OrganizationUnit, OrganizationMembership (exist from P004); institutions (P012).',
     dependencies: ['identity-authentication'],
     consumers: ['every engine and module owning tenant-scoped data'],
     eventsEmitted: ['OrganizationCreated', 'OrganizationUpdated', 'OrganizationMembershipChanged'],
     eventsConsumed: [],
     securityRequirements:
-      'Every tenant-scoped table has an application-level filter and a database-level RLS policy keyed on organization_id; institution_id is additive only, never trusted alone (ADR-002).',
+      'Every tenant-scoped table has an application-level filter and a database-level RLS policy keyed on organization_id, both FORCE-d (P012) so the table owner is bound too; institution_id is additive only, never trusted alone (ADR-002).',
     auditRequirements:
       'Organization creation, membership changes, and cross-organization administrative actions.',
     extensionPoints: 'None for V1.',

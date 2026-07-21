@@ -70,6 +70,7 @@ model Organization {
   rolePermissions        RolePermission[]
   membershipRoles        MembershipRole[]
   auditLogs              AuditLog[]
+  institutions           Institution[]
 
   @@map("organizations")
 }
@@ -221,4 +222,24 @@ model AuditLog {
   @@index([entityType])
   @@index([occurredAt])
   @@map("audit_logs")
+}
+
+/// Organization / Institution Engine (ENGINE_MAP.md Section 3; ADR-002; P012).
+/// Institution is an optional business hierarchy strictly below Organization
+/// (ADR-002 Decision items 2-3) - never a substitute tenant boundary. No
+/// status/lifecycle enum is added beyond the standard soft-delete pattern:
+/// neither ADR-002 nor the P012 scope names a lifecycle concept for
+/// Institution, and deletedAt alone already satisfies the constitutionally
+/// mandated default (NERA_CONSTITUTION.md Section 7.4).
+model Institution {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  name           String       @db.VarChar(255)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  deletedAt      DateTime?    @map("deleted_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@map("institutions")
 }
