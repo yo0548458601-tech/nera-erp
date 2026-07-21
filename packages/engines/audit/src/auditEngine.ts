@@ -38,7 +38,7 @@
  * decision exists to require as input.
  */
 
-import { prisma, type AuditLog, Prisma } from '@nera/database';
+import { appPrisma, type AuditLog, Prisma } from '@nera/database';
 
 /**
  * The minimal slice of a Prisma-compatible client this engine needs -
@@ -133,12 +133,17 @@ function toJsonInput(
 /**
  * Factory, not a singleton - matches the rest of `packages/engines/*` and
  * `@nera/core`'s stateless-function convention (see `createProviderRegistry`,
- * `createPluginRegistry`). Defaults to the real, Prisma-backed
- * `@nera/database` client, so a production caller can write
+ * `createPluginRegistry`). Defaults to `appPrisma`, the least-privilege
+ * application client (P013A), so a production caller can write
  * `createAuditEngine()` with no arguments and get real writes with no extra
- * wiring; tests inject a fake `AuditLogDbClient` explicitly instead.
+ * wiring, without ever defaulting to the administrative client; tests inject
+ * a fake `AuditLogDbClient` explicitly instead. Callers needing atomicity
+ * with a paired domain write (see `docs/ROADMAP.md` P013A) pass the same
+ * transaction client (`tx`) both `getOrganizationContext` and
+ * `createAuditEngine` should use, so the audit row commits or rolls back
+ * together with the mutation it records.
  */
-export function createAuditEngine(client: AuditLogDbClient = prisma): AuditEngine {
+export function createAuditEngine(client: AuditLogDbClient = appPrisma): AuditEngine {
   return {
     async recordAudit(input) {
       assertValidRecordAuditInput(input);

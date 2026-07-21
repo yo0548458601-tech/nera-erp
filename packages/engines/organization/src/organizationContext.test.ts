@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
-import { prisma } from '@nera/database';
+import { appPrisma, prisma } from '@nera/database';
 import {
   createGetOrganizationContext,
   type OrganizationContextDbClient,
@@ -40,8 +40,9 @@ describe('createGetOrganizationContext', () => {
     expect(fake.$transaction).not.toHaveBeenCalled();
   });
 
-  it('defaults to the real @nera/database Prisma client when no client is injected', () => {
+  it('defaults to appPrisma, the least-privilege application client (P013A) - never the administrative prisma client - when no client is injected', () => {
     expect(() => createGetOrganizationContext()).not.toThrow();
+    expect(appPrisma).not.toBe(prisma);
   });
 
   describe('input validation', () => {
@@ -112,9 +113,16 @@ describe('createGetOrganizationContext', () => {
  * cannot be executed in an environment without a reachable database - see
  * the P012 implementation report for what could and could not be verified
  * directly.
+ *
+ * Explicitly injected with `prisma` (the administrative, table-owner
+ * client), not the default `appPrisma` (P013A) - `asRestrictedRole`'s
+ * `SET LOCAL ROLE` mechanism requires the connection to already be a
+ * superuser or a member of `nera_rls_test_role`, which the least-privilege
+ * `nera_app_role` deliberately is not. This is exactly the "explicit choice
+ * only when elevated administrative privileges are actually needed" case.
  */
 describe('getOrganizationContext (behavioral RLS isolation, requires PostgreSQL)', () => {
-  const engine = createOrganizationEngine();
+  const engine = createOrganizationEngine(prisma);
 
   it('sets app.current_organization_id for the duration of the transaction', async () => {
     const organizationId = await createTestOrganization('Org A - session var check');

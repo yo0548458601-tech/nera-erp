@@ -37,7 +37,7 @@
  * whichever role the connection runs as, neither of which this file decides.
  */
 
-import { prisma, type Prisma } from '@nera/database';
+import { appPrisma, type Prisma } from '@nera/database';
 
 export type OrganizationContext = {
   organizationId: string;
@@ -60,12 +60,15 @@ function assertValidOrganizationContext(context: OrganizationContext): void {
 
 /**
  * Factory, matching `createAuditEngine`/`createAuthorizationEngine`'s
- * stateless-function convention. Defaults to the real, Prisma-backed
- * `@nera/database` client; tests inject a fake or the real client instead.
- * Construction never queries the database - `client` is only touched once
- * the returned function is actually called.
+ * stateless-function convention. Defaults to `appPrisma`, the least-privilege
+ * application client (P013A) - the safe client is the default so no call
+ * site needs to remember to request it; the administrative `prisma` client
+ * is passed explicitly only by migration/seed/bootstrap tooling. Tests
+ * inject a fake or the real client instead. Construction never queries the
+ * database - `client` is only touched once the returned function is
+ * actually called.
  */
-export function createGetOrganizationContext(client: OrganizationContextDbClient = prisma) {
+export function createGetOrganizationContext(client: OrganizationContextDbClient = appPrisma) {
   return async function getOrganizationContext<T>(
     context: OrganizationContext,
     work: OrganizationScopedWork<T>

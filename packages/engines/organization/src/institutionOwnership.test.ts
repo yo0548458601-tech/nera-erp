@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
-import { prisma } from '@nera/database';
+import { appPrisma, prisma } from '@nera/database';
 import {
   createAssertInstitutionBelongsToOrganization,
   InstitutionOwnershipError,
@@ -22,8 +22,9 @@ describe('createAssertInstitutionBelongsToOrganization', () => {
     expect(fake.findUnique).not.toHaveBeenCalled();
   });
 
-  it('defaults to the real @nera/database Prisma client when no client is injected', () => {
+  it('defaults to appPrisma, the least-privilege application client (P013A) - never the administrative prisma client - when no client is injected', () => {
     expect(() => createAssertInstitutionBelongsToOrganization()).not.toThrow();
+    expect(appPrisma).not.toBe(prisma);
   });
 
   describe('input validation', () => {
@@ -135,9 +136,19 @@ describe('createAssertInstitutionBelongsToOrganization', () => {
  * the check is strict id+organization matching, not fuzzy/name-based.
  * Requires a real PostgreSQL connection (see organizationContext.test.ts's
  * describe block comment for what that requires).
+ *
+ * Explicitly injected with `prisma` (the administrative client), not the
+ * default `appPrisma` (P013A) - this test deliberately calls the function
+ * directly, without going through `getOrganizationContext`, so no
+ * `app.current_organization_id` session variable is ever set; under the
+ * least-privilege `appPrisma` connection that would mean RLS hides every
+ * row (a correct result, but not what this test is exercising - it tests
+ * `assertInstitutionBelongsToOrganization`'s own id/organization matching
+ * logic against real rows, not RLS).
  */
 describe('assertInstitutionBelongsToOrganization (against real rows, requires PostgreSQL)', () => {
-  const assertInstitutionBelongsToOrganization = createAssertInstitutionBelongsToOrganization();
+  const assertInstitutionBelongsToOrganization =
+    createAssertInstitutionBelongsToOrganization(prisma);
 
   it('resolves for a real institution matching its real organization', async () => {
     const organization = await prisma.organization.create({

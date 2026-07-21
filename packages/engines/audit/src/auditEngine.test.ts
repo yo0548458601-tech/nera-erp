@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { Prisma, type AuditLog } from '@nera/database';
+import { appPrisma, prisma, Prisma, type AuditLog } from '@nera/database';
 import { createAuditEngine, type AuditLogDbClient, type RecordAuditInput } from './auditEngine';
 
 /**
@@ -224,10 +224,14 @@ describe('createAuditEngine', () => {
     expect(metadata).toEqual({ source: 'test' });
   });
 
-  it('defaults to the real @nera/database Prisma client when no client is injected', () => {
-    // Constructing with no argument must not throw - it should bind to the
-    // real, already-imported `prisma` client (no connection is attempted at
-    // construction time; Prisma connects lazily on first query).
+  it('defaults to appPrisma, the least-privilege application client (P013A) - never the administrative prisma client - when no client is injected', () => {
+    // Constructing with no argument must not throw - it binds to the
+    // already-imported `appPrisma` client (no connection is attempted at
+    // construction time; Prisma connects lazily on first query). appPrisma
+    // and prisma are distinct client instances (different datasources), so
+    // this also guards against a regression that silently reintroduces
+    // `prisma` as the default.
     expect(() => createAuditEngine()).not.toThrow();
+    expect(appPrisma).not.toBe(prisma);
   });
 });

@@ -62,7 +62,7 @@
  */
 
 import {
-  prisma,
+  appPrisma,
   type OrganizationMembershipStatus,
   type RolePermissionEffect,
 } from '@nera/database';
@@ -188,15 +188,16 @@ function assertValidCheckPermissionInput(input: CheckPermissionInput): void {
 
 /**
  * Factory, not a singleton - matches `createAuditEngine` and the rest of
- * `packages/engines/*`'s stateless-function convention. Defaults to the
- * real, Prisma-backed `@nera/database` client, so a production caller can
- * write `createAuthorizationEngine()` with no arguments; tests inject a fake
- * `AuthorizationDbClient` explicitly instead. Construction never queries the
- * database - `client` is only touched once `checkPermission()` is actually
- * called.
+ * `packages/engines/*`'s stateless-function convention. Defaults to
+ * `appPrisma`, the least-privilege application client (P013A) - the safe
+ * client is the default so a production caller can write
+ * `createAuthorizationEngine()` with no arguments and never has to remember
+ * to request it; tests inject a fake `AuthorizationDbClient` explicitly
+ * instead. Construction never queries the database - `client` is only
+ * touched once `checkPermission()` is actually called.
  */
 export function createAuthorizationEngine(
-  client: AuthorizationDbClient = prisma
+  client: AuthorizationDbClient = appPrisma
 ): AuthorizationEngine {
   return {
     async checkPermission(input) {

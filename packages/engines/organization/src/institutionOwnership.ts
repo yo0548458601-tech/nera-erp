@@ -17,7 +17,7 @@
  * inactive-membership handling in P011.
  */
 
-import { prisma } from '@nera/database';
+import { appPrisma } from '@nera/database';
 
 export type InstitutionOwnershipReason =
   'unknown-institution' | 'organization-mismatch' | 'institution-deleted';
@@ -66,10 +66,11 @@ function assertValidIds(institutionId: string, organizationId: string): void {
 
 /**
  * Factory, matching `createGetOrganizationContext`'s convention. Defaults to
- * the real `@nera/database` client; construction never queries the database.
+ * `appPrisma`, the least-privilege application client (P013A); construction
+ * never queries the database.
  */
 export function createAssertInstitutionBelongsToOrganization(
-  client: InstitutionOwnershipDbClient = prisma
+  client: InstitutionOwnershipDbClient = appPrisma
 ) {
   return async function assertInstitutionBelongsToOrganization(
     institutionId: string,
