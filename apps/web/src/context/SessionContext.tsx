@@ -23,7 +23,7 @@ const SESSION_STORAGE_KEY = 'nera:demo-session';
  * convenience, not a real session token, matching sessionStorage's own
  * framing above.
  */
-const SELECTED_ORG_COOKIE_NAME = 'nera_selected_org_id';
+export const SELECTED_ORG_COOKIE_NAME = 'nera_selected_org_id';
 
 function writeSelectedOrgCookie(organizationId: string | null) {
   if (typeof document === 'undefined') {

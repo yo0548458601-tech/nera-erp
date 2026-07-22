@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { listEntitiesAction } from '@/src/lib/actions/entityActions';
 import { EntityProvider } from '@/src/context/EntityContext';
+import { SELECTED_ORG_COOKIE_NAME } from '@/src/context/SessionContext';
 import { PersonDetailPageClient } from './PersonDetailPageClient';
 
 /**
@@ -13,7 +14,7 @@ import { PersonDetailPageClient } from './PersonDetailPageClient';
  * correct and simple.
  */
 export default async function PersonDetailPage({ params }: { params: { id: string } }) {
-  const organizationId = cookies().get('nera_selected_org_id')?.value;
+  const organizationId = cookies().get(SELECTED_ORG_COOKIE_NAME)?.value;
 
   if (!organizationId) {
     return (

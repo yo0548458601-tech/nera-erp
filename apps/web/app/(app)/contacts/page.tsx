@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { listEntitiesAction } from '@/src/lib/actions/entityActions';
 import { EntityProvider } from '@/src/context/EntityContext';
+import { SELECTED_ORG_COOKIE_NAME } from '@/src/context/SessionContext';
 import { ContactsPageClient } from './ContactsPageClient';
 
 /**
@@ -22,7 +23,7 @@ import { ContactsPageClient } from './ContactsPageClient';
  * redirects away almost immediately in that case.
  */
 export default async function ContactsPage() {
-  const organizationId = cookies().get('nera_selected_org_id')?.value;
+  const organizationId = cookies().get(SELECTED_ORG_COOKIE_NAME)?.value;
 
   if (!organizationId) {
     return (
