@@ -21,7 +21,10 @@ import { revalidatePath } from 'next/cache';
 // consumers that only want the pure PermissionId/resolveEffectivePermission
 // exports. This file is exactly the real, P013A server-side caller that
 // comment says to import checkPermission directly for.
-import { createAuthorizationEngine, type CheckPermissionInput } from '@nera/authorization-engine/src/checkPermission';
+import {
+  createAuthorizationEngine,
+  type CheckPermissionInput,
+} from '@nera/authorization-engine/src/checkPermission';
 import { createOrganizationEngine } from '@nera/organization-engine';
 import { createAuditEngine } from '@nera/audit-engine';
 import { eventBus } from '@nera/event-bus-engine';
@@ -49,6 +52,7 @@ import {
   type UpdatePersonInput,
 } from '@nera/entity-engine';
 import { DEMO_MEMBERSHIP_ID, DEMO_USER_PROFILE_ID } from '@/src/lib/auth/demoIdentity';
+import { reconcileContactMethods } from './contactMethodReconciliation';
 
 const { getOrganizationContext } = createOrganizationEngine();
 const { checkPermission } = createAuthorizationEngine();
@@ -69,6 +73,13 @@ async function requirePermission(
 
 function toIso(value: Date | null): string | undefined {
   return value ? value.toISOString() : undefined;
+}
+
+function fromIsoOrNull(value: string | null | undefined): Date | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  return value ? new Date(value) : null;
 }
 
 function toPhone(record: {
@@ -495,6 +506,7 @@ export async function updatePersonAction(
   const result = await getOrganizationContext({ organizationId }, async tx => {
     const entityRepo = createEntityRepository(tx);
     const profileRepo = createPersonProfileRepository(tx);
+    const contactRepo = createContactMethodRepository(tx);
     const audit = createAuditEngine(tx);
 
     const entity = await entityRepo.updateEntity({
@@ -513,6 +525,80 @@ export async function updatePersonAction(
       hebrewDateAdjustmentDays: input.hebrewDateAdjustmentDays,
       gender: input.gender,
     });
+
+    const [existingPhones, existingEmails, existingAddresses] = await Promise.all([
+      contactRepo.phones.list(entityId),
+      contactRepo.emails.list(entityId),
+      contactRepo.addresses.list(entityId),
+    ]);
+
+    await reconcileContactMethods(
+      input.phones,
+      new Set(existingPhones.map(p => p.id)),
+      entityId,
+      organizationId,
+      data => contactRepo.phones.add(data as never),
+      (id, orgId, data) =>
+        contactRepo.phones.update(id, orgId, {
+          number: data.number,
+          type: data.type,
+          label: data.label,
+          isPrimary: data.isPrimary,
+          status: data.status,
+          notes: data.notes,
+          sortOrder: data.order,
+          deletedAt: fromIsoOrNull(data.deletedAt),
+          deletedByUserId: data.deletedByUserId,
+        } as never)
+    );
+
+    await reconcileContactMethods(
+      input.emails,
+      new Set(existingEmails.map(e => e.id)),
+      entityId,
+      organizationId,
+      data => contactRepo.emails.add(data as never),
+      (id, orgId, data) =>
+        contactRepo.emails.update(id, orgId, {
+          address: data.address,
+          type: data.type,
+          label: data.label,
+          isPrimary: data.isPrimary,
+          status: data.status,
+          notes: data.notes,
+          sortOrder: data.order,
+          deletedAt: fromIsoOrNull(data.deletedAt),
+          deletedByUserId: data.deletedByUserId,
+        } as never)
+    );
+
+    await reconcileContactMethods(
+      input.addresses,
+      new Set(existingAddresses.map(a => a.id)),
+      entityId,
+      organizationId,
+      data => contactRepo.addresses.add(data as never),
+      (id, orgId, data) =>
+        contactRepo.addresses.update(id, orgId, {
+          type: data.type,
+          isPrimary: data.isPrimary,
+          status: data.status,
+          notes: data.notes,
+          sortOrder: data.order,
+          country: data.country,
+          city: data.city,
+          cityProviderId: data.cityProviderId,
+          street: data.street,
+          streetProviderId: data.streetProviderId,
+          houseNumber: data.houseNumber,
+          entrance: data.entrance,
+          floor: data.floor,
+          apartment: data.apartment,
+          postalCode: data.postalCode,
+          deletedAt: fromIsoOrNull(data.deletedAt),
+          deletedByUserId: data.deletedByUserId,
+        } as never)
+    );
 
     await audit.recordAudit({
       organizationId,
