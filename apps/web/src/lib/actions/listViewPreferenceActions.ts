@@ -9,7 +9,6 @@
  */
 
 import { revalidatePath } from 'next/cache';
-import { createAuthorizationEngine } from '@nera/authorization-engine/src/checkPermission';
 import { createOrganizationEngine } from '@nera/organization-engine';
 import { createAuditEngine } from '@nera/audit-engine';
 import {
@@ -19,9 +18,9 @@ import {
 import type { ListViewPreferenceScope } from '@nera/database';
 import { DEMO_MEMBERSHIP_ID, DEMO_USER_PROFILE_ID } from '@/src/lib/auth/demoIdentity';
 import type { ActionResult } from './entityActions';
+import { requirePermission } from './requirePermission';
 
 const { getOrganizationContext } = createOrganizationEngine();
-const { checkPermission } = createAuthorizationEngine();
 
 export async function getEffectiveListViewColumnsAction(
   organizationId: string,
@@ -45,15 +44,9 @@ export async function setMyListViewColumnsAction(
   screenId: string,
   visibleColumnKeys: string[]
 ): Promise<ActionResult<null>> {
-  const decision = await checkPermission({
-    organizationId,
-    actor: { userProfileId: DEMO_USER_PROFILE_ID, membershipId: DEMO_MEMBERSHIP_ID },
-    permission: 'list_views.manage_defaults',
-  });
   // A user setting their OWN column preference is always allowed - this
   // permission gates setting *defaults* (system/role/institution scope) for
-  // OTHER users, not one's own view. Only enforced for non-'user' scopes.
-  void decision;
+  // OTHER users, not one's own view. No check needed for 'user' scope.
 
   await getOrganizationContext({ organizationId }, async tx => {
     const repo = createListViewPreferenceRepository(tx);
@@ -102,13 +95,9 @@ export async function setSystemDefaultListViewColumnsAction(
   screenId: string,
   visibleColumnKeys: string[]
 ): Promise<ActionResult<null>> {
-  const decision = await checkPermission({
-    organizationId,
-    actor: { userProfileId: DEMO_USER_PROFILE_ID, membershipId: DEMO_MEMBERSHIP_ID },
-    permission: 'list_views.manage_defaults',
-  });
-  if (decision.decision !== 'allow') {
-    return { ok: false, reason: decision.reason };
+  const denyReason = await requirePermission(organizationId, 'list_views.manage_defaults');
+  if (denyReason) {
+    return { ok: false, reason: denyReason };
   }
 
   await getOrganizationContext({ organizationId }, async tx => {

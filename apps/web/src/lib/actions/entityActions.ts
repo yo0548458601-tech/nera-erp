@@ -16,15 +16,6 @@
  */
 
 import { revalidatePath } from 'next/cache';
-// Not the package barrel (see @nera/authorization-engine/src/index.ts) - it
-// deliberately omits checkPermission to avoid pulling @nera/database into
-// consumers that only want the pure PermissionId/resolveEffectivePermission
-// exports. This file is exactly the real, P013A server-side caller that
-// comment says to import checkPermission directly for.
-import {
-  createAuthorizationEngine,
-  type CheckPermissionInput,
-} from '@nera/authorization-engine/src/checkPermission';
 import { createOrganizationEngine } from '@nera/organization-engine';
 import { createAuditEngine } from '@nera/audit-engine';
 import { eventBus } from '@nera/event-bus-engine';
@@ -53,23 +44,11 @@ import {
 } from '@nera/entity-engine';
 import { DEMO_MEMBERSHIP_ID, DEMO_USER_PROFILE_ID } from '@/src/lib/auth/demoIdentity';
 import { reconcileContactMethods } from './contactMethodReconciliation';
+import { requirePermission } from './requirePermission';
 
 const { getOrganizationContext } = createOrganizationEngine();
-const { checkPermission } = createAuthorizationEngine();
 
 export type ActionResult<T> = { ok: true; data: T } | { ok: false; reason: string };
-
-async function requirePermission(
-  organizationId: string,
-  permission: CheckPermissionInput['permission']
-): Promise<string | null> {
-  const decision = await checkPermission({
-    organizationId,
-    actor: { userProfileId: DEMO_USER_PROFILE_ID, membershipId: DEMO_MEMBERSHIP_ID },
-    permission,
-  });
-  return decision.decision === 'allow' ? null : decision.reason;
-}
 
 function toIso(value: Date | null): string | undefined {
   return value ? value.toISOString() : undefined;
