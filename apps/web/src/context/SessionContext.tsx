@@ -10,20 +10,9 @@ import {
   type ReactNode,
 } from 'react';
 import { createDemoSession, type AuthSession } from '../lib/auth/demoAuth';
+import { SELECTED_ORG_COOKIE_NAME } from '../lib/auth/demoIdentity';
 
 const SESSION_STORAGE_KEY = 'nera:demo-session';
-/**
- * The one piece of session state a Server Component genuinely needs and
- * cannot get any other way (P013A - see the Owner-reviewed Server Component
- * read analysis in the implementation report): which organization is
- * selected. `sessionStorage` alone is invisible to the server - a Server
- * Component runs against the raw HTTP request, which never carried that
- * information before this cookie existed. Deliberately minimal: only the
- * selected organization id, nothing else from AuthSession - still a demo
- * convenience, not a real session token, matching sessionStorage's own
- * framing above.
- */
-export const SELECTED_ORG_COOKIE_NAME = 'nera_selected_org_id';
 
 function writeSelectedOrgCookie(organizationId: string | null) {
   if (typeof document === 'undefined') {
