@@ -12,6 +12,29 @@ import {
 import { createDemoSession, type AuthSession } from '../lib/auth/demoAuth';
 
 const SESSION_STORAGE_KEY = 'nera:demo-session';
+/**
+ * The one piece of session state a Server Component genuinely needs and
+ * cannot get any other way (P013A - see the Owner-reviewed Server Component
+ * read analysis in the implementation report): which organization is
+ * selected. `sessionStorage` alone is invisible to the server - a Server
+ * Component runs against the raw HTTP request, which never carried that
+ * information before this cookie existed. Deliberately minimal: only the
+ * selected organization id, nothing else from AuthSession - still a demo
+ * convenience, not a real session token, matching sessionStorage's own
+ * framing above.
+ */
+const SELECTED_ORG_COOKIE_NAME = 'nera_selected_org_id';
+
+function writeSelectedOrgCookie(organizationId: string | null) {
+  if (typeof document === 'undefined') {
+    return;
+  }
+  if (organizationId) {
+    document.cookie = `${SELECTED_ORG_COOKIE_NAME}=${encodeURIComponent(organizationId)}; path=/; SameSite=Lax`;
+  } else {
+    document.cookie = `${SELECTED_ORG_COOKIE_NAME}=; path=/; SameSite=Lax; Max-Age=0`;
+  }
+}
 
 type LoginResult = { success: boolean; message: string };
 
@@ -75,6 +98,7 @@ export function SessionProvider({ demoModeEnabled, children }: SessionProviderPr
   useEffect(() => {
     if (isHydrated) {
       writeStoredSession(session);
+      writeSelectedOrgCookie(session?.selectedOrganizationId ?? null);
     }
   }, [session, isHydrated]);
 

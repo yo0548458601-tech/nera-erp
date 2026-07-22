@@ -98,19 +98,53 @@ const EntityContext = createContext<EntityContextValue | undefined>(undefined);
  * `fieldHistory`/`getHistoryForEntity` (previously exposed here) are removed:
  * P013A does not persist entity field-change history - see
  * PersonHistoryCard.tsx, now a placeholder.
+ *
+ * Two ways this provider gets its data (Owner-reviewed resolution to the
+ * Server Component read blocker - see the implementation report):
+ *
+ * 1. Seeded (`initialEntities` etc. passed) - a Server Component (currently
+ *    `contacts/page.tsx` and `contacts/[id]/page.tsx`) already fetched real
+ *    data server-side and mounts a *nested* `EntityProvider` around its own
+ *    subtree with that data as props; this instance never runs its own
+ *    fetch. React context resolves to the nearest ancestor Provider, so
+ *    every consumer inside that subtree (PeopleTable, PersonFormDialog,
+ *    ...) needs zero changes to pick this up automatically.
+ * 2. Unseeded (the single instance mounted in `(app)/layout.tsx`, wrapping
+ *    the whole app shell) - falls back to the pre-existing client-side
+ *    fetch via `listEntitiesAction` in a `useEffect`. This instance exists
+ *    specifically for `AppShell`'s global header search, which needs an
+ *    entities collection on every route, not just Contacts - a genuinely
+ *    different, broader concern than the Contacts pages' own read, and one
+ *    a single page-level Server Component fetch structurally cannot feed
+ *    (it would need to run on every route, which defeats the purpose of a
+ *    per-page fetch). Left on the existing mechanism deliberately, not
+ *    silently - see the implementation report.
  */
-export function EntityProvider({ children }: { children: ReactNode }) {
+export function EntityProvider({
+  children,
+  initialEntities,
+  initialRoleAssignments,
+  initialNotes,
+}: {
+  children: ReactNode;
+  initialEntities?: PersonEntity[];
+  initialRoleAssignments?: RoleAssignment[];
+  initialNotes?: Note[];
+}) {
   const { session } = useSession();
   const organizationId = session?.selectedOrganizationId;
+  const isSeeded = initialEntities !== undefined;
 
-  const [entities, setEntities] = useState<PersonEntity[]>([]);
-  const [roleAssignments, setRoleAssignments] = useState<RoleAssignment[]>([]);
-  const [notes, setNotes] = useState<Note[]>([]);
+  const [entities, setEntities] = useState<PersonEntity[]>(initialEntities ?? []);
+  const [roleAssignments, setRoleAssignments] = useState<RoleAssignment[]>(
+    initialRoleAssignments ?? []
+  );
+  const [notes, setNotes] = useState<Note[]>(initialNotes ?? []);
   const [duplicateOverrides, setDuplicateOverrides] = useState<DuplicateOverrideRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!isSeeded);
 
   useEffect(() => {
-    if (!organizationId) {
+    if (isSeeded || !organizationId) {
       return;
     }
     let cancelled = false;
@@ -130,7 +164,7 @@ export function EntityProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [organizationId]);
+  }, [isSeeded, organizationId]);
 
   const getEntityById = useCallback(
     (id: string) => entities.find(entity => entity.id === id),
