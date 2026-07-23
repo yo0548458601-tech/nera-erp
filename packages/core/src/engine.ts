@@ -132,7 +132,7 @@ export const engineRegistry: EngineDescriptor[] = [
       'Default deny. Enforced exclusively server-side. RLS as the second, independent enforcement layer.',
     auditRequirements: 'Every permission rule change is audited.',
     extensionPoints: 'Modules register new PermissionIds into the shared catalog.',
-    status: 'partial',
+    status: 'existing',
   },
   {
     id: 'organization-institution',
@@ -154,7 +154,7 @@ export const engineRegistry: EngineDescriptor[] = [
     auditRequirements:
       'Organization creation, membership changes, and cross-organization administrative actions.',
     extensionPoints: 'None for V1.',
-    status: 'partial',
+    status: 'existing',
   },
   {
     id: 'entity',
@@ -166,7 +166,7 @@ export const engineRegistry: EngineDescriptor[] = [
     boundaries:
       'Owns identity, profile and contact data; does not own module-specific business data.',
     ownedData:
-      'entities, person_profiles, organization_profiles, contact_methods, entity_roles, module_profiles, notes - modeled as TypeScript types today, no database table yet.',
+      'entities, person_profiles, phones, emails, addresses, notes, role_assignments, duplicate_override_records, list_view_column_preferences - real, RLS-enforced tables since P013A. organization_profiles and module_profiles remain modeled as TypeScript types only, no database table yet.',
     dependencies: ['authorization', 'audit', 'business-event-bus', 'organization-institution'],
     consumers: ['Suppliers and every future Entity-based module', 'Contacts UI', 'Search'],
     eventsEmitted: [
@@ -201,7 +201,7 @@ export const engineRegistry: EngineDescriptor[] = [
       'Audit records are never editable or deletable through normal application behavior.',
     auditRequirements: 'N/A - this engine is the audit requirement for every other engine.',
     extensionPoints: 'None - audit is deliberately not extensible or bypassable by design.',
-    status: 'partial',
+    status: 'existing',
   },
   {
     id: 'document',

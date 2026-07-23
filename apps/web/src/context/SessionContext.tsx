@@ -10,8 +10,20 @@ import {
   type ReactNode,
 } from 'react';
 import { createDemoSession, type AuthSession } from '../lib/auth/demoAuth';
+import { SELECTED_ORG_COOKIE_NAME } from '../lib/auth/demoIdentity';
 
 const SESSION_STORAGE_KEY = 'nera:demo-session';
+
+function writeSelectedOrgCookie(organizationId: string | null) {
+  if (typeof document === 'undefined') {
+    return;
+  }
+  if (organizationId) {
+    document.cookie = `${SELECTED_ORG_COOKIE_NAME}=${encodeURIComponent(organizationId)}; path=/; SameSite=Lax`;
+  } else {
+    document.cookie = `${SELECTED_ORG_COOKIE_NAME}=; path=/; SameSite=Lax; Max-Age=0`;
+  }
+}
 
 type LoginResult = { success: boolean; message: string };
 
@@ -75,6 +87,7 @@ export function SessionProvider({ demoModeEnabled, children }: SessionProviderPr
   useEffect(() => {
     if (isHydrated) {
       writeStoredSession(session);
+      writeSelectedOrgCookie(session?.selectedOrganizationId ?? null);
     }
   }, [session, isHydrated]);
 

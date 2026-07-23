@@ -37,7 +37,7 @@
  * whichever role the connection runs as, neither of which this file decides.
  */
 
-import { prisma, type Prisma } from '@nera/database';
+import { appPrisma, type Prisma } from '@nera/database';
 
 export type OrganizationContext = {
   organizationId: string;
@@ -50,22 +50,47 @@ export type OrganizationContextDbClient = {
   $transaction<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T>;
 };
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * `organizationId` is always used as the value of a `@db.Uuid` Postgres
+ * column (both the RLS session variable set below and every repository's
+ * `organizationId` filter) - a non-UUID value doesn't fail cleanly at this
+ * boundary on its own; it reaches whichever repository query happens to run
+ * first inside `work` and surfaces there as a raw, low-level Prisma/Postgres
+ * parser error ("Error creating UUID, invalid character..."), verified in
+ * production when a stale, non-persisted demo organization id (`org-...`,
+ * never backed by a real `Organization` row) was passed through - see
+ * `apps/web/src/lib/auth/demoData.ts`'s `persistedDemoOrganizations`. Failing
+ * here instead, at the one real entry point every caller already goes
+ * through, turns any future instance of this same mistake into one clear,
+ * early error instead of a confusing crash in an arbitrary, unrelated
+ * repository.
+ */
 function assertValidOrganizationContext(context: OrganizationContext): void {
   if (typeof context?.organizationId !== 'string' || context.organizationId.trim().length === 0) {
     throw new Error(
       'getOrganizationContext: "organizationId" is required and must be a non-empty string.'
     );
   }
+  if (!UUID_PATTERN.test(context.organizationId)) {
+    throw new Error(
+      `getOrganizationContext: "organizationId" must be a valid UUID, got "${context.organizationId}".`
+    );
+  }
 }
 
 /**
  * Factory, matching `createAuditEngine`/`createAuthorizationEngine`'s
- * stateless-function convention. Defaults to the real, Prisma-backed
- * `@nera/database` client; tests inject a fake or the real client instead.
- * Construction never queries the database - `client` is only touched once
- * the returned function is actually called.
+ * stateless-function convention. Defaults to `appPrisma`, the least-privilege
+ * application client (P013A) - the safe client is the default so no call
+ * site needs to remember to request it; the administrative `prisma` client
+ * is passed explicitly only by migration/seed/bootstrap tooling. Tests
+ * inject a fake or the real client instead. Construction never queries the
+ * database - `client` is only touched once the returned function is
+ * actually called.
  */
-export function createGetOrganizationContext(client: OrganizationContextDbClient = prisma) {
+export function createGetOrganizationContext(client: OrganizationContextDbClient = appPrisma) {
   return async function getOrganizationContext<T>(
     context: OrganizationContext,
     work: OrganizationScopedWork<T>

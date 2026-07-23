@@ -1,8 +1,8 @@
-import { demoOrganizations, demoPermissions, demoUser } from './demoData';
+import { demoPermissions, demoUser, persistedDemoOrganizations } from './demoData';
 
 export type AuthSession = {
   user: typeof demoUser;
-  organizations: typeof demoOrganizations;
+  organizations: typeof persistedDemoOrganizations;
   selectedOrganizationId: string;
   isDemo: boolean;
 };
@@ -15,8 +15,8 @@ export function isDemoModeEnabled() {
 export function createDemoSession() {
   return {
     user: demoUser,
-    organizations: demoOrganizations,
-    selectedOrganizationId: demoOrganizations[0].id,
+    organizations: persistedDemoOrganizations,
+    selectedOrganizationId: persistedDemoOrganizations[0].id,
     isDemo: true,
   } satisfies AuthSession;
 }

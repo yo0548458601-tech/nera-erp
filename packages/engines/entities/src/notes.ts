@@ -30,14 +30,23 @@ export type Note = {
   createdAt: string;
   updatedByUserId?: string;
   updatedAt: string;
+  /**
+   * Lightweight "this note has been edited" signal (P013A - Owner-approved
+   * design review: no `note_revisions` table; `audit_logs` remains the only
+   * historical record of prior content). Set whenever content changes after
+   * creation. `revisions` below is kept for backward compatibility with any
+   * purely in-memory usage; persisted notes populate `editedAt`, not
+   * `revisions` (always `[]` for a DB-backed note).
+   */
+  editedAt?: string | null;
   deletedAt?: string | null;
   deletedByUserId?: string | null;
-  /** Prior versions of `content`, oldest first. Never cleared on edit. */
+  /** Prior versions of `content`, oldest first. Never cleared on edit. Always `[]` for a DB-backed note - see `editedAt`. */
   revisions: NoteRevision[];
 };
 
 export function isNoteEdited(note: Note): boolean {
-  return note.revisions.length > 0;
+  return Boolean(note.editedAt) || note.revisions.length > 0;
 }
 
 export function isNoteDeleted(note: Note): boolean {

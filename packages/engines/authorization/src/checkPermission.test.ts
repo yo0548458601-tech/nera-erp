@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { appPrisma, prisma } from '@nera/database';
 import {
   createAuthorizationEngine,
   type AuthorizationDbClient,
@@ -160,11 +161,12 @@ describe('createAuthorizationEngine', () => {
     expect(fake.rolePermission.findMany).not.toHaveBeenCalled();
   });
 
-  it('defaults to the real @nera/database Prisma client when no client is injected', () => {
-    // Constructing with no argument must not throw - it should bind to the
-    // real, already-imported `prisma` client. No connection is attempted at
+  it('defaults to appPrisma, the least-privilege application client (P013A) - never the administrative prisma client - when no client is injected', () => {
+    // Constructing with no argument must not throw - it binds to the
+    // already-imported `appPrisma` client. No connection is attempted at
     // construction time; Prisma connects lazily on first query.
     expect(() => createAuthorizationEngine()).not.toThrow();
+    expect(appPrisma).not.toBe(prisma);
   });
 
   describe('input validation', () => {

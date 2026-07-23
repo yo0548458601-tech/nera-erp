@@ -15,3 +15,4 @@ export * from './query';
 export * from './duplicates';
 export * from './merge';
 export * from './history';
+export * from './persistence/index.js';

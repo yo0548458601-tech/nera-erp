@@ -6,7 +6,6 @@ import { type FieldRequirementMode, type FieldRequirementScope } from '@nera/cus
 import { useMyPermission } from '../../context/AuthorizationContext';
 import { useFieldRequirements } from '../../context/FieldRequirementContext';
 import { useRoleDefinitions } from '../../context/RoleDefinitionContext';
-import { useSession } from '../../context/SessionContext';
 import { useConfigurableFields } from '../../config/configurableFields';
 import { demoOrganizations } from '../../lib/auth/demoData';
 import { PanelCard } from '../PanelCard';
@@ -36,8 +35,7 @@ const scopeLabels: Record<FieldRequirementScope, string> = {
  */
 export function FieldRequirementsPanel() {
   const canManage = useMyPermission('field_requirements.manage_defaults');
-  const { session } = useSession();
-  const { rules, setRule } = useFieldRequirements();
+  const { rules } = useFieldRequirements();
   const { roles } = useRoleDefinitions();
   const personRoles = getRolesForEntityType(roles, 'person');
   const configurableFields = useConfigurableFields();
@@ -46,7 +44,6 @@ export function FieldRequirementsPanel() {
   const [scope, setScope] = useState<FieldRequirementScope>('role');
   const [targetId, setTargetId] = useState('');
   const [mode, setMode] = useState<FieldRequirementMode>('optional');
-  const [successMessage, setSuccessMessage] = useState('');
 
   if (!canManage) {
     return (
@@ -65,21 +62,29 @@ export function FieldRequirementsPanel() {
           ? ([{ id: 'person', label: 'אדם' }] satisfies Array<{ id: string; label: string }>)
           : [];
 
-  const handleSubmit = () => {
-    if (!targetId) {
-      return;
-    }
-    setRule(fieldKey, scope, targetId, mode, session?.user.id ?? 'demo-user');
-    setSuccessMessage('ההגדרה נשמרה.');
-    window.setTimeout(() => setSuccessMessage(''), 2000);
-  };
+  /**
+   * Temporarily disabled (P013A - Owner-approved UI Behavior Preservation
+   * decision): field-requirement rules are not persisted in P013A (deferred
+   * to P013B, Configuration Persistence). Saving a rule here would only
+   * ever affect this browser tab's in-memory FieldRequirementContext, with
+   * no real, durable effect - disabling avoids implying a save that isn't
+   * real.
+   */
+  const handleSubmit = () => undefined;
 
   return (
     <PanelCard
       title="מצב שדות (חובה / אופציונלי / מוסתר / לקריאה בלבד)"
-      subtitle="מצב הדגמה - מערכת גנרית לכל שדה מובנה או שדה מותאם אישית פעיל, לפי תפקיד, מוסד או סוג ישות."
+      subtitle="שמירת כללים חדשים אינה זמינה בשלב זה - תתאפשר עם השלמת שכבת ההגדרות (P013B)."
     >
       <div className="flex flex-col gap-4">
+        <div
+          role="status"
+          className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+        >
+          שמירת כללי שדה חדשים תתאפשר בשלב עתידי של המערכת. הכללים המוצגים כאן להדגמה בלבד ואינם
+          משפיעים על טפסי יצירה/עריכה.
+        </div>
         {rules.length === 0 ? (
           <p className="text-sm text-slate-400">
             לא הוגדרו כללים מותאמים אישית - חלה ברירת המחדל המובנית של כל שדה.
@@ -165,13 +170,13 @@ export function FieldRequirementsPanel() {
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={!targetId}
-            className="rounded-2xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+            disabled
+            title="שמירת כללים אינה זמינה בשלב זה - ראו הסבר למעלה."
+            className="rounded-2xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
           >
             שמור כלל
           </button>
         </div>
-        {successMessage ? <p className="text-sm text-emerald-600">{successMessage}</p> : null}
       </div>
     </PanelCard>
   );

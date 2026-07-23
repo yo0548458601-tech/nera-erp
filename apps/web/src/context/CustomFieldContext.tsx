@@ -18,37 +18,16 @@ function createId(prefix: string): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-const SEED_TIMESTAMP = '2026-01-01T00:00:00.000Z';
-
 /**
- * One small seed field proving the custom-field platform end to end in a
- * safe, non-identity location (see moduleProfile.ts: custom fields never
- * substitute for a real identity field like name/phone/email). Additional
- * fields are created live through the settings UI.
+ * No seed definitions (P013A - Owner-approved UI Behavior Preservation
+ * decision): Custom Fields persistence is deferred to P013B (Configuration
+ * Persistence). The demo seed field previously here only ever lived in this
+ * browser tab's memory - removed so the Custom Fields card cleanly
+ * self-hides (no active definitions) rather than implying a real, durable
+ * custom field exists. Fields created live through the settings UI below
+ * remain in-memory-only until P013B.
  */
-const seedCustomFieldDefinitions: CustomFieldDefinition[] = [
-  {
-    id: 'cf-def-known-allergies',
-    key: 'known_allergies',
-    label: 'רגישויות ידועות',
-    description:
-      'מידע רפואי כללי לידיעת הצוות בלבד - שדה לדוגמה להדגמת פלטפורמת השדות המותאמים אישית.',
-    fieldType: 'short_text',
-    targetScope: 'entity_type',
-    targetEntityType: 'person',
-    required: false,
-    showInList: false,
-    showInDetail: true,
-    filterable: false,
-    searchable: false,
-    includeInExcelExport: true,
-    includeInExcelImport: true,
-    order: 0,
-    status: 'active',
-    createdAt: SEED_TIMESTAMP,
-    updatedAt: SEED_TIMESTAMP,
-  },
-];
+const seedCustomFieldDefinitions: CustomFieldDefinition[] = [];
 
 export type NewCustomFieldInput = {
   key: string;

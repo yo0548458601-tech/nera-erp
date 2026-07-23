@@ -48,45 +48,31 @@ export function RoleDefinitionsPanel() {
     );
   };
 
+  /**
+   * Temporarily disabled (P013A - Owner-approved UI Behavior Preservation
+   * decision): `RoleDefinition` is not persisted in P013A (role assignments
+   * store a validated string key against the static `entityRoleRegistry`,
+   * not a database-backed role-definition table - see roles.ts). Creating a
+   * role here would only ever exist in this browser tab's memory, silently
+   * lost on reload, which is worse than disabling the action with an
+   * explanation. Viewing built-in roles remains fully functional.
+   */
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
-    setError('');
-    setSuccessMessage('');
-
-    const result = addCustomRole({
-      key: key.trim(),
-      label,
-      description,
-      applicableEntityTypes: entityTypes,
-      institutionId: institutionId || undefined,
-      showInGlobalAddNew,
-      allowMultipleAssignments,
-      supportsDateRange: true,
-      supportsBillingProfile,
-    });
-
-    if (result.error) {
-      setError(result.error);
-      return;
-    }
-
-    setSuccessMessage(`התפקיד "${result.role?.label}" נוצר בהצלחה.`);
-    setKey('');
-    setLabel('');
-    setDescription('');
-    setEntityTypes(['person']);
-    setInstitutionId('');
-    setShowInGlobalAddNew(false);
-    setAllowMultipleAssignments(false);
-    setSupportsBillingProfile(false);
   };
 
   return (
     <PanelCard
       title="הגדרות תפקידים עסקיים"
-      subtitle="מצב הדגמה - התפקידים המותאמים אישית נשמרים בזיכרון הדפדפן בלבד למשך ההדגמה. תפקידי המערכת המובנים אינם ניתנים למחיקה, ניתן רק להשבית אותם."
+      subtitle="יצירה והשבתה של תפקידים אינן זמינות בשלב זה - תפקידי המערכת המובנים אינם ניתנים לעריכה בבסיס הנתונים הנוכחי. ניתן לצפות בתפקידים הקיימים."
     >
       <div className="flex flex-col gap-6">
+        <div
+          role="status"
+          className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+        >
+          עריכת הגדרות תפקידים תתאפשר בשלב עתידי של המערכת. הטבלה שלהלן מוצגת לצפייה בלבד.
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] border-collapse text-right text-sm">
             <thead>
@@ -148,10 +134,12 @@ export function RoleDefinitionsPanel() {
                   <td className="px-3 py-3">
                     <button
                       type="button"
+                      disabled
+                      title="עריכת הגדרות תפקידים אינה זמינה בשלב זה - ראו הסבר למעלה."
                       onClick={() =>
                         setRoleStatus(role.id, role.status === 'active' ? 'inactive' : 'active')
                       }
-                      className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                      className={`rounded-full border px-3 py-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-60 ${
                         role.status === 'active'
                           ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                           : 'border-slate-200 bg-slate-50 text-slate-500'
@@ -275,7 +263,9 @@ export function RoleDefinitionsPanel() {
 
           <button
             type="submit"
-            className="self-start rounded-2xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white"
+            disabled
+            title="הוספת תפקידים אינה זמינה בשלב זה - ראו הסבר למעלה."
+            className="self-start rounded-2xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             הוסף תפקיד
           </button>

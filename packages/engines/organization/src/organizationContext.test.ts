@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
-import { prisma } from '@nera/database';
+import { appPrisma, prisma } from '@nera/database';
 import {
   createGetOrganizationContext,
   type OrganizationContextDbClient,
@@ -40,8 +40,9 @@ describe('createGetOrganizationContext', () => {
     expect(fake.$transaction).not.toHaveBeenCalled();
   });
 
-  it('defaults to the real @nera/database Prisma client when no client is injected', () => {
+  it('defaults to appPrisma, the least-privilege application client (P013A) - never the administrative prisma client - when no client is injected', () => {
     expect(() => createGetOrganizationContext()).not.toThrow();
+    expect(appPrisma).not.toBe(prisma);
   });
 
   describe('input validation', () => {
@@ -67,6 +68,38 @@ describe('createGetOrganizationContext', () => {
       ).rejects.toThrow(/organizationId/);
       expect(fake.$transaction).not.toHaveBeenCalled();
     });
+
+    /**
+     * Verified P013A production bug: a stale, non-persisted demo
+     * organization id (`org-jerusalem`/`org-bnei-brak` in
+     * `apps/web/src/lib/auth/demoData.ts` - never backed by a real
+     * `Organization` row) reached this function and, from there, whichever
+     * repository query ran first, surfacing as a raw Postgres/Prisma error
+     * ("Error creating UUID, invalid character...") instead of a clear,
+     * actionable one. This is the single choke point every real call site
+     * goes through, so validating the UUID shape here catches every future
+     * instance of this same mistake, not just this one.
+     */
+    it('rejects a non-UUID organizationId (e.g. a stale placeholder id) without opening a transaction', async () => {
+      const fake = createFakeClient();
+      const getOrganizationContext = createGetOrganizationContext(fake);
+
+      await expect(
+        getOrganizationContext({ organizationId: 'org-bnei-brak' }, async () => undefined)
+      ).rejects.toThrow(/must be a valid UUID/);
+      expect(fake.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('accepts a well-formed UUID organizationId', async () => {
+      const fake = createFakeClient();
+      fake.$transaction.mockResolvedValue('ok');
+      const getOrganizationContext = createGetOrganizationContext(fake);
+
+      await expect(
+        getOrganizationContext({ organizationId: randomUUID() }, async () => 'ok')
+      ).resolves.toBe('ok');
+      expect(fake.$transaction).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('database error handling', () => {
@@ -77,7 +110,7 @@ describe('createGetOrganizationContext', () => {
       const getOrganizationContext = createGetOrganizationContext(fake);
 
       await expect(
-        getOrganizationContext({ organizationId: 'org-1' }, async () => undefined)
+        getOrganizationContext({ organizationId: randomUUID() }, async () => undefined)
       ).rejects.toBe(originalError);
     });
 
@@ -89,7 +122,7 @@ describe('createGetOrganizationContext', () => {
       const getOrganizationContext = createGetOrganizationContext(fake);
 
       await expect(
-        getOrganizationContext({ organizationId: 'org-1' }, async () => {
+        getOrganizationContext({ organizationId: randomUUID() }, async () => {
           throw originalError;
         })
       ).rejects.toBe(originalError);
@@ -112,9 +145,16 @@ describe('createGetOrganizationContext', () => {
  * cannot be executed in an environment without a reachable database - see
  * the P012 implementation report for what could and could not be verified
  * directly.
+ *
+ * Explicitly injected with `prisma` (the administrative, table-owner
+ * client), not the default `appPrisma` (P013A) - `asRestrictedRole`'s
+ * `SET LOCAL ROLE` mechanism requires the connection to already be a
+ * superuser or a member of `nera_rls_test_role`, which the least-privilege
+ * `nera_app_role` deliberately is not. This is exactly the "explicit choice
+ * only when elevated administrative privileges are actually needed" case.
  */
 describe('getOrganizationContext (behavioral RLS isolation, requires PostgreSQL)', () => {
-  const engine = createOrganizationEngine();
+  const engine = createOrganizationEngine(prisma);
 
   it('sets app.current_organization_id for the duration of the transaction', async () => {
     const organizationId = await createTestOrganization('Org A - session var check');

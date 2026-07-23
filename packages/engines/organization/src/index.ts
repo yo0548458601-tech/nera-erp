@@ -1,4 +1,4 @@
-import { prisma } from '@nera/database';
+import { appPrisma } from '@nera/database';
 import {
   createGetOrganizationContext,
   type OrganizationContext,
@@ -38,11 +38,11 @@ export type OrganizationEngine = {
 
 /**
  * Factory, matching `createAuditEngine`/`createAuthorizationEngine`. Defaults
- * to the real, Prisma-backed `@nera/database` client; construction never
- * queries the database.
+ * to `appPrisma`, the least-privilege application client (P013A); construction
+ * never queries the database.
  */
 export function createOrganizationEngine(
-  client: OrganizationEngineDbClient = prisma
+  client: OrganizationEngineDbClient = appPrisma
 ): OrganizationEngine {
   return {
     getOrganizationContext: createGetOrganizationContext(client),

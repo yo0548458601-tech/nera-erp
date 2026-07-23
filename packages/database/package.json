@@ -15,7 +15,8 @@
     "db:migrate:deploy": "prisma migrate deploy --schema=./prisma/schema.prisma",
     "db:seed": "tsx src/seed.ts",
     "db:check-connection": "tsx src/validateConnection.ts",
-    "db:bootstrap-rls-role": "tsx src/bootstrapRlsTestRole.ts"
+    "db:bootstrap-rls-role": "tsx src/bootstrapRlsTestRole.ts",
+    "db:bootstrap-app-role": "tsx src/bootstrapAppRole.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.8.3",

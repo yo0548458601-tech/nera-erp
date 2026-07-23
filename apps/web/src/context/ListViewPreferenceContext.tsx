@@ -1,21 +1,33 @@
 'use client';
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import {
-  resolveEffectiveListViewColumns,
-  type EffectiveListViewColumns,
-  type ListViewColumnPreference,
-} from '@nera/customization-engine';
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { type EffectiveListViewColumns } from '@nera/customization-engine';
 import { useSession } from './SessionContext';
-import { demoSystemUsers } from '../lib/authorization/demoUsers';
-
-function createId(prefix: string): string {
-  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
-}
+import { DEMO_SYSTEM_ROLE_ID } from '../lib/auth/demoIdentity';
+import {
+  getEffectiveListViewColumnsAction,
+  resetMyListViewColumnsAction,
+  setMyListViewColumnsAction,
+  setSystemDefaultListViewColumnsAction,
+} from '../lib/actions/listViewPreferenceActions';
 
 type ListViewPreferenceContextValue = {
-  rules: ListViewColumnPreference[];
-  /** Resolves the effective visible/ordered columns for a screen, following the user -> role -> institution -> system -> built-in-default precedence. */
+  /**
+   * Resolves the effective visible/ordered columns for a screen (user ->
+   * role -> institution -> system -> built-in-default precedence, now
+   * resolved against real, persisted rows - P013A). Synchronous: returns
+   * the built-in default until the real value has loaded, then the real
+   * value on every subsequent call/render once the background fetch
+   * (triggered by this same call) resolves.
+   */
   getEffectiveColumns: (
     screenId: string,
     builtInDefaultColumnKeys: string[]
@@ -37,95 +49,111 @@ const ListViewPreferenceContext = createContext<ListViewPreferenceContextValue |
 );
 
 /**
- * Holds configurable list-view column preferences across the same
- * system/institution/role/user precedence used by AuthorizationContext,
- * reusing @nera/customization-engine's resolveEffectiveListViewColumns.
- * Demo-only, in-memory - see that engine module's docstring for why this
- * precedence pattern is intentionally shared rather than reinvented.
+ * Real, persisted list-view column preferences (P013A - Owner-approved:
+ * List View Preferences persist in P013A, unlike Custom Fields/Field
+ * Requirements). No in-memory `rules` array anymore - every read/write goes
+ * through `listViewPreferenceActions.ts`'s Server Actions.
  */
 export function ListViewPreferenceProvider({ children }: { children: ReactNode }) {
   const { session } = useSession();
-  const [rules, setRules] = useState<ListViewColumnPreference[]>([]);
-
-  const currentUserId = session?.user.id ?? 'demo-user';
-  const currentRoleIds = useMemo(
-    () => demoSystemUsers.find(user => user.id === currentUserId)?.roleIds ?? [],
-    [currentUserId]
-  );
-  const currentInstitutionId = session?.selectedOrganizationId;
+  const organizationId = session?.selectedOrganizationId;
+  const [cache, setCache] = useState<Record<string, EffectiveListViewColumns>>({});
+  const inFlight = useRef<Set<string>>(new Set());
 
   const getEffectiveColumns = useCallback(
-    (screenId: string, builtInDefaultColumnKeys: string[]): EffectiveListViewColumns =>
-      resolveEffectiveListViewColumns(
-        screenId,
-        { userId: currentUserId, roleIds: currentRoleIds, institutionId: currentInstitutionId },
-        rules,
-        builtInDefaultColumnKeys
-      ),
-    [rules, currentUserId, currentRoleIds, currentInstitutionId]
-  );
-
-  const upsertRule = useCallback(
-    (
-      scope: ListViewColumnPreference['scope'],
-      targetId: string | undefined,
-      screenId: string,
-      visibleColumnKeys: string[],
-      updatedByUserId: string
-    ) => {
-      setRules(current => {
-        const withoutExisting = current.filter(
-          rule =>
-            !(rule.scope === scope && rule.targetId === targetId && rule.screenId === screenId)
+    (screenId: string, builtInDefaultColumnKeys: string[]): EffectiveListViewColumns => {
+      const cached = cache[screenId];
+      if (!organizationId) {
+        return (
+          cached ?? { screenId, visibleColumnKeys: builtInDefaultColumnKeys, source: 'default' }
         );
-        return [
-          ...withoutExisting,
-          {
-            id: createId('list-view-pref'),
-            scope,
-            targetId,
-            screenId,
-            visibleColumnKeys,
-            updatedAt: new Date().toISOString(),
-            updatedByUserId,
-          },
-        ];
-      });
+      }
+
+      if (!cached && !inFlight.current.has(screenId)) {
+        inFlight.current.add(screenId);
+        // institutionId is deliberately `undefined`: no "current institution"
+        // selection exists anywhere in the session yet (Institution is a real,
+        // separate model per ADR-002, but nothing in this sprint lets a user
+        // pick one) - this previously passed `organizationId` again by
+        // mistake, which is a different id entirely and could never resolve
+        // a real institution-scoped row.
+        getEffectiveListViewColumnsAction(
+          organizationId,
+          screenId,
+          [DEMO_SYSTEM_ROLE_ID],
+          /* institutionId */ undefined,
+          builtInDefaultColumnKeys
+        )
+          .then(result => {
+            setCache(current => ({ ...current, [screenId]: result }));
+          })
+          .finally(() => {
+            inFlight.current.delete(screenId);
+          });
+      }
+
+      return cached ?? { screenId, visibleColumnKeys: builtInDefaultColumnKeys, source: 'default' };
     },
-    []
+    [cache, organizationId]
   );
 
   const setMyColumns = useCallback(
-    (screenId: string, visibleColumnKeys: string[]) =>
-      upsertRule('user', currentUserId, screenId, visibleColumnKeys, currentUserId),
-    [upsertRule, currentUserId]
+    (screenId: string, visibleColumnKeys: string[]) => {
+      if (!organizationId) {
+        return;
+      }
+      setMyListViewColumnsAction(organizationId, screenId, visibleColumnKeys).then(result => {
+        if (result.ok) {
+          setCache(current => ({
+            ...current,
+            [screenId]: { screenId, visibleColumnKeys, source: 'user' },
+          }));
+        }
+      });
+    },
+    [organizationId]
   );
 
   const resetMyColumns = useCallback(
     (screenId: string) => {
-      setRules(current =>
-        current.filter(
-          rule =>
-            !(
-              rule.scope === 'user' &&
-              rule.targetId === currentUserId &&
-              rule.screenId === screenId
-            )
-        )
-      );
+      if (!organizationId) {
+        return;
+      }
+      resetMyListViewColumnsAction(organizationId, screenId).then(result => {
+        if (result.ok) {
+          setCache(current => {
+            const next = { ...current };
+            delete next[screenId];
+            return next;
+          });
+        }
+      });
     },
-    [currentUserId]
+    [organizationId]
   );
 
   const setSystemDefaultColumns = useCallback(
-    (screenId: string, visibleColumnKeys: string[], updatedByUserId: string) =>
-      upsertRule('system', undefined, screenId, visibleColumnKeys, updatedByUserId),
-    [upsertRule]
+    (screenId: string, visibleColumnKeys: string[], _updatedByUserId: string) => {
+      if (!organizationId) {
+        return;
+      }
+      setSystemDefaultListViewColumnsAction(organizationId, screenId, visibleColumnKeys).then(
+        result => {
+          if (result.ok) {
+            setCache(current => ({
+              ...current,
+              [screenId]: { screenId, visibleColumnKeys, source: 'system' },
+            }));
+          }
+        }
+      );
+    },
+    [organizationId]
   );
 
   const value = useMemo<ListViewPreferenceContextValue>(
-    () => ({ rules, getEffectiveColumns, setMyColumns, resetMyColumns, setSystemDefaultColumns }),
-    [rules, getEffectiveColumns, setMyColumns, resetMyColumns, setSystemDefaultColumns]
+    () => ({ getEffectiveColumns, setMyColumns, resetMyColumns, setSystemDefaultColumns }),
+    [getEffectiveColumns, setMyColumns, resetMyColumns, setSystemDefaultColumns]
   );
 
   return (

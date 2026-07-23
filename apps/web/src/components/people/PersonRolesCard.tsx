@@ -7,7 +7,7 @@ import {
   type PersonEntity,
   type EntityRoleId,
 } from '@nera/entity-engine';
-import { demoOrganizations } from '../../lib/auth/demoData';
+import { persistedDemoOrganizations } from '../../lib/auth/demoData';
 import { useEntities } from '../../context/EntityContext';
 import { useRoleDefinitions } from '../../context/RoleDefinitionContext';
 import { useBillingProfiles } from '../../context/BillingProfileContext';
@@ -77,12 +77,17 @@ export function PersonRolesCard({ person }: { person: PersonEntity }) {
     role => role.allowMultipleAssignments || !assignedRoleKeys.includes(role.key)
   );
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!selectedRole) {
       return;
     }
     const definition = findRoleDefinition(roles, selectedRole);
-    const added = addRoleToEntity(person.id, selectedRole, definition, selectedOrg || undefined);
+    const added = await addRoleToEntity(
+      person.id,
+      selectedRole,
+      definition,
+      selectedOrg || undefined
+    );
     if (!added) {
       setAddError('לתפקיד זה כבר קיים שיוך פעיל, ולא מוגדר כתפקיד המאפשר מספר שיוכים בו-זמנית.');
       return;
@@ -141,7 +146,7 @@ export function PersonRolesCard({ person }: { person: PersonEntity }) {
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
               >
                 <option value="">ללא שיוך ספציפי</option>
-                {demoOrganizations.map(organization => (
+                {persistedDemoOrganizations.map(organization => (
                   <option key={organization.id} value={organization.id}>
                     {organization.name}
                   </option>

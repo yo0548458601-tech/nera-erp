@@ -52,42 +52,103 @@ enum CalendarDisplay {
   both
 }
 
+enum EntityType {
+  person
+  organization
+}
+
+enum EntityStatus {
+  active
+  inactive
+  archived
+}
+
+enum PersonGender {
+  male
+  female
+  unspecified
+}
+
+enum ContactMethodStatus {
+  active
+  inactive
+}
+
+enum PhoneType {
+  mobile
+  home
+  work
+  fax
+  other
+}
+
+enum EmailType {
+  personal
+  work
+  billing
+  notifications
+  other
+}
+
+enum AddressType {
+  home
+  work
+  billing
+  mailing
+  registered
+  other
+}
+
+enum RoleAssignmentStatus {
+  active
+  ended
+}
+
+enum ListViewPreferenceScope {
+  system
+  institution
+  role
+  user
+}
+
 model Organization {
-  id                     String                   @id @default(uuid()) @db.Uuid
-  name                   String                   @db.VarChar(255)
-  legalName              String?                  @map("legal_name") @db.VarChar(255)
-  registrationNumber     String?                  @map("registration_number") @db.VarChar(100)
-  status                 OrganizationStatus       @default(active)
-  defaultLocale          String                   @default("en") @map("default_locale") @db.VarChar(16)
-  defaultTimezone        String                   @default("UTC") @map("default_timezone") @db.VarChar(64)
-  defaultCalendarDisplay CalendarDisplay          @default(gregorian) @map("default_calendar_display")
-  createdAt              DateTime                 @default(now()) @map("created_at")
-  updatedAt              DateTime                 @updatedAt @map("updated_at")
-  deletedAt              DateTime?                @map("deleted_at")
-  organizationUnits      OrganizationUnit[]
-  memberships            OrganizationMembership[]
-  roles                  Role[]
-  rolePermissions        RolePermission[]
-  membershipRoles        MembershipRole[]
-  auditLogs              AuditLog[]
-  institutions           Institution[]
+  id                        String                     @id @default(uuid()) @db.Uuid
+  name                      String                     @db.VarChar(255)
+  legalName                 String?                    @map("legal_name") @db.VarChar(255)
+  registrationNumber        String?                    @map("registration_number") @db.VarChar(100)
+  status                    OrganizationStatus         @default(active)
+  defaultLocale             String                     @default("en") @map("default_locale") @db.VarChar(16)
+  defaultTimezone           String                     @default("UTC") @map("default_timezone") @db.VarChar(64)
+  defaultCalendarDisplay    CalendarDisplay            @default(gregorian) @map("default_calendar_display")
+  createdAt                 DateTime                   @default(now()) @map("created_at")
+  updatedAt                 DateTime                   @updatedAt @map("updated_at")
+  deletedAt                 DateTime?                  @map("deleted_at")
+  organizationUnits         OrganizationUnit[]
+  memberships               OrganizationMembership[]
+  roles                     Role[]
+  rolePermissions           RolePermission[]
+  membershipRoles           MembershipRole[]
+  auditLogs                 AuditLog[]
+  institutions              Institution[]
+  entities                  Entity[]
+  listViewColumnPreferences ListViewColumnPreference[]
 
   @@map("organizations")
 }
 
 model OrganizationUnit {
-  id              String                 @id @default(uuid()) @db.Uuid
-  organizationId  String                 @map("organization_id") @db.Uuid
-  parentId        String?                @map("parent_id") @db.Uuid
-  unitType        String                 @map("unit_type") @db.VarChar(100)
-  name            String                 @db.VarChar(255)
-  status          OrganizationUnitStatus @default(active)
-  createdAt       DateTime               @default(now()) @map("created_at")
-  updatedAt       DateTime               @updatedAt @map("updated_at")
-  deletedAt       DateTime?              @map("deleted_at")
-  organization    Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  parent          OrganizationUnit?      @relation("OrganizationUnitHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
-  children        OrganizationUnit[]     @relation("OrganizationUnitHierarchy")
+  id             String                 @id @default(uuid()) @db.Uuid
+  organizationId String                 @map("organization_id") @db.Uuid
+  parentId       String?                @map("parent_id") @db.Uuid
+  unitType       String                 @map("unit_type") @db.VarChar(100)
+  name           String                 @db.VarChar(255)
+  status         OrganizationUnitStatus @default(active)
+  createdAt      DateTime               @default(now()) @map("created_at")
+  updatedAt      DateTime               @updatedAt @map("updated_at")
+  deletedAt      DateTime?              @map("deleted_at")
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  parent         OrganizationUnit?      @relation("OrganizationUnitHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children       OrganizationUnit[]     @relation("OrganizationUnitHierarchy")
 
   @@index([organizationId])
   @@index([parentId])
@@ -95,35 +156,46 @@ model OrganizationUnit {
 }
 
 model UserProfile {
-  id                      String                   @id @default(uuid()) @db.Uuid
-  authenticationUserId    String                   @unique @map("authentication_user_id") @db.VarChar(255)
-  displayName             String?                  @map("display_name") @db.VarChar(255)
-  preferredLocale         String                   @default("en") @map("preferred_locale") @db.VarChar(16)
-  preferredTimezone       String                   @default("UTC") @map("preferred_timezone") @db.VarChar(64)
-  preferredCalendarDisplay CalendarDisplay          @default(gregorian) @map("preferred_calendar_display")
-  status                  UserProfileStatus        @default(active)
-  createdAt               DateTime                 @default(now()) @map("created_at")
-  updatedAt               DateTime                 @updatedAt @map("updated_at")
-  deletedAt               DateTime?                @map("deleted_at")
-  memberships             OrganizationMembership[]
-  actorLogs               AuditLog[]               @relation("ActorUserProfile")
+  id                        String                    @id @default(uuid()) @db.Uuid
+  authenticationUserId      String                    @unique @map("authentication_user_id") @db.VarChar(255)
+  displayName               String?                   @map("display_name") @db.VarChar(255)
+  preferredLocale           String                    @default("en") @map("preferred_locale") @db.VarChar(16)
+  preferredTimezone         String                    @default("UTC") @map("preferred_timezone") @db.VarChar(64)
+  preferredCalendarDisplay  CalendarDisplay           @default(gregorian) @map("preferred_calendar_display")
+  status                    UserProfileStatus         @default(active)
+  createdAt                 DateTime                  @default(now()) @map("created_at")
+  updatedAt                 DateTime                  @updatedAt @map("updated_at")
+  deletedAt                 DateTime?                 @map("deleted_at")
+  memberships               OrganizationMembership[]
+  actorLogs                 AuditLog[]                @relation("ActorUserProfile")
+  verifiedPhones            Phone[]                   @relation("PhoneVerifiedByUser")
+  deletedPhones             Phone[]                   @relation("PhoneDeletedByUser")
+  verifiedEmails            Email[]                   @relation("EmailVerifiedByUser")
+  deletedEmails             Email[]                   @relation("EmailDeletedByUser")
+  verifiedAddresses         Address[]                 @relation("AddressVerifiedByUser")
+  deletedAddresses          Address[]                 @relation("AddressDeletedByUser")
+  createdNotes              Note[]                    @relation("NoteCreatedByUser")
+  updatedNotes              Note[]                    @relation("NoteUpdatedByUser")
+  deletedNotes              Note[]                    @relation("NoteDeletedByUser")
+  assignedRoleAssignments   RoleAssignment[]          @relation("RoleAssignmentAssignedByUser")
+  decidedDuplicateOverrides DuplicateOverrideRecord[] @relation("DuplicateOverrideDecidedByUser")
 
   @@map("user_profiles")
 }
 
 model OrganizationMembership {
-  id                String                     @id @default(uuid()) @db.Uuid
-  organizationId    String                     @map("organization_id") @db.Uuid
-  userProfileId     String                     @map("user_profile_id") @db.Uuid
-  status            OrganizationMembershipStatus @default(active)
-  joinedAt          DateTime                   @default(now()) @map("joined_at")
-  createdAt         DateTime                   @default(now()) @map("created_at")
-  updatedAt         DateTime                   @updatedAt @map("updated_at")
-  deletedAt         DateTime?                  @map("deleted_at")
-  organization      Organization               @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  userProfile       UserProfile                @relation(fields: [userProfileId], references: [id], onDelete: Restrict)
-  roles             MembershipRole[]
-  actorLogs         AuditLog[]                 @relation("ActorMembership")
+  id             String                       @id @default(uuid()) @db.Uuid
+  organizationId String                       @map("organization_id") @db.Uuid
+  userProfileId  String                       @map("user_profile_id") @db.Uuid
+  status         OrganizationMembershipStatus @default(active)
+  joinedAt       DateTime                     @default(now()) @map("joined_at")
+  createdAt      DateTime                     @default(now()) @map("created_at")
+  updatedAt      DateTime                     @updatedAt @map("updated_at")
+  deletedAt      DateTime?                    @map("deleted_at")
+  organization   Organization                 @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  userProfile    UserProfile                  @relation(fields: [userProfileId], references: [id], onDelete: Restrict)
+  roles          MembershipRole[]
+  actorLogs      AuditLog[]                   @relation("ActorMembership")
 
   @@index([organizationId])
   @@index([userProfileId])
@@ -133,16 +205,16 @@ model OrganizationMembership {
 }
 
 model Role {
-  id              String             @id @default(uuid()) @db.Uuid
-  organizationId  String             @map("organization_id") @db.Uuid
-  name            String             @db.VarChar(255)
-  description     String?            @db.Text
-  isSystemRole    Boolean            @default(false) @map("is_system_role")
-  status          RoleStatus         @default(active)
-  createdAt       DateTime           @default(now()) @map("created_at")
-  updatedAt       DateTime           @updatedAt @map("updated_at")
-  deletedAt       DateTime?          @map("deleted_at")
-  organization    Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  id              String           @id @default(uuid()) @db.Uuid
+  organizationId  String           @map("organization_id") @db.Uuid
+  name            String           @db.VarChar(255)
+  description     String?          @db.Text
+  isSystemRole    Boolean          @default(false) @map("is_system_role")
+  status          RoleStatus       @default(active)
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  deletedAt       DateTime?        @map("deleted_at")
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   rolePermissions RolePermission[]
   membershipRoles MembershipRole[]
 
@@ -151,13 +223,13 @@ model Role {
 }
 
 model Permission {
-  id              String             @id @default(uuid()) @db.Uuid
-  permissionKey   String             @unique @map("permission_key") @db.VarChar(255)
-  resource        String             @db.VarChar(255)
-  action          String             @db.VarChar(64)
-  description     String?            @db.Text
-  createdAt       DateTime           @default(now()) @map("created_at")
-  updatedAt       DateTime           @updatedAt @map("updated_at")
+  id              String           @id @default(uuid()) @db.Uuid
+  permissionKey   String           @unique @map("permission_key") @db.VarChar(255)
+  resource        String           @db.VarChar(255)
+  action          String           @db.VarChar(64)
+  description     String?          @db.Text
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
   rolePermissions RolePermission[]
 
   @@index([resource, action])
@@ -165,16 +237,16 @@ model Permission {
 }
 
 model RolePermission {
-  id              String               @id @default(uuid()) @db.Uuid
-  organizationId  String               @map("organization_id") @db.Uuid
-  roleId          String               @map("role_id") @db.Uuid
-  permissionId    String               @map("permission_id") @db.Uuid
-  effect          RolePermissionEffect @default(allow)
-  createdAt       DateTime             @default(now()) @map("created_at")
-  updatedAt       DateTime             @updatedAt @map("updated_at")
-  organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  role            Role                 @relation(fields: [roleId], references: [id], onDelete: Restrict)
-  permission      Permission           @relation(fields: [permissionId], references: [id], onDelete: Restrict)
+  id             String               @id @default(uuid()) @db.Uuid
+  organizationId String               @map("organization_id") @db.Uuid
+  roleId         String               @map("role_id") @db.Uuid
+  permissionId   String               @map("permission_id") @db.Uuid
+  effect         RolePermissionEffect @default(allow)
+  createdAt      DateTime             @default(now()) @map("created_at")
+  updatedAt      DateTime             @updatedAt @map("updated_at")
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  role           Role                 @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  permission     Permission           @relation(fields: [permissionId], references: [id], onDelete: Restrict)
 
   @@unique([organizationId, roleId, permissionId], name: "role_permissions_org_role_permission_unique")
   @@index([organizationId])
@@ -184,14 +256,14 @@ model RolePermission {
 }
 
 model MembershipRole {
-  id                    String                 @id @default(uuid()) @db.Uuid
-  organizationId        String                 @map("organization_id") @db.Uuid
-  organizationMembershipId String                @map("organization_membership_id") @db.Uuid
-  roleId                String                 @map("role_id") @db.Uuid
-  createdAt             DateTime               @default(now()) @map("created_at")
-  organization          Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  organizationMembership OrganizationMembership @relation(fields: [organizationMembershipId], references: [id], onDelete: Restrict)
-  role                  Role                   @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  id                       String                 @id @default(uuid()) @db.Uuid
+  organizationId           String                 @map("organization_id") @db.Uuid
+  organizationMembershipId String                 @map("organization_membership_id") @db.Uuid
+  roleId                   String                 @map("role_id") @db.Uuid
+  createdAt                DateTime               @default(now()) @map("created_at")
+  organization             Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organizationMembership   OrganizationMembership @relation(fields: [organizationMembershipId], references: [id], onDelete: Restrict)
+  role                     Role                   @relation(fields: [roleId], references: [id], onDelete: Restrict)
 
   @@unique([organizationMembershipId, roleId], name: "membership_roles_membership_role_unique")
   @@index([organizationId])
@@ -201,20 +273,20 @@ model MembershipRole {
 }
 
 model AuditLog {
-  id                  String                 @id @default(uuid()) @db.Uuid
-  organizationId      String                 @map("organization_id") @db.Uuid
-  actorUserProfileId  String?                @map("actor_user_profile_id") @db.Uuid
-  actorMembershipId   String?                @map("actor_membership_id") @db.Uuid
-  action              String                 @db.VarChar(100)
-  entityType          String                 @map("entity_type") @db.VarChar(150)
-  entityId            String                 @map("entity_id") @db.VarChar(255)
-  oldValues           Json?                  @map("old_values")
-  newValues           Json?                  @map("new_values")
-  metadata            Json?
-  occurredAt          DateTime               @default(now()) @map("occurred_at")
-  organization        Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  actorUserProfile    UserProfile?           @relation("ActorUserProfile", fields: [actorUserProfileId], references: [id], onDelete: Restrict)
-  actorMembership     OrganizationMembership? @relation("ActorMembership", fields: [actorMembershipId], references: [id], onDelete: Restrict)
+  id                 String                  @id @default(uuid()) @db.Uuid
+  organizationId     String                  @map("organization_id") @db.Uuid
+  actorUserProfileId String?                 @map("actor_user_profile_id") @db.Uuid
+  actorMembershipId  String?                 @map("actor_membership_id") @db.Uuid
+  action             String                  @db.VarChar(100)
+  entityType         String                  @map("entity_type") @db.VarChar(150)
+  entityId           String                  @map("entity_id") @db.VarChar(255)
+  oldValues          Json?                   @map("old_values")
+  newValues          Json?                   @map("new_values")
+  metadata           Json?
+  occurredAt         DateTime                @default(now()) @map("occurred_at")
+  organization       Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  actorUserProfile   UserProfile?            @relation("ActorUserProfile", fields: [actorUserProfileId], references: [id], onDelete: Restrict)
+  actorMembership    OrganizationMembership? @relation("ActorMembership", fields: [actorMembershipId], references: [id], onDelete: Restrict)
 
   @@index([organizationId])
   @@index([actorUserProfileId])
@@ -242,4 +314,251 @@ model Institution {
 
   @@index([organizationId])
   @@map("institutions")
+}
+
+/// Entity Persistence (ENGINE_MAP.md Section 4; P013A - see docs/ROADMAP.md).
+/// The shared identity record for a person (organization entities are not
+/// created in this sprint - entityType already allows the value so a future
+/// sprint adding OrganizationProfile needs no column/type migration here).
+/// notesMetadata (count/lastNoteAt) is deliberately NOT a column - it is
+/// computed at read time from `notes`, never cached, so it cannot drift.
+model Entity {
+  id                       String                    @id @default(uuid()) @db.Uuid
+  organizationId           String                    @map("organization_id") @db.Uuid
+  neraId                   String                    @map("nera_id") @db.VarChar(20)
+  entityType               EntityType                @map("entity_type")
+  status                   EntityStatus              @default(active)
+  tags                     String[]                  @default([])
+  createdAt                DateTime                  @default(now()) @map("created_at")
+  updatedAt                DateTime                  @updatedAt @map("updated_at")
+  deletedAt                DateTime?                 @map("deleted_at")
+  organization             Organization              @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  personProfile            PersonProfile?
+  phones                   Phone[]
+  emails                   Email[]
+  addresses                Address[]
+  notes                    Note[]
+  roleAssignments          RoleAssignment[]
+  duplicateOverrideRecords DuplicateOverrideRecord[]
+
+  @@unique([organizationId, neraId], name: "entities_organization_nera_id_unique")
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, entityType])
+  @@map("entities")
+}
+
+/// Person-specific fields, 1:1 with Entity (entityType 'person'). No
+/// independent soft-delete - a PersonProfile's lifecycle always follows its
+/// owning Entity's (see Entity.deletedAt / Entity.status).
+model PersonProfile {
+  entityId                 String       @id @map("entity_id") @db.Uuid
+  organizationId           String       @map("organization_id") @db.Uuid
+  firstName                String       @map("first_name") @db.VarChar(255)
+  lastName                 String       @map("last_name") @db.VarChar(255)
+  idNumber                 String?      @map("id_number") @db.VarChar(50)
+  birthDateGregorian       DateTime?    @map("birth_date_gregorian") @db.Date
+  hebrewDateAdjustmentDays Int          @default(0) @map("hebrew_date_adjustment_days") @db.SmallInt
+  gender                   PersonGender
+  profileImageUrl          String?      @map("profile_image_url") @db.Text
+  createdAt                DateTime     @default(now()) @map("created_at")
+  updatedAt                DateTime     @updatedAt @map("updated_at")
+  entity                   Entity       @relation(fields: [entityId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([organizationId, idNumber])
+  @@map("person_profiles")
+}
+
+/// Phone/Email/Address share an identical shape (see contactMethods.ts) -
+/// each modeled as its own table rather than a single polymorphic table, so
+/// each keeps its own type-specific columns and its own partial unique index
+/// for "at most one primary active record per entity".
+model Phone {
+  id               String              @id @default(uuid()) @db.Uuid
+  organizationId   String              @map("organization_id") @db.Uuid
+  entityId         String              @map("entity_id") @db.Uuid
+  number           String              @db.VarChar(30)
+  type             PhoneType
+  label            String              @default("") @db.VarChar(255)
+  isPrimary        Boolean             @default(false) @map("is_primary")
+  status           ContactMethodStatus @default(active)
+  notes            String?             @db.Text
+  sortOrder        Int                 @default(0) @map("sort_order")
+  verified         Boolean             @default(false)
+  verifiedAt       DateTime?           @map("verified_at")
+  verifiedByUserId String?             @map("verified_by_user_id") @db.Uuid
+  deletedAt        DateTime?           @map("deleted_at")
+  deletedByUserId  String?             @map("deleted_by_user_id") @db.Uuid
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+  entity           Entity              @relation(fields: [entityId], references: [id], onDelete: Restrict)
+  verifiedByUser   UserProfile?        @relation("PhoneVerifiedByUser", fields: [verifiedByUserId], references: [id], onDelete: Restrict)
+  deletedByUser    UserProfile?        @relation("PhoneDeletedByUser", fields: [deletedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([entityId])
+  @@index([entityId, status])
+  @@map("phones")
+}
+
+model Email {
+  id               String              @id @default(uuid()) @db.Uuid
+  organizationId   String              @map("organization_id") @db.Uuid
+  entityId         String              @map("entity_id") @db.Uuid
+  address          String              @db.VarChar(320)
+  type             EmailType
+  label            String              @default("") @db.VarChar(255)
+  isPrimary        Boolean             @default(false) @map("is_primary")
+  status           ContactMethodStatus @default(active)
+  notes            String?             @db.Text
+  sortOrder        Int                 @default(0) @map("sort_order")
+  verified         Boolean             @default(false)
+  verifiedAt       DateTime?           @map("verified_at")
+  verifiedByUserId String?             @map("verified_by_user_id") @db.Uuid
+  deletedAt        DateTime?           @map("deleted_at")
+  deletedByUserId  String?             @map("deleted_by_user_id") @db.Uuid
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+  entity           Entity              @relation(fields: [entityId], references: [id], onDelete: Restrict)
+  verifiedByUser   UserProfile?        @relation("EmailVerifiedByUser", fields: [verifiedByUserId], references: [id], onDelete: Restrict)
+  deletedByUser    UserProfile?        @relation("EmailDeletedByUser", fields: [deletedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([entityId])
+  @@index([entityId, status])
+  @@map("emails")
+}
+
+model Address {
+  id               String              @id @default(uuid()) @db.Uuid
+  organizationId   String              @map("organization_id") @db.Uuid
+  entityId         String              @map("entity_id") @db.Uuid
+  country          String?             @db.VarChar(100)
+  city             String?             @db.VarChar(255)
+  cityProviderId   String?             @map("city_provider_id") @db.VarChar(255)
+  street           String?             @db.VarChar(255)
+  streetProviderId String?             @map("street_provider_id") @db.VarChar(255)
+  houseNumber      String?             @map("house_number") @db.VarChar(20)
+  entrance         String?             @db.VarChar(20)
+  floor            String?             @db.VarChar(20)
+  apartment        String?             @db.VarChar(20)
+  postalCode       String?             @map("postal_code") @db.VarChar(20)
+  type             AddressType
+  isPrimary        Boolean             @default(false) @map("is_primary")
+  status           ContactMethodStatus @default(active)
+  notes            String?             @db.Text
+  sortOrder        Int                 @default(0) @map("sort_order")
+  verified         Boolean             @default(false)
+  verifiedAt       DateTime?           @map("verified_at")
+  verifiedByUserId String?             @map("verified_by_user_id") @db.Uuid
+  deletedAt        DateTime?           @map("deleted_at")
+  deletedByUserId  String?             @map("deleted_by_user_id") @db.Uuid
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+  entity           Entity              @relation(fields: [entityId], references: [id], onDelete: Restrict)
+  verifiedByUser   UserProfile?        @relation("AddressVerifiedByUser", fields: [verifiedByUserId], references: [id], onDelete: Restrict)
+  deletedByUser    UserProfile?        @relation("AddressDeletedByUser", fields: [deletedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([entityId])
+  @@index([entityId, status])
+  @@map("addresses")
+}
+
+/// No note_revisions table (Owner-approved, P013A design review): audit_logs
+/// remains the only historical record of a note's prior content. editedAt is
+/// a lightweight signal only, preserving the existing "edited" (נערך) UI
+/// indicator (isNoteEdited) without a parallel history table.
+model Note {
+  id              String       @id @default(uuid()) @db.Uuid
+  organizationId  String       @map("organization_id") @db.Uuid
+  entityId        String       @map("entity_id") @db.Uuid
+  content         String       @db.Text
+  createdByUserId String       @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedByUserId String?      @map("updated_by_user_id") @db.Uuid
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+  editedAt        DateTime?    @map("edited_at")
+  deletedAt       DateTime?    @map("deleted_at")
+  deletedByUserId String?      @map("deleted_by_user_id") @db.Uuid
+  entity          Entity       @relation(fields: [entityId], references: [id], onDelete: Restrict)
+  createdByUser   UserProfile  @relation("NoteCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  updatedByUser   UserProfile? @relation("NoteUpdatedByUser", fields: [updatedByUserId], references: [id], onDelete: Restrict)
+  deletedByUser   UserProfile? @relation("NoteDeletedByUser", fields: [deletedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([entityId])
+  @@index([entityId, deletedAt])
+  @@map("notes")
+}
+
+/// `role` is a plain, application-validated string key (matches
+/// entityRoleRegistry / RoleDefinition.key) - RoleDefinition itself is not
+/// persisted, so there is no FK target for it (see roles.ts). Uniqueness
+/// ("one active assignment unless the role allows multiple") depends on the
+/// unpersisted RoleDefinition.allowMultipleAssignments flag and is therefore
+/// an application-layer invariant (canAssignRole), not a DB constraint.
+model RoleAssignment {
+  id               String               @id @default(uuid()) @db.Uuid
+  organizationId   String               @map("organization_id") @db.Uuid
+  entityId         String               @map("entity_id") @db.Uuid
+  role             String               @db.VarChar(100)
+  status           RoleAssignmentStatus @default(active)
+  startDate        DateTime?            @map("start_date") @db.Date
+  endDate          DateTime?            @map("end_date") @db.Date
+  notes            String?              @db.Text
+  moduleProfileRef String?              @map("module_profile_ref") @db.VarChar(255)
+  assignedByUserId String               @map("assigned_by_user_id") @db.Uuid
+  createdAt        DateTime             @default(now()) @map("created_at")
+  removedAt        DateTime?            @map("removed_at")
+  entity           Entity               @relation(fields: [entityId], references: [id], onDelete: Restrict)
+  assignedByUser   UserProfile          @relation("RoleAssignmentAssignedByUser", fields: [assignedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, entityId])
+  @@index([organizationId, role])
+  @@map("role_assignments")
+}
+
+/// Records a deliberate decision to keep records separate despite a
+/// detected duplicate conflict (see duplicates.ts). matchedEntityIds is a
+/// plain UUID array, not a live FK - this is an intentional point-in-time
+/// snapshot; a later archive/delete of a matched entity does not affect
+/// this historical record.
+model DuplicateOverrideRecord {
+  id               String      @id @default(uuid()) @db.Uuid
+  organizationId   String      @map("organization_id") @db.Uuid
+  entityId         String      @map("entity_id") @db.Uuid
+  matchedEntityIds String[]    @map("matched_entity_ids") @db.Uuid
+  matchReasons     String[]    @map("match_reasons")
+  overrideReason   String      @map("override_reason") @db.Text
+  decidedByUserId  String      @map("decided_by_user_id") @db.Uuid
+  decidedAt        DateTime    @default(now()) @map("decided_at")
+  entity           Entity      @relation(fields: [entityId], references: [id], onDelete: Restrict)
+  decidedByUser    UserProfile @relation("DuplicateOverrideDecidedByUser", fields: [decidedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, entityId])
+  @@map("duplicate_override_records")
+}
+
+/// `targetId` is heterogeneous by design: a UserProfile.id for scope
+/// 'user', a Role key (plain string, matching RoleAssignment.role) for
+/// scope 'role', an Institution.id for scope 'institution', and NULL for
+/// scope 'system' - hence VARCHAR rather than UUID. Two partial unique
+/// indexes (added in the migration, not expressible in schema.prisma
+/// alone) enforce "one preference row per scope/target/screen", accounting
+/// for target_id being NULL only for 'system' scope.
+model ListViewColumnPreference {
+  id                String                  @id @default(uuid()) @db.Uuid
+  organizationId    String                  @map("organization_id") @db.Uuid
+  scope             ListViewPreferenceScope
+  targetId          String?                 @map("target_id") @db.VarChar(255)
+  screenId          String                  @map("screen_id") @db.VarChar(100)
+  visibleColumnKeys String[]                @map("visible_column_keys")
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
+  organization      Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@map("list_view_column_preferences")
 }
