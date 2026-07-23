@@ -71,11 +71,17 @@ export function ListViewPreferenceProvider({ children }: { children: ReactNode }
 
       if (!cached && !inFlight.current.has(screenId)) {
         inFlight.current.add(screenId);
+        // institutionId is deliberately `undefined`: no "current institution"
+        // selection exists anywhere in the session yet (Institution is a real,
+        // separate model per ADR-002, but nothing in this sprint lets a user
+        // pick one) - this previously passed `organizationId` again by
+        // mistake, which is a different id entirely and could never resolve
+        // a real institution-scoped row.
         getEffectiveListViewColumnsAction(
           organizationId,
           screenId,
           [DEMO_SYSTEM_ROLE_ID],
-          organizationId,
+          /* institutionId */ undefined,
           builtInDefaultColumnKeys
         )
           .then(result => {

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { demoOrganizations } from '../lib/auth/demoData';
+import { persistedDemoOrganizations } from '../lib/auth/demoData';
 import { useSession } from '../context/SessionContext';
 import { LoginScreen } from './LoginScreen';
 
@@ -27,7 +27,7 @@ export function AuthGate() {
   }, [isHydrated, session, router]);
 
   const proceedAfterLogin = () => {
-    if (demoOrganizations.length > 1) {
+    if (persistedDemoOrganizations.length > 1) {
       setView('org-select');
     } else {
       router.push('/dashboard');

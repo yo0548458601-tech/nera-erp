@@ -8,7 +8,7 @@ import {
   getRoleLabel,
   type EntityRoleId,
 } from '@nera/entity-engine';
-import { demoOrganizations } from '../../lib/auth/demoData';
+import { persistedDemoOrganizations } from '../../lib/auth/demoData';
 import { useSession } from '../../context/SessionContext';
 import { useEntities } from '../../context/EntityContext';
 import { useRoleDefinitions } from '../../context/RoleDefinitionContext';
@@ -114,8 +114,9 @@ export function AppShell({ children }: AppShellProps) {
 
   const selectedOrganization = useMemo(
     () =>
-      demoOrganizations.find(organization => organization.id === session?.selectedOrganizationId) ??
-      demoOrganizations[0],
+      persistedDemoOrganizations.find(
+        organization => organization.id === session?.selectedOrganizationId
+      ) ?? persistedDemoOrganizations[0],
     [session?.selectedOrganizationId]
   );
 
@@ -141,7 +142,7 @@ export function AppShell({ children }: AppShellProps) {
   const handleOrganizationChange = (organizationId: string) => {
     selectOrganization(organizationId);
     showToast(
-      `הארגון הוחלף ל${demoOrganizations.find(item => item.id === organizationId)?.name ?? ''}`
+      `הארגון הוחלף ל${persistedDemoOrganizations.find(item => item.id === organizationId)?.name ?? ''}`
     );
   };
 
@@ -189,7 +190,7 @@ export function AppShell({ children }: AppShellProps) {
           pageTitle={pageTitle}
           user={session.user}
           organization={selectedOrganization}
-          organizations={demoOrganizations}
+          organizations={persistedDemoOrganizations}
           mobileMenuOpen={openPanel === 'mobileMenu'}
           onMobileMenuToggle={() => togglePanel('mobileMenu')}
           mobileMenuTriggerRef={mobileMenuTriggerRef}

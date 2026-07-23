@@ -50,10 +50,32 @@ export type OrganizationContextDbClient = {
   $transaction<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T>;
 };
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * `organizationId` is always used as the value of a `@db.Uuid` Postgres
+ * column (both the RLS session variable set below and every repository's
+ * `organizationId` filter) - a non-UUID value doesn't fail cleanly at this
+ * boundary on its own; it reaches whichever repository query happens to run
+ * first inside `work` and surfaces there as a raw, low-level Prisma/Postgres
+ * parser error ("Error creating UUID, invalid character..."), verified in
+ * production when a stale, non-persisted demo organization id (`org-...`,
+ * never backed by a real `Organization` row) was passed through - see
+ * `apps/web/src/lib/auth/demoData.ts`'s `persistedDemoOrganizations`. Failing
+ * here instead, at the one real entry point every caller already goes
+ * through, turns any future instance of this same mistake into one clear,
+ * early error instead of a confusing crash in an arbitrary, unrelated
+ * repository.
+ */
 function assertValidOrganizationContext(context: OrganizationContext): void {
   if (typeof context?.organizationId !== 'string' || context.organizationId.trim().length === 0) {
     throw new Error(
       'getOrganizationContext: "organizationId" is required and must be a non-empty string.'
+    );
+  }
+  if (!UUID_PATTERN.test(context.organizationId)) {
+    throw new Error(
+      `getOrganizationContext: "organizationId" must be a valid UUID, got "${context.organizationId}".`
     );
   }
 }

@@ -68,6 +68,38 @@ describe('createGetOrganizationContext', () => {
       ).rejects.toThrow(/organizationId/);
       expect(fake.$transaction).not.toHaveBeenCalled();
     });
+
+    /**
+     * Verified P013A production bug: a stale, non-persisted demo
+     * organization id (`org-jerusalem`/`org-bnei-brak` in
+     * `apps/web/src/lib/auth/demoData.ts` - never backed by a real
+     * `Organization` row) reached this function and, from there, whichever
+     * repository query ran first, surfacing as a raw Postgres/Prisma error
+     * ("Error creating UUID, invalid character...") instead of a clear,
+     * actionable one. This is the single choke point every real call site
+     * goes through, so validating the UUID shape here catches every future
+     * instance of this same mistake, not just this one.
+     */
+    it('rejects a non-UUID organizationId (e.g. a stale placeholder id) without opening a transaction', async () => {
+      const fake = createFakeClient();
+      const getOrganizationContext = createGetOrganizationContext(fake);
+
+      await expect(
+        getOrganizationContext({ organizationId: 'org-bnei-brak' }, async () => undefined)
+      ).rejects.toThrow(/must be a valid UUID/);
+      expect(fake.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('accepts a well-formed UUID organizationId', async () => {
+      const fake = createFakeClient();
+      fake.$transaction.mockResolvedValue('ok');
+      const getOrganizationContext = createGetOrganizationContext(fake);
+
+      await expect(
+        getOrganizationContext({ organizationId: randomUUID() }, async () => 'ok')
+      ).resolves.toBe('ok');
+      expect(fake.$transaction).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('database error handling', () => {
@@ -78,7 +110,7 @@ describe('createGetOrganizationContext', () => {
       const getOrganizationContext = createGetOrganizationContext(fake);
 
       await expect(
-        getOrganizationContext({ organizationId: 'org-1' }, async () => undefined)
+        getOrganizationContext({ organizationId: randomUUID() }, async () => undefined)
       ).rejects.toBe(originalError);
     });
 
@@ -90,7 +122,7 @@ describe('createGetOrganizationContext', () => {
       const getOrganizationContext = createGetOrganizationContext(fake);
 
       await expect(
-        getOrganizationContext({ organizationId: 'org-1' }, async () => {
+        getOrganizationContext({ organizationId: randomUUID() }, async () => {
           throw originalError;
         })
       ).rejects.toBe(originalError);
