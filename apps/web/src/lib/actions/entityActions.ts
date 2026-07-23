@@ -28,6 +28,12 @@ import {
   createRoleAssignmentRepository,
   entityRoleRegistry,
   findRoleDefinition,
+  mapAddressDraftForCreate,
+  mapAddressDraftForUpdate,
+  mapEmailDraftForCreate,
+  mapEmailDraftForUpdate,
+  mapPhoneDraftForCreate,
+  mapPhoneDraftForUpdate,
   type Address,
   type AddressDraft,
   type DuplicateMatchReason,
@@ -52,13 +58,6 @@ export type ActionResult<T> = { ok: true; data: T } | { ok: false; reason: strin
 
 function toIso(value: Date | null): string | undefined {
   return value ? value.toISOString() : undefined;
-}
-
-function fromIsoOrNull(value: string | null | undefined): Date | null | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  return value ? new Date(value) : null;
 }
 
 function toPhone(record: {
@@ -366,13 +365,8 @@ export async function createPersonAction(
         contactRepo.phones.add({
           entityId: entity.id,
           organizationId,
-          number: draft.number,
-          type: draft.type,
-          label: draft.label,
-          isPrimary: draft.isPrimary,
-          notes: draft.notes,
-          sortOrder: draft.order,
-        } as never)
+          ...mapPhoneDraftForCreate(draft),
+        })
       )
     );
     const emails = await Promise.all(
@@ -380,13 +374,8 @@ export async function createPersonAction(
         contactRepo.emails.add({
           entityId: entity.id,
           organizationId,
-          address: draft.address,
-          type: draft.type,
-          label: draft.label,
-          isPrimary: draft.isPrimary,
-          notes: draft.notes,
-          sortOrder: draft.order,
-        } as never)
+          ...mapEmailDraftForCreate(draft),
+        })
       )
     );
     const addresses = await Promise.all(
@@ -394,19 +383,8 @@ export async function createPersonAction(
         contactRepo.addresses.add({
           entityId: entity.id,
           organizationId,
-          type: draft.type,
-          isPrimary: draft.isPrimary,
-          notes: draft.notes,
-          sortOrder: draft.order,
-          country: draft.country,
-          city: draft.city,
-          street: draft.street,
-          houseNumber: draft.houseNumber,
-          entrance: draft.entrance,
-          floor: draft.floor,
-          apartment: draft.apartment,
-          postalCode: draft.postalCode,
-        } as never)
+          ...mapAddressDraftForCreate(draft),
+        })
       )
     );
 
@@ -516,19 +494,8 @@ export async function updatePersonAction(
       new Set(existingPhones.map(p => p.id)),
       entityId,
       organizationId,
-      data => contactRepo.phones.add(data as never),
-      (id, orgId, data) =>
-        contactRepo.phones.update(id, orgId, {
-          number: data.number,
-          type: data.type,
-          label: data.label,
-          isPrimary: data.isPrimary,
-          status: data.status,
-          notes: data.notes,
-          sortOrder: data.order,
-          deletedAt: fromIsoOrNull(data.deletedAt),
-          deletedByUserId: data.deletedByUserId,
-        } as never)
+      data => contactRepo.phones.add({ entityId, organizationId, ...mapPhoneDraftForCreate(data) }),
+      (id, orgId, data) => contactRepo.phones.update(id, orgId, mapPhoneDraftForUpdate(data))
     );
 
     await reconcileContactMethods(
@@ -536,19 +503,8 @@ export async function updatePersonAction(
       new Set(existingEmails.map(e => e.id)),
       entityId,
       organizationId,
-      data => contactRepo.emails.add(data as never),
-      (id, orgId, data) =>
-        contactRepo.emails.update(id, orgId, {
-          address: data.address,
-          type: data.type,
-          label: data.label,
-          isPrimary: data.isPrimary,
-          status: data.status,
-          notes: data.notes,
-          sortOrder: data.order,
-          deletedAt: fromIsoOrNull(data.deletedAt),
-          deletedByUserId: data.deletedByUserId,
-        } as never)
+      data => contactRepo.emails.add({ entityId, organizationId, ...mapEmailDraftForCreate(data) }),
+      (id, orgId, data) => contactRepo.emails.update(id, orgId, mapEmailDraftForUpdate(data))
     );
 
     await reconcileContactMethods(
@@ -556,27 +512,9 @@ export async function updatePersonAction(
       new Set(existingAddresses.map(a => a.id)),
       entityId,
       organizationId,
-      data => contactRepo.addresses.add(data as never),
-      (id, orgId, data) =>
-        contactRepo.addresses.update(id, orgId, {
-          type: data.type,
-          isPrimary: data.isPrimary,
-          status: data.status,
-          notes: data.notes,
-          sortOrder: data.order,
-          country: data.country,
-          city: data.city,
-          cityProviderId: data.cityProviderId,
-          street: data.street,
-          streetProviderId: data.streetProviderId,
-          houseNumber: data.houseNumber,
-          entrance: data.entrance,
-          floor: data.floor,
-          apartment: data.apartment,
-          postalCode: data.postalCode,
-          deletedAt: fromIsoOrNull(data.deletedAt),
-          deletedByUserId: data.deletedByUserId,
-        } as never)
+      data =>
+        contactRepo.addresses.add({ entityId, organizationId, ...mapAddressDraftForCreate(data) }),
+      (id, orgId, data) => contactRepo.addresses.update(id, orgId, mapAddressDraftForUpdate(data))
     );
 
     await audit.recordAudit({
@@ -696,41 +634,25 @@ export async function addContactMethodAction(
   await getOrganizationContext({ organizationId }, async tx => {
     const contactRepo = createContactMethodRepository(tx);
     const audit = createAuditEngine(tx);
-    const base = { entityId, organizationId, isPrimary: draft.isPrimary, sortOrder: draft.order };
 
     if (kind === 'phone') {
-      const phone = draft as PhoneDraft;
       await contactRepo.phones.add({
-        ...base,
-        number: phone.number,
-        type: phone.type,
-        label: phone.label,
-        notes: phone.notes,
-      } as never);
+        entityId,
+        organizationId,
+        ...mapPhoneDraftForCreate(draft as PhoneDraft),
+      });
     } else if (kind === 'email') {
-      const email = draft as EmailDraft;
       await contactRepo.emails.add({
-        ...base,
-        address: email.address,
-        type: email.type,
-        label: email.label,
-        notes: email.notes,
-      } as never);
+        entityId,
+        organizationId,
+        ...mapEmailDraftForCreate(draft as EmailDraft),
+      });
     } else {
-      const address = draft as AddressDraft;
       await contactRepo.addresses.add({
-        ...base,
-        type: address.type,
-        notes: address.notes,
-        country: address.country,
-        city: address.city,
-        street: address.street,
-        houseNumber: address.houseNumber,
-        entrance: address.entrance,
-        floor: address.floor,
-        apartment: address.apartment,
-        postalCode: address.postalCode,
-      } as never);
+        entityId,
+        organizationId,
+        ...mapAddressDraftForCreate(draft as AddressDraft),
+      });
     }
 
     await audit.recordAudit({

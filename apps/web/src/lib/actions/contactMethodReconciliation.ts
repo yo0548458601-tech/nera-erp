@@ -17,6 +17,20 @@
  * server'` file) specifically so it can be unit-tested directly - Next.js
  * requires every export of a `'use server'` file to itself be an async
  * Server Action, which this reconciliation helper is not.
+ *
+ * This function is deliberately generic over `TDraft` and never inspects
+ * its shape beyond `id`/`isPrimary` - it has no idea what fields Prisma
+ * expects. The `add`/`update` callbacks are entirely responsible for
+ * translating a draft into a repository-shaped payload (verified P013A bug:
+ * a caller once passed `data => contactRepo.phones.add(data as never)` as
+ * `add`, forwarding the raw UI draft - with `order` instead of `sortOrder`,
+ * plus `id` and other UI-only shape - straight to Prisma, which throws
+ * "Unknown argument `order`" on every create. Callers must map each draft
+ * field explicitly against the real repository/Prisma input type; never
+ * spread a draft into a persistence call as-is. See
+ * `@nera/entity-engine`'s `mapPhoneDraftForCreate`/`mapPhoneDraftForUpdate`
+ * (and the email/address equivalents) for the canonical mapping, used by
+ * every call site in `entityActions.ts`.
  */
 export async function reconcileContactMethods<TDraft extends { id: string; isPrimary: boolean }>(
   drafts: TDraft[],

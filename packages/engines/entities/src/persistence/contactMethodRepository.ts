@@ -17,6 +17,7 @@ import {
   type Prisma,
   type PhoneType,
 } from '@nera/database';
+import type { AddressDraft, EmailDraft, PhoneDraft } from '../contactMethods';
 
 type ContactRecordBase = {
   id: string;
@@ -50,6 +51,187 @@ export type AddressRecord = ContactRecordBase & {
   postalCode: string | null;
   type: AddressType;
 };
+
+/**
+ * Explicit, type-checked draft -> Prisma input mapping (P013A - verified bug
+ * fix: the UI/domain model names this field `order`; the Prisma column is
+ * `sortOrder`. Raw-spreading a *Draft object straight into `.add()` throws
+ * "Unknown argument `order`" on create - Prisma rejects the unrecognized
+ * key outright - and would have silently dropped `order`/`sortOrder` on
+ * update too (the draft's `id` and other UI-only shape would also have been
+ * forwarded). Every field below is named explicitly against the real
+ * `Prisma.*UncheckedCreateInput`/`*UncheckedUpdateInput` types, so the
+ * compiler - not a runtime Prisma error - catches the next rename. `id` is
+ * deliberately never forwarded on create: a new draft's id is a
+ * client-generated placeholder used only to match the row up in local
+ * component state before save; the server always lets Prisma generate the
+ * real id, and the caller re-fetches the persisted record (with its real
+ * id) once the mutation completes.
+ */
+export function mapPhoneDraftForCreate(
+  draft: PhoneDraft
+): Omit<Prisma.PhoneUncheckedCreateInput, 'id' | 'organizationId' | 'entityId'> {
+  return {
+    number: draft.number,
+    type: draft.type,
+    label: draft.label,
+    isPrimary: draft.isPrimary,
+    status: draft.status,
+    notes: draft.notes ?? null,
+    sortOrder: draft.order,
+    verified: draft.verified,
+    verifiedAt: draft.verifiedAt ?? null,
+    verifiedByUserId: draft.verifiedByUserId ?? null,
+  };
+}
+
+export function mapPhoneDraftForUpdate(draft: PhoneDraft): {
+  number: string;
+  type: PhoneType;
+  label: string;
+  isPrimary: boolean;
+  status: ContactMethodStatus;
+  notes: string | null;
+  sortOrder: number;
+  verified: boolean;
+  verifiedAt: string | null;
+  verifiedByUserId: string | null;
+  deletedAt: string | null;
+  deletedByUserId: string | null;
+} {
+  return {
+    number: draft.number,
+    type: draft.type,
+    label: draft.label,
+    isPrimary: draft.isPrimary,
+    status: draft.status,
+    notes: draft.notes ?? null,
+    sortOrder: draft.order,
+    verified: draft.verified,
+    verifiedAt: draft.verifiedAt ?? null,
+    verifiedByUserId: draft.verifiedByUserId ?? null,
+    deletedAt: draft.deletedAt ?? null,
+    deletedByUserId: draft.deletedByUserId ?? null,
+  };
+}
+
+export function mapEmailDraftForCreate(
+  draft: EmailDraft
+): Omit<Prisma.EmailUncheckedCreateInput, 'id' | 'organizationId' | 'entityId'> {
+  return {
+    address: draft.address,
+    type: draft.type,
+    label: draft.label,
+    isPrimary: draft.isPrimary,
+    status: draft.status,
+    notes: draft.notes ?? null,
+    sortOrder: draft.order,
+    verified: draft.verified,
+    verifiedAt: draft.verifiedAt ?? null,
+    verifiedByUserId: draft.verifiedByUserId ?? null,
+  };
+}
+
+export function mapEmailDraftForUpdate(draft: EmailDraft): {
+  address: string;
+  type: EmailType;
+  label: string;
+  isPrimary: boolean;
+  status: ContactMethodStatus;
+  notes: string | null;
+  sortOrder: number;
+  verified: boolean;
+  verifiedAt: string | null;
+  verifiedByUserId: string | null;
+  deletedAt: string | null;
+  deletedByUserId: string | null;
+} {
+  return {
+    address: draft.address,
+    type: draft.type,
+    label: draft.label,
+    isPrimary: draft.isPrimary,
+    status: draft.status,
+    notes: draft.notes ?? null,
+    sortOrder: draft.order,
+    verified: draft.verified,
+    verifiedAt: draft.verifiedAt ?? null,
+    verifiedByUserId: draft.verifiedByUserId ?? null,
+    deletedAt: draft.deletedAt ?? null,
+    deletedByUserId: draft.deletedByUserId ?? null,
+  };
+}
+
+export function mapAddressDraftForCreate(
+  draft: AddressDraft
+): Omit<Prisma.AddressUncheckedCreateInput, 'id' | 'organizationId' | 'entityId'> {
+  return {
+    country: draft.country ?? null,
+    city: draft.city ?? null,
+    cityProviderId: draft.cityProviderId ?? null,
+    street: draft.street ?? null,
+    streetProviderId: draft.streetProviderId ?? null,
+    houseNumber: draft.houseNumber ?? null,
+    entrance: draft.entrance ?? null,
+    floor: draft.floor ?? null,
+    apartment: draft.apartment ?? null,
+    postalCode: draft.postalCode ?? null,
+    type: draft.type,
+    isPrimary: draft.isPrimary,
+    status: draft.status,
+    notes: draft.notes ?? null,
+    sortOrder: draft.order,
+    verified: draft.verified,
+    verifiedAt: draft.verifiedAt ?? null,
+    verifiedByUserId: draft.verifiedByUserId ?? null,
+  };
+}
+
+export function mapAddressDraftForUpdate(draft: AddressDraft): {
+  country: string | null;
+  city: string | null;
+  cityProviderId: string | null;
+  street: string | null;
+  streetProviderId: string | null;
+  houseNumber: string | null;
+  entrance: string | null;
+  floor: string | null;
+  apartment: string | null;
+  postalCode: string | null;
+  type: AddressType;
+  isPrimary: boolean;
+  status: ContactMethodStatus;
+  notes: string | null;
+  sortOrder: number;
+  verified: boolean;
+  verifiedAt: string | null;
+  verifiedByUserId: string | null;
+  deletedAt: string | null;
+  deletedByUserId: string | null;
+} {
+  return {
+    country: draft.country ?? null,
+    city: draft.city ?? null,
+    cityProviderId: draft.cityProviderId ?? null,
+    street: draft.street ?? null,
+    streetProviderId: draft.streetProviderId ?? null,
+    houseNumber: draft.houseNumber ?? null,
+    entrance: draft.entrance ?? null,
+    floor: draft.floor ?? null,
+    apartment: draft.apartment ?? null,
+    postalCode: draft.postalCode ?? null,
+    type: draft.type,
+    isPrimary: draft.isPrimary,
+    status: draft.status,
+    notes: draft.notes ?? null,
+    sortOrder: draft.order,
+    verified: draft.verified,
+    verifiedAt: draft.verifiedAt ?? null,
+    verifiedByUserId: draft.verifiedByUserId ?? null,
+    deletedAt: draft.deletedAt ?? null,
+    deletedByUserId: draft.deletedByUserId ?? null,
+  };
+}
 
 type ContactModelClient<TRecord, TCreateInput, TUpdateInput> = {
   create(args: { data: TCreateInput }): Promise<TRecord>;
