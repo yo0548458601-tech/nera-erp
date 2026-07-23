@@ -3,7 +3,7 @@
 # Nera Platform Architecture
 
 **Version:** 1.0  
-**Status:** Approved
+**Status:** Approved — legacy foundation document (predates `NERA_CONSTITUTION.md`/ADR-002/`ENGINE_MAP.md`). Per `NERA_CONSTITUTION.md` §13, it remains valid only for details not restated or superseded by the Constitution, the ADRs, or `ENGINE_MAP.md`. **Verified, corrected below (P013A documentation closeout) where it directly conflicted with the current, higher-precedence architecture:** Section 5 (Core Engines list), Section 7 (Tenant Model), Section 17 (Audit Engine's field list), and Section 18 (`tenant_id`). Each correction is marked inline; the surrounding, non-conflicting text is unchanged.
 
 ---
 
@@ -36,6 +36,13 @@ The architecture must support:
 - Reusable core engines
 - AI as a native platform assistant
 - Long-term extensibility
+
+**Correction (P013A documentation closeout, per ADR-002 — Accepted; see Section 7's
+correction for the full decision):** "Multiple tenants" and "Multiple organizations per
+tenant" above restate the superseded tenant-above-organization model. **Organization is the
+tenant** — read these two bullets as "Multiple organizations (each its own tenant)" and "Each
+organization may optionally contain one or more Institutions," not as two separate hierarchy
+levels.
 
 ---
 
@@ -108,6 +115,16 @@ Approved Core Engines:
 - Customization Engine
 - AI Engine
 
+**Correction (P013A documentation closeout): this list is incomplete and must not be read as
+the current engine inventory.** `docs/ENGINE_MAP.md` is the authoritative, up-to-date engine
+inventory (`NERA_CONSTITUTION.md` §13) and additionally includes: **Organization / Institution
+Engine** (the tenant boundary itself — ADR-002; real and persisted since P012), **Entity
+Engine** (real and persisted for the person side since P013A), **Business Event Bus** (this
+list's "Event Engine," renamed and real since P010), **Integration Engine** (approved by
+ADR-005; not yet implemented), and **Plugin / Extension Runtime** (a registration skeleton
+exists since P008/ADR-010). Do not add a new engine anywhere in the platform based on this
+list alone without cross-checking `docs/ENGINE_MAP.md` first.
+
 Core Engines should live under:
 
 `packages/engines`
@@ -165,6 +182,21 @@ Tenant data isolation is mandatory.
 Data from one tenant must never be visible to another tenant.
 
 This must be enforced both at the application layer and at the database layer.
+
+**Correction (P013A documentation closeout, per ADR-002 — Accepted):** the paragraph above,
+describing a "tenant" as a separate concept that may contain multiple organizations, is
+superseded. **Organization is the tenant and the sole security boundary — there is no
+separate tenant concept above it.** An Organization may optionally contain one or more
+Institutions (a business hierarchy strictly below the Organization, never a substitute for
+it, and never itself a security boundary — ADR-002 Decision items 1–3). Row Level Security is
+keyed on `organization_id` only. **This correction governs every other use of "tenant"
+anywhere else in this document, not only this section** — everywhere this document says
+"tenant," read "Organization"; everywhere it lists "branches, institutions, companies or
+departments" as peers of "organizations," read those as optional structure _within_ one
+Organization, not alongside it. Sections 2 and 16 restate the same superseded model most
+directly and are corrected inline below; every other, milder use of "tenant" in this
+document (e.g. "per tenant," "tenant isolation," "tenant-scoped") should be read the same way
+without needing its own repeated correction.
 
 ---
 
@@ -350,6 +382,13 @@ Settings may exist at multiple levels:
 - Module
 - User
 
+**Correction (P013A documentation closeout, per ADR-002 — Accepted; see Section 7's
+correction for the full decision):** "Tenant" and "Organization" above are not two separate
+levels — that predates ADR-002. **Organization is the tenant.** Read the level list as:
+System, Organization, Module, User (Institution, where an Organization uses one, is an
+optional additional level below Organization, per ADR-002 — not listed here since no
+Institution-scoped setting has been built yet).
+
 Hardcoded tenant behavior is forbidden.
 
 If behavior may differ between customers, it should be represented as configuration.
@@ -380,6 +419,13 @@ Audit records must be append-only.
 
 They must not be edited or deleted through normal application behavior.
 
+**Correction (P013A documentation closeout, per ADR-002):** "Tenant" and "Organization if
+relevant" above are not two separate fields — that phrasing predates ADR-002. The real,
+implemented `AuditLog` model (`packages/database/prisma/schema.prisma`, real since P004,
+written to via `@nera/audit-engine`'s `recordAudit()` since P010) has a single
+`organizationId` column, not a separate tenant/organization pair. Read "Actor / Tenant /
+Organization if relevant" above as "Actor / Organization" (mandatory, not conditional).
+
 ---
 
 # 18. Database Philosophy
@@ -397,6 +443,13 @@ Rules:
 - Tenant-scoped tables must include tenant_id
 - Important tables should include created_by and updated_by where relevant
 - Indexes must be added for foreign keys and common query paths
+
+**Correction (P013A documentation closeout, per ADR-002 and `NERA_CONSTITUTION.md` §7.7):**
+the "Tenant-scoped tables must include `tenant_id`" rule above is superseded. No table in the
+repository has ever had a `tenant_id` column. Every tenant-scoped table carries
+`organization_id` (mandatory) and, optionally, an organization-validated `institution_id`
+(additive only, never trusted alone — ADR-002 Decision item 5). Read "tenant_id" above as
+"organization_id."
 
 The database must prioritize integrity over convenience.
 
@@ -435,7 +488,7 @@ Approved repository structure:
 │   ├── ARCHITECTURE.md
 │   ├── DEVELOPMENT.md
 │   ├── ROADMAP.md
-│   └── decisions/
+│   └── adr/
 ├── apps/
 ├── packages/
 │   └── engines/
@@ -443,6 +496,11 @@ Approved repository structure:
 ├── scripts/
 └── tools/
 ```
+
+**Correction (P013A documentation closeout):** the tree above is updated to `docs/adr/`,
+replacing `docs/decisions/`. `docs/adr/` is the single canonical Architecture Decision Record
+directory (see `docs/adr/README.md`); `docs/decisions/` now holds only short redirect stubs
+pointing there, not a second source of truth, and nothing new is added to it.
 
 Folder responsibilities:
 
@@ -461,8 +519,8 @@ Business Modules only.
 `docs/`  
 Project documentation.
 
-`docs/decisions/`  
-Architecture Decision Records.
+`docs/adr/`  
+Architecture Decision Records (canonical location — see correction above).
 
 `scripts/`  
 Automation and developer scripts.
