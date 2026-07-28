@@ -49,13 +49,13 @@ export function PersonCustomFieldsCard({ person }: { person: PersonEntity }) {
     return null;
   }
 
-  const handleSave = (definitionId: string) => {
+  const handleSave = async (definitionId: string) => {
     const stored = getValue(person.id, definitionId);
     const draft = drafts[definitionId] ?? stored?.value;
     if (!draft) {
       return;
     }
-    const validationErrors = setValue(person.id, definitionId, draft, currentUserId);
+    const validationErrors = await setValue(person.id, definitionId, draft, currentUserId);
     setErrors(current => ({ ...current, [definitionId]: validationErrors }));
     if (validationErrors.length === 0) {
       setSavedFieldId(definitionId);

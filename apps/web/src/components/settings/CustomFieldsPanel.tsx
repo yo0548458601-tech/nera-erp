@@ -19,29 +19,36 @@ const fieldTypeLabels: Record<CustomFieldType, string> = {
   document: 'מסמך',
 };
 
-const scopeLabels: Record<CustomFieldTargetScope, string> = {
+/**
+ * 'institution' is deliberately excluded here (Owner decision 3, P013B):
+ * CustomFieldTargetScope still carries an 'institution' value on the pure
+ * engine type, but no institution-scoped target exists in this sprint, so
+ * this settings UI never offers it as a selectable scope.
+ */
+const scopeLabels: Record<Exclude<CustomFieldTargetScope, 'institution'>, string> = {
   entity_type: 'סוג ישות',
   role: 'תפקיד',
   module: 'מודול',
-  institution: 'מוסד',
 };
 
 /**
- * Settings foundation for administrator-configurable custom fields: view
- * existing definitions and create new ones with a target scope, field
- * type, and the visibility/filter/search/Excel flags every field carries.
- * File uploads are never claimed to persist - the "file"/"document" types
- * only record a file name in this demo, matching the platform rule that
- * demo capabilities must not pretend to do more than they do.
+ * Settings for administrator-configurable custom fields: view existing
+ * definitions and create new ones with a target scope, field type, and the
+ * visibility/filter/search/Excel flags every field carries. Real,
+ * persisted rows (P013B - see docs/ROADMAP.md). File uploads are never
+ * claimed to persist - the "file"/"document" types only record a file name,
+ * matching the platform rule that a capability must not pretend to do more
+ * than it does.
  */
 export function CustomFieldsPanel() {
   const canManage = useMyPermission('custom_fields.manage');
-  const { definitions, addCustomField, setFieldStatus } = useCustomFields();
+  const { definitions, isLoading, addCustomField, setFieldStatus } = useCustomFields();
 
   const [key, setKey] = useState('');
   const [label, setLabel] = useState('');
   const [fieldType, setFieldType] = useState<CustomFieldType>('short_text');
-  const [targetScope, setTargetScope] = useState<CustomFieldTargetScope>('entity_type');
+  const [targetScope, setTargetScope] =
+    useState<Exclude<CustomFieldTargetScope, 'institution'>>('entity_type');
   const [targetEntityType, setTargetEntityType] = useState<'person' | 'organization'>('person');
   const [required, setRequired] = useState(false);
   const [showInList, setShowInList] = useState(false);
@@ -52,6 +59,7 @@ export function CustomFieldsPanel() {
   const [includeInExcelImport, setIncludeInExcelImport] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!canManage) {
     return (
@@ -61,12 +69,13 @@ export function CustomFieldsPanel() {
     );
   }
 
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError('');
     setSuccessMessage('');
+    setIsSubmitting(true);
 
-    const result = addCustomField({
+    const result = await addCustomField({
       key: key.trim(),
       label,
       fieldType,
@@ -84,6 +93,8 @@ export function CustomFieldsPanel() {
       includeInExcelExport,
       includeInExcelImport,
     });
+
+    setIsSubmitting(false);
 
     if (result.error) {
       setError(result.error);
@@ -108,7 +119,7 @@ export function CustomFieldsPanel() {
   return (
     <PanelCard
       title="שדות מותאמים אישית"
-      subtitle="מצב הדגמה - הגדרות השדות נשמרות בזיכרון הדפדפן בלבד למשך ההדגמה. ערכי קבצים/מסמכים אינם נשמרים בפועל בהדגמה זו."
+      subtitle="ערכי קבצים/מסמכים אינם נשמרים בפועל בשלב זה - רק שם הקובץ נרשם."
     >
       <div className="flex flex-col gap-6">
         <div className="overflow-x-auto">
@@ -139,48 +150,60 @@ export function CustomFieldsPanel() {
               </tr>
             </thead>
             <tbody>
-              {definitions.map(definition => (
-                <tr key={definition.id} className="border-b border-slate-100 last:border-0">
-                  <td className="px-3 py-3">
-                    <p className="font-medium text-slate-900">{definition.label}</p>
-                    {definition.description ? (
-                      <p className="text-xs text-slate-400">{definition.description}</p>
-                    ) : null}
-                  </td>
-                  <td className="px-3 py-3 font-mono text-xs text-slate-500">{definition.key}</td>
-                  <td className="px-3 py-3 text-slate-600">
-                    {fieldTypeLabels[definition.fieldType]}
-                  </td>
-                  <td className="px-3 py-3 text-slate-600">
-                    {scopeLabels[definition.targetScope]}
-                    {definition.targetEntityType
-                      ? ` (${definition.targetEntityType === 'person' ? 'אדם' : 'ארגון'})`
-                      : ''}
-                  </td>
-                  <td className="px-3 py-3 text-slate-600">{definition.required ? 'כן' : 'לא'}</td>
-                  <td className="px-3 py-3 text-slate-600">
-                    {definition.includeInExcelExport ? 'כן' : 'לא'}
-                  </td>
-                  <td className="px-3 py-3">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setFieldStatus(
-                          definition.id,
-                          definition.status === 'active' ? 'inactive' : 'active'
-                        )
-                      }
-                      className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                        definition.status === 'active'
-                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                          : 'border-slate-200 bg-slate-50 text-slate-500'
-                      }`}
-                    >
-                      {definition.status === 'active' ? 'פעיל' : 'מושבת'}
-                    </button>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="px-3 py-6 text-center text-sm text-slate-400">
+                    טוען...
                   </td>
                 </tr>
-              ))}
+              ) : (
+                definitions.map(definition => (
+                  <tr key={definition.id} className="border-b border-slate-100 last:border-0">
+                    <td className="px-3 py-3">
+                      <p className="font-medium text-slate-900">{definition.label}</p>
+                      {definition.description ? (
+                        <p className="text-xs text-slate-400">{definition.description}</p>
+                      ) : null}
+                    </td>
+                    <td className="px-3 py-3 font-mono text-xs text-slate-500">{definition.key}</td>
+                    <td className="px-3 py-3 text-slate-600">
+                      {fieldTypeLabels[definition.fieldType]}
+                    </td>
+                    <td className="px-3 py-3 text-slate-600">
+                      {definition.targetScope === 'institution'
+                        ? 'מוסד'
+                        : scopeLabels[definition.targetScope]}
+                      {definition.targetEntityType
+                        ? ` (${definition.targetEntityType === 'person' ? 'אדם' : 'ארגון'})`
+                        : ''}
+                    </td>
+                    <td className="px-3 py-3 text-slate-600">
+                      {definition.required ? 'כן' : 'לא'}
+                    </td>
+                    <td className="px-3 py-3 text-slate-600">
+                      {definition.includeInExcelExport ? 'כן' : 'לא'}
+                    </td>
+                    <td className="px-3 py-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFieldStatus(
+                            definition.id,
+                            definition.status === 'active' ? 'inactive' : 'active'
+                          )
+                        }
+                        className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                          definition.status === 'active'
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                            : 'border-slate-200 bg-slate-50 text-slate-500'
+                        }`}
+                      >
+                        {definition.status === 'active' ? 'פעיל' : 'מושבת'}
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -228,7 +251,11 @@ export function CustomFieldsPanel() {
               <span className="font-medium text-slate-700">תחולה (Scope)</span>
               <select
                 value={targetScope}
-                onChange={event => setTargetScope(event.target.value as CustomFieldTargetScope)}
+                onChange={event =>
+                  setTargetScope(
+                    event.target.value as Exclude<CustomFieldTargetScope, 'institution'>
+                  )
+                }
                 className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
               >
                 {Object.entries(scopeLabels).map(([value, scopeLabel]) => (
@@ -319,7 +346,8 @@ export function CustomFieldsPanel() {
 
           <button
             type="submit"
-            className="self-start rounded-2xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white"
+            disabled={isSubmitting}
+            className="self-start rounded-2xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             הוסף שדה
           </button>

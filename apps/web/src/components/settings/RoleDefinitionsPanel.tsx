@@ -4,35 +4,38 @@ import { useState, type FormEvent } from 'react';
 import { type EntityType } from '@nera/entity-engine';
 import { useRoleDefinitions } from '../../context/RoleDefinitionContext';
 import { useMyPermission } from '../../context/AuthorizationContext';
-import { demoOrganizations } from '../../lib/auth/demoData';
 import { PanelCard } from '../PanelCard';
 
 const entityTypeLabels: Record<EntityType, string> = { person: 'אדם', organization: 'ארגון/חברה' };
 
 /**
- * Settings foundation for administrator-configurable business roles: view
- * built-in and custom roles, enable/disable any of them, and create new
- * custom roles with the same metadata built-in roles carry (applicable
- * entity type, institution scope, global "הוספה חדשה" visibility, whether
- * multiple simultaneous assignments are allowed). Built-in roles can never
- * be deleted here - only hidden/shown - matching the platform rule that
- * they ship with the engine. Demo-only: everything here lives in memory
- * for the session.
+ * Settings for administrator-configurable business roles: view built-in
+ * and custom roles, enable/disable any of them, and create new custom
+ * roles with the same metadata built-in roles carry (applicable entity
+ * type, global "הוספה חדשה" visibility, whether multiple simultaneous
+ * assignments are allowed). Built-in roles can never be deleted here -
+ * only hidden/shown - matching the platform rule that they ship with the
+ * engine. Real, persisted rows (P013B - see docs/ROADMAP.md).
+ *
+ * No institution-scope control (Owner decision 3, P013B): role
+ * definitions are organization-scoped only in this sprint - there is no
+ * institution picker here, and none should be added until a real
+ * institution-scoped target exists.
  */
 export function RoleDefinitionsPanel() {
   const canManage = useMyPermission('roles.manage_definitions');
-  const { roles, addCustomRole, setRoleStatus } = useRoleDefinitions();
+  const { roles, isLoading, addCustomRole, setRoleStatus } = useRoleDefinitions();
 
   const [key, setKey] = useState('');
   const [label, setLabel] = useState('');
   const [description, setDescription] = useState('');
   const [entityTypes, setEntityTypes] = useState<EntityType[]>(['person']);
-  const [institutionId, setInstitutionId] = useState('');
   const [showInGlobalAddNew, setShowInGlobalAddNew] = useState(false);
   const [allowMultipleAssignments, setAllowMultipleAssignments] = useState(false);
   const [supportsBillingProfile, setSupportsBillingProfile] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!canManage) {
     return (
@@ -48,31 +51,46 @@ export function RoleDefinitionsPanel() {
     );
   };
 
-  /**
-   * Temporarily disabled (P013A - Owner-approved UI Behavior Preservation
-   * decision): `RoleDefinition` is not persisted in P013A (role assignments
-   * store a validated string key against the static `entityRoleRegistry`,
-   * not a database-backed role-definition table - see roles.ts). Creating a
-   * role here would only ever exist in this browser tab's memory, silently
-   * lost on reload, which is worse than disabling the action with an
-   * explanation. Viewing built-in roles remains fully functional.
-   */
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    setError('');
+    setSuccessMessage('');
+    setIsSubmitting(true);
+
+    const result = await addCustomRole({
+      key: key.trim(),
+      label,
+      description,
+      applicableEntityTypes: entityTypes,
+      showInGlobalAddNew,
+      allowMultipleAssignments,
+      supportsDateRange: true,
+      supportsBillingProfile,
+    });
+
+    setIsSubmitting(false);
+
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+
+    setSuccessMessage(`התפקיד "${result.role?.label}" נוצר בהצלחה.`);
+    setKey('');
+    setLabel('');
+    setDescription('');
+    setEntityTypes(['person']);
+    setShowInGlobalAddNew(false);
+    setAllowMultipleAssignments(false);
+    setSupportsBillingProfile(false);
   };
 
   return (
     <PanelCard
       title="הגדרות תפקידים עסקיים"
-      subtitle="יצירה והשבתה של תפקידים אינן זמינות בשלב זה - תפקידי המערכת המובנים אינם ניתנים לעריכה בבסיס הנתונים הנוכחי. ניתן לצפות בתפקידים הקיימים."
+      subtitle="תפקידי המערכת המובנים מוצגים לצפייה בלבד; ניתן להוסיף תפקידים מותאמים אישית ולהשבית/להפעיל כל תפקיד."
     >
       <div className="flex flex-col gap-6">
-        <div
-          role="status"
-          className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
-        >
-          עריכת הגדרות תפקידים תתאפשר בשלב עתידי של המערכת. הטבלה שלהלן מוצגת לצפייה בלבד.
-        </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] border-collapse text-right text-sm">
             <thead>
@@ -87,9 +105,6 @@ export function RoleDefinitionsPanel() {
                   סוג ישות
                 </th>
                 <th scope="col" className="px-3 py-2">
-                  מוסד
-                </th>
-                <th scope="col" className="px-3 py-2">
                   הוספה חדשה
                 </th>
                 <th scope="col" className="px-3 py-2">
@@ -101,55 +116,55 @@ export function RoleDefinitionsPanel() {
               </tr>
             </thead>
             <tbody>
-              {roles.map(role => (
-                <tr key={role.id} className="border-b border-slate-100 last:border-0">
-                  <td className="px-3 py-3">
-                    <p className="font-medium text-slate-900">{role.label}</p>
-                    {role.description ? (
-                      <p className="text-xs text-slate-400">{role.description}</p>
-                    ) : null}
-                  </td>
-                  <td className="px-3 py-3 font-mono text-xs text-slate-500">{role.key}</td>
-                  <td className="px-3 py-3 text-slate-600">
-                    {role.applicableEntityTypes.map(type => entityTypeLabels[type]).join(', ')}
-                  </td>
-                  <td className="px-3 py-3 text-slate-600">
-                    {role.institutionId
-                      ? (demoOrganizations.find(org => org.id === role.institutionId)?.name ??
-                        role.institutionId)
-                      : 'כל המוסדות'}
-                  </td>
-                  <td className="px-3 py-3 text-slate-600">
-                    {role.showInGlobalAddNew ? 'כן' : 'לא'}
-                  </td>
-                  <td className="px-3 py-3">
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-                        role.isSystem ? 'bg-slate-100 text-slate-600' : 'bg-cyan-50 text-cyan-700'
-                      }`}
-                    >
-                      {role.isSystem ? 'מובנה' : 'מותאם אישית'}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3">
-                    <button
-                      type="button"
-                      disabled
-                      title="עריכת הגדרות תפקידים אינה זמינה בשלב זה - ראו הסבר למעלה."
-                      onClick={() =>
-                        setRoleStatus(role.id, role.status === 'active' ? 'inactive' : 'active')
-                      }
-                      className={`rounded-full border px-3 py-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-60 ${
-                        role.status === 'active'
-                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                          : 'border-slate-200 bg-slate-50 text-slate-500'
-                      }`}
-                    >
-                      {role.status === 'active' ? 'פעיל' : 'מושבת'}
-                    </button>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="px-3 py-6 text-center text-sm text-slate-400">
+                    טוען...
                   </td>
                 </tr>
-              ))}
+              ) : (
+                roles.map(role => (
+                  <tr key={role.id} className="border-b border-slate-100 last:border-0">
+                    <td className="px-3 py-3">
+                      <p className="font-medium text-slate-900">{role.label}</p>
+                      {role.description ? (
+                        <p className="text-xs text-slate-400">{role.description}</p>
+                      ) : null}
+                    </td>
+                    <td className="px-3 py-3 font-mono text-xs text-slate-500">{role.key}</td>
+                    <td className="px-3 py-3 text-slate-600">
+                      {role.applicableEntityTypes.map(type => entityTypeLabels[type]).join(', ')}
+                    </td>
+                    <td className="px-3 py-3 text-slate-600">
+                      {role.showInGlobalAddNew ? 'כן' : 'לא'}
+                    </td>
+                    <td className="px-3 py-3">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                          role.isSystem ? 'bg-slate-100 text-slate-600' : 'bg-cyan-50 text-cyan-700'
+                        }`}
+                      >
+                        {role.isSystem ? 'מובנה' : 'מותאם אישית'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setRoleStatus(role.id, role.status === 'active' ? 'inactive' : 'active')
+                        }
+                        className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                          role.status === 'active'
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                            : 'border-slate-200 bg-slate-50 text-slate-500'
+                        }`}
+                      >
+                        {role.status === 'active' ? 'פעיל' : 'מושבת'}
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -214,22 +229,6 @@ export function RoleDefinitionsPanel() {
               </div>
             </div>
 
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="font-medium text-slate-700">תחולת מוסד</span>
-              <select
-                value={institutionId}
-                onChange={event => setInstitutionId(event.target.value)}
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
-              >
-                <option value="">כל המוסדות</option>
-                {demoOrganizations.map(organization => (
-                  <option key={organization.id} value={organization.id}>
-                    {organization.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
             <label className="flex items-center gap-2 text-sm text-slate-700">
               <input
                 type="checkbox"
@@ -263,8 +262,7 @@ export function RoleDefinitionsPanel() {
 
           <button
             type="submit"
-            disabled
-            title="הוספת תפקידים אינה זמינה בשלב זה - ראו הסבר למעלה."
+            disabled={isSubmitting}
             className="self-start rounded-2xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             הוסף תפקיד

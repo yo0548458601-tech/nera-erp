@@ -1,67 +1,41 @@
 'use client';
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import {
   findCustomFieldValue,
   getCustomFieldValuesForEntity,
-  validateCustomFieldValue,
   type CustomFieldDefinition,
-  type CustomFieldOption,
-  type CustomFieldTargetScope,
-  type CustomFieldType,
-  type CustomFieldValidationRules,
+  type CustomFieldStatus,
   type CustomFieldValue,
   type CustomFieldValueData,
+  type NewCustomFieldInput,
 } from '@nera/customization-engine';
-
-function createId(prefix: string): string {
-  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-/**
- * No seed definitions (P013A - Owner-approved UI Behavior Preservation
- * decision): Custom Fields persistence is deferred to P013B (Configuration
- * Persistence). The demo seed field previously here only ever lived in this
- * browser tab's memory - removed so the Custom Fields card cleanly
- * self-hides (no active definitions) rather than implying a real, durable
- * custom field exists. Fields created live through the settings UI below
- * remain in-memory-only until P013B.
- */
-const seedCustomFieldDefinitions: CustomFieldDefinition[] = [];
-
-export type NewCustomFieldInput = {
-  key: string;
-  label: string;
-  description?: string;
-  fieldType: CustomFieldType;
-  targetScope: CustomFieldTargetScope;
-  targetEntityType?: 'person' | 'organization';
-  targetRoleKey?: string;
-  targetModuleId?: string;
-  institutionId?: string;
-  required: boolean;
-  options?: CustomFieldOption[];
-  validation?: CustomFieldValidationRules;
-  showInList: boolean;
-  showInDetail: boolean;
-  filterable: boolean;
-  searchable: boolean;
-  includeInExcelExport: boolean;
-  includeInExcelImport: boolean;
-  viewPermission?: string;
-  editPermission?: string;
-  section?: string;
-};
+import { useSession } from './SessionContext';
+import {
+  createCustomFieldDefinitionAction,
+  listCustomFieldDefinitionsAction,
+  setCustomFieldDefinitionStatusAction,
+  setCustomFieldValueAction,
+} from '../lib/actions/customFieldActions';
 
 type CustomFieldContextValue = {
-  /** All administrator-defined custom field definitions - demo-only, in-memory. */
+  /** All administrator-defined custom field definitions - real, persisted rows (P013B), loaded once per selected organization. */
   definitions: CustomFieldDefinition[];
+  /** Every custom field value for the selected organization (bulk-loaded, mirrors EntityContext's convention) - not paginated, matching this platform's current demo scale. */
   values: CustomFieldValue[];
-  addCustomField: (input: NewCustomFieldInput) => {
-    definition?: CustomFieldDefinition;
-    error?: string;
-  };
-  setFieldStatus: (id: string, status: 'active' | 'inactive') => void;
+  isLoading: boolean;
+  addCustomField: (
+    input: NewCustomFieldInput
+  ) => Promise<{ definition?: CustomFieldDefinition; error?: string }>;
+  setFieldStatus: (id: string, status: CustomFieldStatus) => Promise<void>;
   getValuesForEntity: (entityId: string) => CustomFieldValue[];
   getValue: (entityId: string, definitionId: string) => CustomFieldValue | undefined;
   setValue: (
@@ -69,7 +43,7 @@ type CustomFieldContextValue = {
     definitionId: string,
     value: CustomFieldValueData,
     updatedByUserId: string
-  ) => string[];
+  ) => Promise<string[]>;
 };
 
 const CustomFieldContext = createContext<CustomFieldContextValue | undefined>(undefined);
@@ -77,21 +51,46 @@ const CustomFieldContext = createContext<CustomFieldContextValue | undefined>(un
 const KEY_PATTERN = /^[a-z][a-z0-9_]*$/;
 
 /**
- * Holds the platform's live custom-field definitions and their values.
- * Values are typed per field (see CustomFieldValueData), validated through
- * @nera/customization-engine before being stored, and kept as a flat
- * collection keyed by entityId + customFieldDefinitionId - matching how a
- * future `custom_field_values` database table would relate to both
- * `entities` and `custom_field_definitions` by foreign key.
+ * Real, persisted custom-field definitions and values (P013B - see
+ * docs/ROADMAP.md). Every read/write goes through `customFieldActions.ts`'s
+ * Server Actions; `validateCustomFieldValue` still runs (inside the Server
+ * Action, against the real definition) before any value is stored.
  */
 export function CustomFieldProvider({ children }: { children: ReactNode }) {
-  const [definitions, setDefinitions] = useState<CustomFieldDefinition[]>(
-    seedCustomFieldDefinitions
-  );
+  const { session } = useSession();
+  const organizationId = session?.selectedOrganizationId;
+  const [definitions, setDefinitions] = useState<CustomFieldDefinition[]>([]);
   const [values, setValues] = useState<CustomFieldValue[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!organizationId) {
+      return;
+    }
+    let cancelled = false;
+    setIsLoading(true);
+    listCustomFieldDefinitionsAction(organizationId).then(result => {
+      if (cancelled) {
+        return;
+      }
+      if (result.ok) {
+        setDefinitions(result.data.definitions);
+        setValues(result.data.values);
+      }
+      setIsLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationId]);
 
   const addCustomField = useCallback(
-    (input: NewCustomFieldInput): { definition?: CustomFieldDefinition; error?: string } => {
+    async (
+      input: NewCustomFieldInput
+    ): Promise<{ definition?: CustomFieldDefinition; error?: string }> => {
+      if (!organizationId) {
+        return { error: 'לא נבחר ארגון פעיל.' };
+      }
       const key = input.key.trim();
       if (!KEY_PATTERN.test(key)) {
         return {
@@ -111,51 +110,30 @@ export function CustomFieldProvider({ children }: { children: ReactNode }) {
         return { error: 'יש להגדיר לפחות אפשרות אחת עבור שדה מסוג רשימה.' };
       }
 
-      const now = new Date().toISOString();
-      const definition: CustomFieldDefinition = {
-        id: createId('cf-def'),
-        key,
-        label: input.label.trim(),
-        description: input.description?.trim() || undefined,
-        fieldType: input.fieldType,
-        targetScope: input.targetScope,
-        targetEntityType: input.targetEntityType,
-        targetRoleKey: input.targetRoleKey,
-        targetModuleId: input.targetModuleId,
-        institutionId: input.institutionId,
-        required: input.required,
-        options: input.options,
-        validation: input.validation,
-        showInList: input.showInList,
-        showInDetail: input.showInDetail,
-        filterable: input.filterable,
-        searchable: input.searchable,
-        includeInExcelExport: input.includeInExcelExport,
-        includeInExcelImport: input.includeInExcelImport,
-        viewPermission: input.viewPermission,
-        editPermission: input.editPermission,
-        order: definitions.length,
-        section: input.section,
-        status: 'active',
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      setDefinitions(current => [...current, definition]);
-      return { definition };
+      const result = await createCustomFieldDefinitionAction(organizationId, { ...input, key });
+      if (!result.ok) {
+        return { error: result.reason };
+      }
+      setDefinitions(current => [...current, result.data]);
+      return { definition: result.data };
     },
-    [definitions]
+    [organizationId, definitions]
   );
 
-  const setFieldStatus = useCallback((id: string, status: 'active' | 'inactive') => {
-    setDefinitions(current =>
-      current.map(definition =>
-        definition.id === id
-          ? { ...definition, status, updatedAt: new Date().toISOString() }
-          : definition
-      )
-    );
-  }, []);
+  const setFieldStatus = useCallback(
+    async (id: string, status: CustomFieldStatus) => {
+      if (!organizationId) {
+        return;
+      }
+      const result = await setCustomFieldDefinitionStatusAction(organizationId, id, status);
+      if (result.ok) {
+        setDefinitions(current =>
+          current.map(definition => (definition.id === id ? result.data : definition))
+        );
+      }
+    },
+    [organizationId]
+  );
 
   const getValuesForEntity = useCallback(
     (entityId: string) => getCustomFieldValuesForEntity(values, entityId),
@@ -169,60 +147,60 @@ export function CustomFieldProvider({ children }: { children: ReactNode }) {
   );
 
   const setValue = useCallback(
-    (
+    async (
       entityId: string,
       definitionId: string,
       value: CustomFieldValueData,
       updatedByUserId: string
-    ): string[] => {
-      const definition = definitions.find(entry => entry.id === definitionId);
-      if (!definition) {
-        return ['שדה מותאם אישית לא נמצא.'];
+    ): Promise<string[]> => {
+      if (!organizationId) {
+        return ['לא נבחר ארגון פעיל.'];
       }
-      const errors = validateCustomFieldValue(definition, value);
-      if (errors.length > 0) {
-        return errors;
+      const result = await setCustomFieldValueAction(
+        organizationId,
+        entityId,
+        definitionId,
+        value,
+        updatedByUserId
+      );
+      if (!result.ok) {
+        return [result.reason];
       }
-
       setValues(current => {
         const existing = current.find(
           entry => entry.entityId === entityId && entry.customFieldDefinitionId === definitionId
         );
-        const now = new Date().toISOString();
         if (existing) {
-          return current.map(entry =>
-            entry.id === existing.id ? { ...entry, value, updatedAt: now, updatedByUserId } : entry
-          );
+          return current.map(entry => (entry.id === existing.id ? result.data : entry));
         }
-        return [
-          ...current,
-          {
-            id: createId('cf-val'),
-            customFieldDefinitionId: definitionId,
-            entityId,
-            value,
-            createdAt: now,
-            updatedAt: now,
-            updatedByUserId,
-          },
-        ];
+        return [...current, result.data];
       });
       return [];
     },
-    [definitions]
+    [organizationId]
   );
 
   const contextValue = useMemo<CustomFieldContextValue>(
     () => ({
       definitions,
       values,
+      isLoading,
       addCustomField,
       setFieldStatus,
       getValuesForEntity,
       getValue,
       setValue,
     }),
-    [definitions, values, addCustomField, setFieldStatus, getValuesForEntity, getValue, setValue]
+    [
+      definitions,
+      values,
+      isLoading,
+      addCustomField,
+      setFieldStatus,
+      getValuesForEntity,
+      getValue,
+      setValue,
+    ]
   );
 
   return <CustomFieldContext.Provider value={contextValue}>{children}</CustomFieldContext.Provider>;

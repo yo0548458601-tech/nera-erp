@@ -1,6 +1,14 @@
 'use client';
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import {
   mergeFieldRequirementModes,
   resolveFieldRequirement,
@@ -9,10 +17,11 @@ import {
   type FieldRequirementRule,
   type FieldRequirementScope,
 } from '@nera/customization-engine';
-
-function createId(prefix: string): string {
-  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
-}
+import { useSession } from './SessionContext';
+import {
+  listFieldRequirementRulesAction,
+  setFieldRequirementRuleAction,
+} from '../lib/actions/fieldRequirementActions';
 
 /**
  * Built-in defaults per field key - NOT limited to "birthDate" (see
@@ -28,6 +37,7 @@ const BUILT_IN_DEFAULTS: Record<string, FieldRequirementMode> = {
 
 type FieldRequirementContextValue = {
   rules: FieldRequirementRule[];
+  isLoading: boolean;
   /** Resolves for ONE role-key context; see resolveForRoles for the multi-role merge a create/edit form needs. */
   resolveForRole: (
     fieldKey: string,
@@ -56,19 +66,43 @@ type FieldRequirementContextValue = {
     targetId: string | undefined,
     mode: FieldRequirementMode,
     updatedByUserId: string
-  ) => void;
+  ) => Promise<void>;
 };
 
 const FieldRequirementContext = createContext<FieldRequirementContextValue | undefined>(undefined);
 
 /**
- * Holds configurable field applicability/requirement rules (see
- * @nera/customization-engine's fieldRequirements.ts) - demo-only,
- * in-memory. This sprint only wires up "birthDate", but the model is
- * field-key generic so a future field can reuse it without a new context.
+ * Real, persisted field-state configuration rules (P013B - see
+ * docs/ROADMAP.md; see @nera/customization-engine's fieldRequirements.ts).
+ * Every read/write goes through `fieldRequirementActions.ts`'s Server
+ * Actions - the resolver functions themselves (`resolveFieldRequirement`,
+ * `mergeFieldRequirementModes`) are reused unchanged from the engine.
  */
 export function FieldRequirementProvider({ children }: { children: ReactNode }) {
+  const { session } = useSession();
+  const organizationId = session?.selectedOrganizationId;
   const [rules, setRules] = useState<FieldRequirementRule[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!organizationId) {
+      return;
+    }
+    let cancelled = false;
+    setIsLoading(true);
+    listFieldRequirementRulesAction(organizationId).then(result => {
+      if (cancelled) {
+        return;
+      }
+      if (result.ok) {
+        setRules(result.data);
+      }
+      setIsLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationId]);
 
   /**
    * Entity-type applicability (e.g. "birthDate" only makes sense for
@@ -113,38 +147,40 @@ export function FieldRequirementProvider({ children }: { children: ReactNode }) 
   );
 
   const setRule = useCallback(
-    (
+    async (
       fieldKey: string,
       scope: FieldRequirementScope,
       targetId: string | undefined,
       mode: FieldRequirementMode,
       updatedByUserId: string
     ) => {
-      setRules(current => {
-        const withoutExisting = current.filter(
-          rule =>
-            !(rule.fieldKey === fieldKey && rule.scope === scope && rule.targetId === targetId)
-        );
-        return [
-          ...withoutExisting,
-          {
-            id: createId('field-req'),
-            fieldKey,
-            scope,
-            targetId,
-            mode,
-            updatedAt: new Date().toISOString(),
-            updatedByUserId,
-          },
-        ];
-      });
+      if (!organizationId || !targetId) {
+        return;
+      }
+      const result = await setFieldRequirementRuleAction(
+        organizationId,
+        fieldKey,
+        scope,
+        targetId,
+        mode,
+        updatedByUserId
+      );
+      if (result.ok) {
+        setRules(current => [
+          ...current.filter(
+            rule =>
+              !(rule.fieldKey === fieldKey && rule.scope === scope && rule.targetId === targetId)
+          ),
+          result.data,
+        ]);
+      }
     },
-    []
+    [organizationId]
   );
 
   const value = useMemo<FieldRequirementContextValue>(
-    () => ({ rules, resolveForRole, resolveForRoles, setRule }),
-    [rules, resolveForRole, resolveForRoles, setRule]
+    () => ({ rules, isLoading, resolveForRole, resolveForRoles, setRule }),
+    [rules, isLoading, resolveForRole, resolveForRoles, setRule]
   );
 
   return (
