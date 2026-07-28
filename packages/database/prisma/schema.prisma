@@ -111,6 +111,50 @@ enum ListViewPreferenceScope {
   user
 }
 
+enum CustomFieldType {
+  short_text
+  long_text
+  number
+  currency
+  date
+  boolean
+  single_select
+  multi_select
+  file
+  document
+}
+
+enum CustomFieldTargetScope {
+  entity_type
+  role
+  module
+  institution
+}
+
+enum CustomFieldStatus {
+  active
+  inactive
+}
+
+enum FieldRequirementScope {
+  role
+  institution
+  entity_type
+  module
+}
+
+enum FieldRequirementMode {
+  hidden
+  optional
+  required
+  read_only
+}
+
+enum RoleDefinitionStatus {
+  active
+  inactive
+}
+
 model Organization {
   id                        String                     @id @default(uuid()) @db.Uuid
   name                      String                     @db.VarChar(255)
@@ -132,6 +176,10 @@ model Organization {
   institutions              Institution[]
   entities                  Entity[]
   listViewColumnPreferences ListViewColumnPreference[]
+  customFieldDefinitions    CustomFieldDefinition[]
+  customFieldValues         CustomFieldValue[]
+  fieldRequirementRules     FieldRequirementRule[]
+  roleDefinitions           RoleDefinition[]
 
   @@map("organizations")
 }
@@ -156,29 +204,31 @@ model OrganizationUnit {
 }
 
 model UserProfile {
-  id                        String                    @id @default(uuid()) @db.Uuid
-  authenticationUserId      String                    @unique @map("authentication_user_id") @db.VarChar(255)
-  displayName               String?                   @map("display_name") @db.VarChar(255)
-  preferredLocale           String                    @default("en") @map("preferred_locale") @db.VarChar(16)
-  preferredTimezone         String                    @default("UTC") @map("preferred_timezone") @db.VarChar(64)
-  preferredCalendarDisplay  CalendarDisplay           @default(gregorian) @map("preferred_calendar_display")
-  status                    UserProfileStatus         @default(active)
-  createdAt                 DateTime                  @default(now()) @map("created_at")
-  updatedAt                 DateTime                  @updatedAt @map("updated_at")
-  deletedAt                 DateTime?                 @map("deleted_at")
-  memberships               OrganizationMembership[]
-  actorLogs                 AuditLog[]                @relation("ActorUserProfile")
-  verifiedPhones            Phone[]                   @relation("PhoneVerifiedByUser")
-  deletedPhones             Phone[]                   @relation("PhoneDeletedByUser")
-  verifiedEmails            Email[]                   @relation("EmailVerifiedByUser")
-  deletedEmails             Email[]                   @relation("EmailDeletedByUser")
-  verifiedAddresses         Address[]                 @relation("AddressVerifiedByUser")
-  deletedAddresses          Address[]                 @relation("AddressDeletedByUser")
-  createdNotes              Note[]                    @relation("NoteCreatedByUser")
-  updatedNotes              Note[]                    @relation("NoteUpdatedByUser")
-  deletedNotes              Note[]                    @relation("NoteDeletedByUser")
-  assignedRoleAssignments   RoleAssignment[]          @relation("RoleAssignmentAssignedByUser")
-  decidedDuplicateOverrides DuplicateOverrideRecord[] @relation("DuplicateOverrideDecidedByUser")
+  id                           String                    @id @default(uuid()) @db.Uuid
+  authenticationUserId         String                    @unique @map("authentication_user_id") @db.VarChar(255)
+  displayName                  String?                   @map("display_name") @db.VarChar(255)
+  preferredLocale              String                    @default("en") @map("preferred_locale") @db.VarChar(16)
+  preferredTimezone            String                    @default("UTC") @map("preferred_timezone") @db.VarChar(64)
+  preferredCalendarDisplay     CalendarDisplay           @default(gregorian) @map("preferred_calendar_display")
+  status                       UserProfileStatus         @default(active)
+  createdAt                    DateTime                  @default(now()) @map("created_at")
+  updatedAt                    DateTime                  @updatedAt @map("updated_at")
+  deletedAt                    DateTime?                 @map("deleted_at")
+  memberships                  OrganizationMembership[]
+  actorLogs                    AuditLog[]                @relation("ActorUserProfile")
+  verifiedPhones               Phone[]                   @relation("PhoneVerifiedByUser")
+  deletedPhones                Phone[]                   @relation("PhoneDeletedByUser")
+  verifiedEmails               Email[]                   @relation("EmailVerifiedByUser")
+  deletedEmails                Email[]                   @relation("EmailDeletedByUser")
+  verifiedAddresses            Address[]                 @relation("AddressVerifiedByUser")
+  deletedAddresses             Address[]                 @relation("AddressDeletedByUser")
+  createdNotes                 Note[]                    @relation("NoteCreatedByUser")
+  updatedNotes                 Note[]                    @relation("NoteUpdatedByUser")
+  deletedNotes                 Note[]                    @relation("NoteDeletedByUser")
+  assignedRoleAssignments      RoleAssignment[]          @relation("RoleAssignmentAssignedByUser")
+  decidedDuplicateOverrides    DuplicateOverrideRecord[] @relation("DuplicateOverrideDecidedByUser")
+  updatedCustomFieldValues     CustomFieldValue[]        @relation("CustomFieldValueUpdatedByUser")
+  updatedFieldRequirementRules FieldRequirementRule[]    @relation("FieldRequirementRuleUpdatedByUser")
 
   @@map("user_profiles")
 }
@@ -340,6 +390,7 @@ model Entity {
   notes                    Note[]
   roleAssignments          RoleAssignment[]
   duplicateOverrideRecords DuplicateOverrideRecord[]
+  customFieldValues        CustomFieldValue[]
 
   @@unique([organizationId, neraId], name: "entities_organization_nera_id_unique")
   @@index([organizationId])
@@ -493,12 +544,16 @@ model Note {
   @@map("notes")
 }
 
-/// `role` is a plain, application-validated string key (matches
-/// entityRoleRegistry / RoleDefinition.key) - RoleDefinition itself is not
-/// persisted, so there is no FK target for it (see roles.ts). Uniqueness
-/// ("one active assignment unless the role allows multiple") depends on the
-/// unpersisted RoleDefinition.allowMultipleAssignments flag and is therefore
-/// an application-layer invariant (canAssignRole), not a DB constraint.
+/// `role` is a plain, application-validated string key matching
+/// RoleDefinition.key (see roles.ts) - not a literal foreign key to
+/// role_definitions.id, because RoleDefinition.key is only unique per
+/// organization, not globally, and both tables are already scoped to the
+/// same organization via RLS. Uniqueness ("one active assignment unless the
+/// role allows multiple") depends on the role definition's
+/// allowMultipleAssignments flag and is therefore an application-layer
+/// invariant (canAssignRole), not a DB constraint. (P013B - RoleDefinition
+/// is now persisted, see role_definitions below; this column's shape is
+/// unchanged.)
 model RoleAssignment {
   id               String               @id @default(uuid()) @db.Uuid
   organizationId   String               @map("organization_id") @db.Uuid
@@ -561,4 +616,139 @@ model ListViewColumnPreference {
 
   @@index([organizationId])
   @@map("list_view_column_preferences")
+}
+
+/// Customization Engine persistence (ENGINE_MAP.md Section 15; P013B - see
+/// docs/ROADMAP.md; Owner decision 3). Organization-scoped only - no
+/// institution_id column exists on this table even though targetScope's
+/// 'institution' value still exists on the pure CustomFieldTargetScope type
+/// (customFields.ts, kept unchanged per Owner decision); the settings UI
+/// never offers 'institution' as a selectable scope, so that value is
+/// unreachable through this sprint's application code, not merely hidden.
+model CustomFieldDefinition {
+  id                   String                 @id @default(uuid()) @db.Uuid
+  organizationId       String                 @map("organization_id") @db.Uuid
+  key                  String                 @db.VarChar(100)
+  label                String                 @db.VarChar(255)
+  description          String?                @db.Text
+  helpText             String?                @map("help_text") @db.Text
+  fieldType            CustomFieldType        @map("field_type")
+  targetScope          CustomFieldTargetScope @map("target_scope")
+  targetEntityType     EntityType?            @map("target_entity_type")
+  targetRoleKey        String?                @map("target_role_key") @db.VarChar(100)
+  targetModuleId       String?                @map("target_module_id") @db.VarChar(100)
+  required             Boolean                @default(false)
+  defaultValue         Json?                  @map("default_value")
+  validation           Json?
+  options              Json?
+  showInList           Boolean                @default(false) @map("show_in_list")
+  showInDetail         Boolean                @default(true) @map("show_in_detail")
+  filterable           Boolean                @default(false)
+  searchable           Boolean                @default(false)
+  includeInExcelExport Boolean                @default(false) @map("include_in_excel_export")
+  includeInExcelImport Boolean                @default(false) @map("include_in_excel_import")
+  viewPermission       String?                @map("view_permission") @db.VarChar(255)
+  editPermission       String?                @map("edit_permission") @db.VarChar(255)
+  order                Int                    @default(0)
+  section              String?                @db.VarChar(100)
+  status               CustomFieldStatus      @default(active)
+  createdAt            DateTime               @default(now()) @map("created_at")
+  updatedAt            DateTime               @updatedAt @map("updated_at")
+  deletedAt            DateTime?              @map("deleted_at")
+  organization         Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  values               CustomFieldValue[]
+
+  @@unique([organizationId, key], name: "custom_field_definitions_organization_key_unique")
+  @@index([organizationId])
+  @@map("custom_field_definitions")
+}
+
+/// One stored value per (entity, custom field definition). `value` is a
+/// single jsonb column holding the CustomFieldValueData discriminated union
+/// (Owner decision 5) - validated against its definition at the application
+/// boundary (validateCustomFieldValue, reused unchanged from
+/// @nera/customization-engine), not by a database constraint.
+model CustomFieldValue {
+  id                      String                @id @default(uuid()) @db.Uuid
+  organizationId          String                @map("organization_id") @db.Uuid
+  customFieldDefinitionId String                @map("custom_field_definition_id") @db.Uuid
+  entityId                String                @map("entity_id") @db.Uuid
+  value                   Json
+  updatedByUserId         String                @map("updated_by_user_id") @db.Uuid
+  createdAt               DateTime              @default(now()) @map("created_at")
+  updatedAt               DateTime              @updatedAt @map("updated_at")
+  organization            Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  customFieldDefinition   CustomFieldDefinition @relation(fields: [customFieldDefinitionId], references: [id], onDelete: Restrict)
+  entity                  Entity                @relation(fields: [entityId], references: [id], onDelete: Restrict)
+  updatedByUser           UserProfile           @relation("CustomFieldValueUpdatedByUser", fields: [updatedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([entityId, customFieldDefinitionId], name: "custom_field_values_entity_definition_unique")
+  @@index([organizationId])
+  @@index([customFieldDefinitionId])
+  @@map("custom_field_values")
+}
+
+/// Generic field-state rules (ENGINE_MAP.md Section 15; P013B; Owner
+/// decision 3). `targetId` is heterogeneous by scope like
+/// ListViewColumnPreference.targetId (a RoleDefinition.key for 'role', a
+/// module id for 'module', an EntityType for 'entity_type') - VARCHAR, not a
+/// live FK. 'institution' remains a valid FieldRequirementScope value on the
+/// pure engine type but is never offered by the settings UI in this sprint
+/// (Owner decision 3), so no row of this table is ever expected to carry
+/// that scope in practice.
+model FieldRequirementRule {
+  id              String                @id @default(uuid()) @db.Uuid
+  organizationId  String                @map("organization_id") @db.Uuid
+  fieldKey        String                @map("field_key") @db.VarChar(100)
+  scope           FieldRequirementScope
+  targetId        String                @map("target_id") @db.VarChar(255)
+  mode            FieldRequirementMode
+  updatedByUserId String?               @map("updated_by_user_id") @db.Uuid
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+  organization    Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  updatedByUser   UserProfile?          @relation("FieldRequirementRuleUpdatedByUser", fields: [updatedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, fieldKey, scope, targetId], name: "field_requirement_rules_scoped_unique")
+  @@index([organizationId])
+  @@map("field_requirement_rules")
+}
+
+/// Administrator-configurable role catalog (ENGINE_MAP.md Section 4; P013B;
+/// Owner decision 4: persistence lives in the Entity Engine's own
+/// repository structure, not the Customization Engine, even though the
+/// settings surface for it sits alongside custom fields/field requirements
+/// in the UI). NOT NULL organizationId, with the 12 built-in roles seeded
+/// per organization rather than a nullable "global" row (unlike
+/// Permission) - chosen so this table's RLS policy stays uniform with every
+/// other organization-scoped table rather than needing an
+/// "organization_id = X OR organization_id IS NULL" exception. No
+/// institution_id column (Owner decision 3); `institutionId` remains on the
+/// pure RoleDefinition type (roles.ts) but this repository never persists
+/// it. `linkedCustomFieldDefinitionIds` is a plain UUID array snapshot, not
+/// a live FK, matching DuplicateOverrideRecord.matchedEntityIds.
+model RoleDefinition {
+  id                             String               @id @default(uuid()) @db.Uuid
+  organizationId                 String               @map("organization_id") @db.Uuid
+  key                            String               @db.VarChar(100)
+  label                          String               @db.VarChar(255)
+  description                    String               @db.Text
+  applicableEntityTypes          EntityType[]         @map("applicable_entity_types")
+  status                         RoleDefinitionStatus @default(active)
+  order                          Int                  @default(0)
+  icon                           String?              @db.VarChar(100)
+  showInGlobalAddNew             Boolean              @default(false) @map("show_in_global_add_new")
+  allowMultipleAssignments       Boolean              @default(false) @map("allow_multiple_assignments")
+  supportsDateRange              Boolean              @default(true) @map("supports_date_range")
+  supportsBillingProfile         Boolean              @default(false) @map("supports_billing_profile")
+  requiredPermissions            Json                 @default("{}") @map("required_permissions")
+  linkedCustomFieldDefinitionIds String[]             @default([]) @map("linked_custom_field_definition_ids") @db.Uuid
+  isSystem                       Boolean              @default(false) @map("is_system")
+  createdAt                      DateTime             @default(now()) @map("created_at")
+  updatedAt                      DateTime             @updatedAt @map("updated_at")
+  deletedAt                      DateTime?            @map("deleted_at")
+  organization                   Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, key], name: "role_definitions_organization_key_unique")
+  @@index([organizationId])
+  @@map("role_definitions")
 }
