@@ -91,6 +91,42 @@ export type RoleDefinition = {
   deletedAt?: string | null;
 };
 
+/**
+ * Input shape for creating a new, administrator-defined role definition
+ * (P013B - see `docs/ROADMAP.md`). `institutionId` is accepted here for
+ * shape-compatibility with `RoleDefinition` but is never persisted (Owner
+ * decision 3, P013B sprint spec) - see `persistence/roleDefinitionRepository.ts`.
+ */
+export type NewRoleDefinitionInput = {
+  key: string;
+  label: string;
+  description: string;
+  applicableEntityTypes: EntityType[];
+  institutionId?: string;
+  showInGlobalAddNew: boolean;
+  allowMultipleAssignments: boolean;
+  supportsDateRange: boolean;
+  supportsBillingProfile: boolean;
+  icon?: string;
+};
+
+/** Patchable subset of `RoleDefinition`'s configurable metadata - never `key` (immutable after creation) and never `isSystem`'s identity fields. */
+export type RoleDefinitionPatch = Partial<
+  Pick<
+    RoleDefinition,
+    | 'label'
+    | 'description'
+    | 'applicableEntityTypes'
+    | 'institutionId'
+    | 'showInGlobalAddNew'
+    | 'allowMultipleAssignments'
+    | 'supportsDateRange'
+    | 'supportsBillingProfile'
+    | 'icon'
+    | 'order'
+  >
+>;
+
 const SEED_TIMESTAMP = '2026-01-01T00:00:00.000Z';
 
 function builtInRole(

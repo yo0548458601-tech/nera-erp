@@ -5,3 +5,4 @@ export * from './noteRepository.js';
 export * from './roleAssignmentRepository.js';
 export * from './duplicateOverrideRepository.js';
 export * from './listViewPreferenceRepository.js';
+export * from './roleDefinitionRepository.js';
