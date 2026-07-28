@@ -67,6 +67,125 @@ function splitPermissionKey(permissionKey: string): { resource: string; action: 
   };
 }
 
+/**
+ * The built-in role catalog, transcribed by hand from
+ * `packages/engines/entities/src/roles.ts`'s `entityRoleRegistry`
+ * (P013B - see `docs/ROADMAP.md`), for the same layer-order reason
+ * `CANONICAL_PERMISSION_IDS` above is transcribed rather than imported:
+ * `@nera/database` (Platform layer) cannot import `@nera/entity-engine`
+ * (Core Engine layer). Every organization gets its own copy of these 12
+ * rows (Owner decision: NOT NULL organizationId, no nullable "global" row -
+ * see roleDefinitionRepository.ts) - this seed only ever creates them for
+ * the platform seed organization; a future "create organization" flow must
+ * seed its own organization's copy the same way. Keep in sync with
+ * `entityRoleRegistry` by hand; do not rename, remove, or invent a role key
+ * here - this only mirrors the existing catalog.
+ */
+const BUILT_IN_ROLE_DEFINITIONS: ReadonlyArray<{
+  key: string;
+  label: string;
+  description: string;
+  applicableEntityTypes: ('person' | 'organization')[];
+  order: number;
+  showInGlobalAddNew?: boolean;
+  allowMultipleAssignments?: boolean;
+  supportsBillingProfile?: boolean;
+}> = [
+  {
+    key: 'contact',
+    label: 'איש קשר',
+    description: 'איש קשר כללי ללא שיוך עסקי ספציפי.',
+    applicableEntityTypes: ['person'],
+    order: 0,
+  },
+  {
+    key: 'employee',
+    label: 'עובד',
+    description: 'עובד בארגון.',
+    applicableEntityTypes: ['person'],
+    order: 1,
+    showInGlobalAddNew: true,
+  },
+  {
+    key: 'avreich',
+    label: 'אברך',
+    description: 'אברך המשויך למוסד לימוד.',
+    applicableEntityTypes: ['person'],
+    order: 2,
+    showInGlobalAddNew: true,
+  },
+  {
+    key: 'student',
+    label: 'תלמיד',
+    description: 'תלמיד המשויך למסגרת לימודים.',
+    applicableEntityTypes: ['person'],
+    order: 3,
+    showInGlobalAddNew: true,
+  },
+  {
+    key: 'parent',
+    label: 'הורה',
+    description: 'הורה או אפוטרופוס של תלמיד.',
+    applicableEntityTypes: ['person'],
+    order: 4,
+  },
+  {
+    key: 'donor',
+    label: 'תורם',
+    description: 'תורם לארגון.',
+    applicableEntityTypes: ['person', 'organization'],
+    order: 5,
+    allowMultipleAssignments: true,
+    supportsBillingProfile: true,
+  },
+  {
+    key: 'administrator',
+    label: 'מנהל מערכת',
+    description: 'הרשאת ניהול מערכת.',
+    applicableEntityTypes: ['person'],
+    order: 6,
+  },
+  {
+    key: 'individual_supplier',
+    label: 'ספק פרטי',
+    description: 'איש קשר המשמש כספק באופן פרטי, שלא דרך חברה.',
+    applicableEntityTypes: ['person'],
+    order: 7,
+    supportsBillingProfile: true,
+  },
+  {
+    key: 'supplier',
+    label: 'ספק',
+    description: 'ארגון המספק שירותים או מוצרים.',
+    applicableEntityTypes: ['organization'],
+    order: 8,
+    showInGlobalAddNew: true,
+    supportsBillingProfile: true,
+  },
+  {
+    key: 'customer',
+    label: 'לקוח',
+    description: 'גורם הרוכש שירותים או מוצרים.',
+    applicableEntityTypes: ['person', 'organization'],
+    order: 9,
+    supportsBillingProfile: true,
+  },
+  {
+    key: 'partner',
+    label: 'שותף עסקי',
+    description: 'ארגון שותף עסקית.',
+    applicableEntityTypes: ['organization'],
+    order: 10,
+  },
+  {
+    key: 'service_provider',
+    label: 'נותן שירות',
+    description: 'גורם המעניק שירות לארגון.',
+    applicableEntityTypes: ['person', 'organization'],
+    order: 11,
+  },
+];
+
 async function main() {
   if (process.env.NODE_ENV === 'production') {
     console.info('Skipping database seed in production.');
@@ -187,6 +306,39 @@ async function main() {
       roleId: systemRole.id,
     },
   });
+
+  // Built-in role definitions (P013B - see docs/ROADMAP.md). isSystem rows
+  // are seeded once and never overwritten by `update: {}` on subsequent
+  // seed runs, matching the platform's "built-in roles ship with the
+  // engine" invariant - an administrator's own status/metadata edits (if
+  // any were ever made directly in the database) are not clobbered by a
+  // re-seed.
+  for (const role of BUILT_IN_ROLE_DEFINITIONS) {
+    await prisma.roleDefinition.upsert({
+      where: {
+        role_definitions_organization_key_unique: {
+          organizationId: organization.id,
+          key: role.key,
+        },
+      },
+      update: {},
+      create: {
+        organizationId: organization.id,
+        key: role.key,
+        label: role.label,
+        description: role.description,
+        applicableEntityTypes: role.applicableEntityTypes,
+        order: role.order,
+        showInGlobalAddNew: role.showInGlobalAddNew ?? false,
+        allowMultipleAssignments: role.allowMultipleAssignments ?? false,
+        supportsDateRange: true,
+        supportsBillingProfile: role.supportsBillingProfile ?? false,
+        requiredPermissions: {},
+        linkedCustomFieldDefinitionIds: [],
+        isSystem: true,
+      },
+    });
+  }
 
   console.info('Database seed completed.');
 }
