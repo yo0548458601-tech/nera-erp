@@ -1,55 +1,40 @@
 'use client';
 
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import {
-  entityRoleRegistry,
-  type EntityType,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
+import {
+  type NewRoleDefinitionInput,
   type RoleDefinition,
+  type RoleDefinitionPatch,
   type RoleDefinitionStatus,
 } from '@nera/entity-engine';
-
-function createId(prefix: string): string {
-  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-export type NewRoleDefinitionInput = {
-  key: string;
-  label: string;
-  description: string;
-  applicableEntityTypes: EntityType[];
-  institutionId?: string;
-  showInGlobalAddNew: boolean;
-  allowMultipleAssignments: boolean;
-  supportsDateRange: boolean;
-  supportsBillingProfile: boolean;
-  icon?: string;
-};
-
-export type RoleDefinitionPatch = Partial<
-  Pick<
-    RoleDefinition,
-    | 'label'
-    | 'description'
-    | 'applicableEntityTypes'
-    | 'institutionId'
-    | 'showInGlobalAddNew'
-    | 'allowMultipleAssignments'
-    | 'supportsDateRange'
-    | 'supportsBillingProfile'
-    | 'icon'
-    | 'order'
-  >
->;
+import { useSession } from './SessionContext';
+import {
+  createRoleDefinitionAction,
+  listRoleDefinitionsAction,
+  setRoleDefinitionStatusAction,
+  updateRoleDefinitionAction,
+} from '../lib/actions/roleDefinitionActions';
 
 type RoleDefinitionContextValue = {
-  /** Built-in roles plus any administrator-defined custom roles - the single live role catalog every screen reads. Demo-only: resets on reload, nothing is persisted server-side. */
+  /** Built-in roles plus any administrator-defined custom roles - the single live role catalog every screen reads. Real, persisted rows (P013B) - loads once per selected organization. */
   roles: RoleDefinition[];
+  isLoading: boolean;
   /** Creates a new custom role. Returns an error message (Hebrew) if the key is invalid or already taken - stable keys are unique and immutable after creation. */
-  addCustomRole: (input: NewRoleDefinitionInput) => { role?: RoleDefinition; error?: string };
+  addCustomRole: (
+    input: NewRoleDefinitionInput
+  ) => Promise<{ role?: RoleDefinition; error?: string }>;
   /** Edits an existing role's configurable metadata - never its key, and never available for isSystem roles' immutable identity fields. */
-  updateRole: (id: string, patch: RoleDefinitionPatch) => void;
+  updateRole: (id: string, patch: RoleDefinitionPatch) => Promise<void>;
   /** Hides/shows a role (built-in roles can only ever be disabled, never deleted). */
-  setRoleStatus: (id: string, status: RoleDefinitionStatus) => void;
+  setRoleStatus: (id: string, status: RoleDefinitionStatus) => Promise<void>;
 };
 
 const RoleDefinitionContext = createContext<RoleDefinitionContextValue | undefined>(undefined);
@@ -57,19 +42,44 @@ const RoleDefinitionContext = createContext<RoleDefinitionContextValue | undefin
 const KEY_PATTERN = /^[a-z][a-z0-9_]*$/;
 
 /**
- * Holds the platform's live, administrator-configurable role catalog:
- * built-in roles (from the Entity Engine's seed, isSystem: true) plus any
- * custom roles created through the settings UI. Every screen that needs
- * "the roles a person can hold" reads from here rather than importing the
- * engine's static seed directly, so a newly created custom role is
- * immediately usable everywhere (filters, the person form, the global Add
- * New menu) without a second registration step.
+ * Real, persisted role definitions (P013B - see docs/ROADMAP.md; Owner
+ * decision 4). Every read/write goes through `roleDefinitionActions.ts`'s
+ * Server Actions - no in-memory `entityRoleRegistry` seed is used as this
+ * context's live state anymore (it remains the engine's built-in catalog
+ * definition, transcribed into the database seed - see
+ * `packages/database/src/seed.ts`).
  */
 export function RoleDefinitionProvider({ children }: { children: ReactNode }) {
-  const [roles, setRoles] = useState<RoleDefinition[]>(entityRoleRegistry);
+  const { session } = useSession();
+  const organizationId = session?.selectedOrganizationId;
+  const [roles, setRoles] = useState<RoleDefinition[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!organizationId) {
+      return;
+    }
+    let cancelled = false;
+    setIsLoading(true);
+    listRoleDefinitionsAction(organizationId).then(result => {
+      if (cancelled) {
+        return;
+      }
+      if (result.ok) {
+        setRoles(result.data);
+      }
+      setIsLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationId]);
 
   const addCustomRole = useCallback(
-    (input: NewRoleDefinitionInput): { role?: RoleDefinition; error?: string } => {
+    async (input: NewRoleDefinitionInput): Promise<{ role?: RoleDefinition; error?: string }> => {
+      if (!organizationId) {
+        return { error: 'לא נבחר ארגון פעיל.' };
+      }
       const key = input.key.trim();
       if (!KEY_PATTERN.test(key)) {
         return {
@@ -86,53 +96,45 @@ export function RoleDefinitionProvider({ children }: { children: ReactNode }) {
         return { error: 'יש לבחור לפחות סוג ישות אחד שהתפקיד חל עליו.' };
       }
 
-      const now = new Date().toISOString();
-      const role: RoleDefinition = {
-        id: createId('role-def'),
-        key,
-        label: input.label.trim(),
-        description: input.description.trim(),
-        applicableEntityTypes: input.applicableEntityTypes,
-        institutionId: input.institutionId,
-        status: 'active',
-        order: roles.length,
-        icon: input.icon,
-        showInGlobalAddNew: input.showInGlobalAddNew,
-        allowMultipleAssignments: input.allowMultipleAssignments,
-        supportsDateRange: input.supportsDateRange,
-        supportsBillingProfile: input.supportsBillingProfile,
-        requiredPermissions: {},
-        linkedCustomFieldDefinitionIds: [],
-        isSystem: false,
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      setRoles(current => [...current, role]);
-      return { role };
+      const result = await createRoleDefinitionAction(organizationId, { ...input, key });
+      if (!result.ok) {
+        return { error: result.reason };
+      }
+      setRoles(current => [...current, result.data]);
+      return { role: result.data };
     },
-    [roles]
+    [organizationId, roles]
   );
 
-  const updateRole = useCallback((id: string, patch: RoleDefinitionPatch) => {
-    setRoles(current =>
-      current.map(role =>
-        role.id === id ? { ...role, ...patch, updatedAt: new Date().toISOString() } : role
-      )
-    );
-  }, []);
+  const updateRole = useCallback(
+    async (id: string, patch: RoleDefinitionPatch) => {
+      if (!organizationId) {
+        return;
+      }
+      const result = await updateRoleDefinitionAction(organizationId, id, patch);
+      if (result.ok) {
+        setRoles(current => current.map(role => (role.id === id ? result.data : role)));
+      }
+    },
+    [organizationId]
+  );
 
-  const setRoleStatus = useCallback((id: string, status: RoleDefinitionStatus) => {
-    setRoles(current =>
-      current.map(role =>
-        role.id === id ? { ...role, status, updatedAt: new Date().toISOString() } : role
-      )
-    );
-  }, []);
+  const setRoleStatus = useCallback(
+    async (id: string, status: RoleDefinitionStatus) => {
+      if (!organizationId) {
+        return;
+      }
+      const result = await setRoleDefinitionStatusAction(organizationId, id, status);
+      if (result.ok) {
+        setRoles(current => current.map(role => (role.id === id ? result.data : role)));
+      }
+    },
+    [organizationId]
+  );
 
   const value = useMemo<RoleDefinitionContextValue>(
-    () => ({ roles, addCustomRole, updateRole, setRoleStatus }),
-    [roles, addCustomRole, updateRole, setRoleStatus]
+    () => ({ roles, isLoading, addCustomRole, updateRole, setRoleStatus }),
+    [roles, isLoading, addCustomRole, updateRole, setRoleStatus]
   );
 
   return <RoleDefinitionContext.Provider value={value}>{children}</RoleDefinitionContext.Provider>;

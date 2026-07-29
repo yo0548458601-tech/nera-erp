@@ -87,6 +87,37 @@ export type CustomFieldDefinition = {
   deletedAt?: string | null;
 };
 
+/**
+ * Input shape for creating a new, administrator-defined custom field
+ * (P013B - see `docs/ROADMAP.md`). `institutionId` is accepted here for
+ * shape-compatibility with `CustomFieldDefinition` but is never persisted
+ * (Owner decision 3, P013B sprint spec) - see
+ * `persistence/customFieldDefinitionRepository.ts`.
+ */
+export type NewCustomFieldInput = {
+  key: string;
+  label: string;
+  description?: string;
+  fieldType: CustomFieldType;
+  targetScope: CustomFieldTargetScope;
+  targetEntityType?: 'person' | 'organization';
+  targetRoleKey?: string;
+  targetModuleId?: string;
+  institutionId?: string;
+  required: boolean;
+  options?: CustomFieldOption[];
+  validation?: CustomFieldValidationRules;
+  showInList: boolean;
+  showInDetail: boolean;
+  filterable: boolean;
+  searchable: boolean;
+  includeInExcelExport: boolean;
+  includeInExcelImport: boolean;
+  viewPermission?: string;
+  editPermission?: string;
+  section?: string;
+};
+
 /** Typed value payload per field type - never a bare unvalidated string regardless of fieldType. */
 export type CustomFieldValueData =
   | { type: 'short_text'; value: string }

@@ -330,6 +330,8 @@ This lifecycle governs every P013A-descended sprint and every future sprint unle
 
 15.6. **Do not rely on ChatGPT or Claude memory as the sole source of project truth.** Any tool-specific persistent memory is a convenience cache, never a substitute for the documents listed in Section 1 and this section.
 
+15.7. **`docs/GPT_BOOTSTRAP.md` is the approved, permanent onboarding guide for how a new GPT session enters the project** (Owner-approved after independent review, post-P013A). It operationalizes 15.1–15.3 above as a concrete reading/startup sequence — it is a practical companion to this section, not a competing or additional source of truth: it explicitly defers to `NERA_CONSTITUTION.md` and this document for governance and precedence, and does not itself define architecture, business rules, or repository state (see its own Section 9). Where the two ever appear to disagree, this document and `NERA_CONSTITUTION.md` govern, per Section 1.
+
 ---
 
 ## 16. Knowledge Capture Policy
