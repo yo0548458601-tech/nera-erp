@@ -61,6 +61,7 @@ any institution-scoped custom field, field-requirement rule, or role definition 
 # Delivered
 
 **Database**
+
 - New tables: `custom_field_definitions`, `custom_field_values`, `field_requirement_rules`,
   `role_definitions` (migration `20260728204824_add_configuration_persistence`).
 - Every new table: `ENABLE` + `FORCE ROW LEVEL SECURITY` + an `*_organization_isolation`
@@ -76,6 +77,7 @@ any institution-scoped custom field, field-requirement rule, or role definition 
   `CANONICAL_PERMISSION_IDS` is transcribed rather than imported.
 
 **Engines**
+
 - `packages/engines/entities/src/persistence/roleDefinitionRepository.ts` — typed-mapper
   repository for Role Definitions; `institutionId` is accepted on input shapes for
   compatibility with the pure engine type but never persisted.
@@ -87,6 +89,7 @@ any institution-scoped custom field, field-requirement rule, or role definition 
   `roles.ts`), since a Core Engine repository cannot import types from the App layer.
 
 **Server Actions** (`apps/web/src/lib/actions/`)
+
 - `roleDefinitionActions.ts` — list/create/update/status-change for Role Definitions.
 - `customFieldActions.ts` — list/create/status-change for Custom Field Definitions, list/set
   for Custom Field Values (bulk organization-wide read, mirroring `listEntitiesAction`'s
@@ -97,6 +100,7 @@ any institution-scoped custom field, field-requirement rule, or role definition 
   the approved event after commit → `revalidatePath`.
 
 **UI**
+
 - `RoleDefinitionContext`, `CustomFieldContext`, `FieldRequirementContext` repointed from
   in-memory state to the new Server Actions, following `EntityContext`/
   `ListViewPreferenceContext`'s client-side cache-over-Server-Action pattern.
@@ -105,23 +109,27 @@ any institution-scoped custom field, field-requirement rule, or role definition 
 - `PersonCustomFieldsCard` updated for the bulk-loaded, organization-wide value set.
 
 **Authorization**
+
 - `roles.manage_definitions`, `custom_fields.manage`, `custom_fields.view_sensitive`,
   `field_requirements.manage_defaults` (all already defined in the permission catalog since
   P011) are now enforced server-side via real `checkPermission()` calls on every mutation.
 
 **Audit**
+
 - Every mutation calls `recordAudit()` in the same transaction as its repository write:
   `role_definition.created`/`.updated`/`.status_changed`,
   `custom_field_definition.created`/`.status_changed`, `custom_field_value.set`,
   `field_requirement_rule.set`.
 
 **Events**
+
 - `RoleDefinitionChanged`, `FieldRequirementRuleChanged` — new, documented in `ENGINE_MAP.md`
   §4/§15 before being published.
 - `CustomFieldDefinitionChanged` — previously documented as aspirational, now actually
   published by `customFieldActions.ts`.
 
 **Persistence**
+
 - All four data types verified to survive a full page reload via real-browser testing
   (Playwright, installed only temporarily and fully removed after verification): a custom
   role, a custom field definition, a custom field value on a person record, and a field
@@ -130,6 +138,7 @@ any institution-scoped custom field, field-requirement rule, or role definition 
   three settings panels.
 
 **Documentation**
+
 - `docs/ENGINE_MAP.md` §4 (Entity) — `role_definitions` documented as real and persisted;
   new `RoleDefinitionChanged` event.
 - `docs/ENGINE_MAP.md` §15 (Configuration/Metadata) — `custom_field_definitions`,
@@ -141,6 +150,7 @@ any institution-scoped custom field, field-requirement rule, or role definition 
   scheduled").
 
 **Testing**
+
 - 317 tests passing at final P013B state (32 test files), up from 283 at P013A's close.
 - New tests: 4 mocked repository suites (`roleDefinitionRepository.test.ts`,
   `customFieldDefinitionRepository.test.ts`, `customFieldValueRepository.test.ts`,
@@ -195,6 +205,7 @@ None. No defects were discovered during implementation or review this sprint.
 # Open Items
 
 **Future Roadmap (scoped sprint, no ADR strictly required)**
+
 - Settings/`SettingScope` persistence — remains in-memory, explicitly deferred.
 - Billing Profile persistence — remains in-memory, explicitly deferred.
 - Institution-scoped custom fields, field-requirement rules, and role definitions — no UI
@@ -206,11 +217,13 @@ None. No defects were discovered during implementation or review this sprint.
   functional gap.
 
 **Future ADR required (pre-existing, not new to this sprint)**
+
 - Entity-to-Institution ownership/assignment decision (`ROADMAP.md` §9.5.2).
 - Branch/Department/Institution/`PermissionScope` naming reconciliation (`ROADMAP.md` §9.5.3).
 - Database/ORM/authentication/storage provider vendor selection (`ROADMAP.md` §9.3).
 
 **Carried forward from P013A, still open**
+
 - Institution application CRUD/management (`ROADMAP.md` §9.5.1).
 - The workspace barrel/client-bundle packaging defect (`ROADMAP.md` §9.4).
 - Real Identity/Authentication — still unscheduled.

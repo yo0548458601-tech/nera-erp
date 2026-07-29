@@ -57,6 +57,7 @@ are Server Actions); any business module.
 # Delivered
 
 **Database**
+
 - New tables: `entities`, `person_profiles`, `phones`, `emails`, `addresses`, `notes`,
   `role_assignments`, `duplicate_override_records`, `list_view_column_preferences`
   (migration `20260721090000_add_entity_persistence`).
@@ -69,6 +70,7 @@ are Server Actions); any business module.
   `DEMO_MEMBERSHIP_ID`, `DEMO_SYSTEM_ROLE_ID`.
 
 **Engines**
+
 - `packages/engines/entities`: real persistence repositories — `entityRepository`,
   `personProfileRepository`, `contactMethodRepository` (phones/emails/addresses),
   `noteRepository`, `roleAssignmentRepository`, `duplicateOverrideRepository`,
@@ -77,6 +79,7 @@ are Server Actions); any business module.
   (defense-in-depth regression guard).
 
 **Server Actions** (`apps/web/src/lib/actions/`)
+
 - `entityActions.ts` — person create/update/archive/restore, contact-method add/update/
   remove, note add, role assignment, entity listing.
 - `listViewPreferenceActions.ts` — get/set/reset effective and personal/system list-view
@@ -86,31 +89,37 @@ are Server Actions); any business module.
   address lists during person edit.
 
 **UI**
+
 - Contacts list and person detail pages repointed from in-memory `EntityContext` to real
   Server Component reads + Server Action writes.
 - `PersonFormDialog`'s phone/email/address editors fixed and verified working end-to-end.
 - New client components: `ContactsPageClient`, `PersonDetailPageClient`.
 
 **Authorization**
+
 - `checkPermission()` now always runs inside `getOrganizationContext`'s RLS-scoped
   transaction (fixes the RLS-blind pre-check bug).
 - `demoSystemUsers` corrected to key on `DEMO_USER_PROFILE_ID` (fixes the stale-identity
   bug), with a regression test asserting the ids never diverge again.
 
 **Audit**
+
 - Every mutation calls `recordAudit()` in the same transaction as its repository write.
 
 **Events**
+
 - `EntityCreated` / `EntityUpdated` / `EntityArchived` published after commit for every
   person mutation.
 
 **Persistence**
+
 - Full contact lifecycle — create, edit, contact-method add/update/remove, notes, role
   assignment, list-view preferences — verified to survive a full page reload and a fresh
   session via repeated real-browser testing (Playwright, installed only temporarily and
   fully removed after each verification pass).
 
 **Documentation**
+
 - `docs/NERA_ARCHITECTURAL_INVARIANTS.md` (new): 16 sections, a Known Pitfalls/Regression
   Guards table, and the four Owner-dictated process sections.
 - `docs/ENGINE_MAP.md`: Entity and Configuration/Metadata sections corrected to state real
@@ -125,6 +134,7 @@ are Server Actions); any business module.
   setup sequence.
 
 **Testing**
+
 - 283 tests passing at final P013A state (up from ~264 at sprint start).
 - New live-PostgreSQL regression suites: `checkPermissionRls.test.ts`,
   `contactMethodDraftMapping.test.ts`, `listViewPreferenceInstitutionSwitch.test.ts`,
@@ -135,49 +145,49 @@ are Server Actions); any business module.
 # Bugs Found During Sprint
 
 1. **`checkPermission()` RLS-blindness**
-   - *Root cause:* called directly on `appPrisma` outside any `getOrganizationContext`
+   - _Root cause:_ called directly on `appPrisma` outside any `getOrganizationContext`
      transaction, so its own FORCE-RLS queries silently returned zero rows.
-   - *Resolution:* every `checkPermission` call now runs inside `getOrganizationContext`.
-   - *Regression protection:* live-Postgres test (`checkPermissionRls.test.ts`) proving both
+   - _Resolution:_ every `checkPermission` call now runs inside `getOrganizationContext`.
+   - _Regression protection:_ live-Postgres test (`checkPermissionRls.test.ts`) proving both
      the bug and the fix.
 
 2. **Stale demo-identity source (`demoSystemUsers`)**
-   - *Root cause:* a parallel demo dataset kept the old placeholder id `'demo-user'` after
+   - _Root cause:_ a parallel demo dataset kept the old placeholder id `'demo-user'` after
      `demoUser.id` was repointed to the real seeded UUID.
-   - *Resolution:* repointed the entry to `DEMO_USER_PROFILE_ID`.
-   - *Regression protection:* `demoUsers.test.ts` asserts the ids never diverge again.
+   - _Resolution:_ repointed the entry to `DEMO_USER_PROFILE_ID`.
+   - _Regression protection:_ `demoUsers.test.ts` asserts the ids never diverge again.
 
 3. **Cookie-constant client/server boundary bug (`SELECTED_ORG_COOKIE_NAME`)**
-   - *Root cause:* exported from a `'use client'` module, imported into a Server Component;
+   - _Root cause:_ exported from a `'use client'` module, imported into a Server Component;
      typechecked and built cleanly but resolved incorrectly at runtime.
-   - *Resolution:* relocated the constant to a neutral, non-`'use client'` module.
-   - *Regression protection:* documented as a binding rule in
+   - _Resolution:_ relocated the constant to a neutral, non-`'use client'` module.
+   - _Regression protection:_ documented as a binding rule in
      `NERA_ARCHITECTURAL_INVARIANTS.md` §8.3–8.4; verified via real browser reload testing.
 
 4. **Raw UI-draft → Prisma spreading (`order` vs `sortOrder`)**
-   - *Root cause:* a reconciliation callback spread a UI draft directly into a Prisma create
+   - _Root cause:_ a reconciliation callback spread a UI draft directly into a Prisma create
      call, carrying the UI's `order` field where Prisma expected `sortOrder`, plus other
      UI-only shape.
-   - *Resolution:* named, explicitly-typed mapper functions per contact-method type/
+   - _Resolution:_ named, explicitly-typed mapper functions per contact-method type/
      operation, typed directly against `Prisma.*UncheckedCreateInput`/`*UncheckedUpdateInput`.
-   - *Regression protection:* `contactMethodDraftMapping.test.ts` (live Postgres) proving
+   - _Regression protection:_ `contactMethodDraftMapping.test.ts` (live Postgres) proving
      both the exact rejection and the fix.
 
 5. **Placeholder non-UUID demo "organization" crashing real queries**
-   - *Root cause:* the organization switcher and a role-assignment dropdown both offered
+   - _Root cause:_ the organization switcher and a role-assignment dropdown both offered
      pre-P013A placeholder ids (`org-jerusalem`, `org-bnei-brak`) with no real seeded
      `Organization` row, crashing any real query the instant one was selected.
-   - *Resolution:* narrowed every real, persisted selector to `persistedDemoOrganizations`;
+   - _Resolution:_ narrowed every real, persisted selector to `persistedDemoOrganizations`;
      added UUID-format validation to `getOrganizationContext` as defense-in-depth.
-   - *Regression protection:* `demoData.test.ts`, `listViewPreferenceInstitutionSwitch.test.ts`,
+   - _Regression protection:_ `demoData.test.ts`, `listViewPreferenceInstitutionSwitch.test.ts`,
      and new `organizationContext.test.ts` cases.
 
 6. **`ListViewPreferenceContext` passing `organizationId` as `institutionId`**
-   - *Root cause:* a copy-paste mistake forwarding the organization id into the institution-
+   - _Root cause:_ a copy-paste mistake forwarding the organization id into the institution-
      scope argument, with no real "current institution" feature behind it.
-   - *Resolution:* pass `undefined` for `institutionId` until a real institution-selection
+   - _Resolution:_ pass `undefined` for `institutionId` until a real institution-selection
      feature exists.
-   - *Regression protection:* `listViewPreferenceInstitutionSwitch.test.ts` proves
+   - _Regression protection:_ `listViewPreferenceInstitutionSwitch.test.ts` proves
      institution-scope resolution uses the real `institutionId`, never `organizationId`.
 
 # Architectural Changes
@@ -233,10 +243,12 @@ are Server Actions); any business module.
 # Open Items
 
 **P013B (Configuration Persistence — not yet scheduled)**
+
 - Persist Role Definitions (`RoleDefinitionsPanel`, currently client-side/in-memory).
 - Persist Field Requirements (`FieldRequirementsPanel`, currently client-side/in-memory).
 
 **Future ADR required**
+
 - Entity-to-Institution ownership/assignment decision (`ROADMAP.md` §9.5.2).
 - Branch/Department/Institution/`PermissionScope` naming reconciliation (`ROADMAP.md` §9.5.3;
   ADR-008's own unresolved follow-up).
@@ -244,6 +256,7 @@ are Server Actions); any business module.
   §9.3 — not new to this sprint).
 
 **Future Roadmap (scoped sprint, no ADR strictly required)**
+
 - Institution application CRUD/management — repository, Server Action, and UI (`ROADMAP.md`
   §9.5.1).
 - The workspace barrel/client-bundle packaging defect (`ROADMAP.md` §9.4) — must be resolved
@@ -313,4 +326,4 @@ are Server Actions); any business module.
   Explicit Owner Merge Approval → Merge → Branch Cleanup → Sprint Closing Report → New Chat.
 - This report is itself the required "previous Sprint Closing Report" input for that
   workflow — carry it forward into the P013B chat.
-P013A is fully closed: merged, branch-cleaned, and documented. Not starting P013B. Waiting for Owner.
+  P013A is fully closed: merged, branch-cleaned, and documented. Not starting P013B. Waiting for Owner.
