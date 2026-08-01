@@ -21,6 +21,7 @@ An ADR is a short, point-in-time record of one architectural decision: what was 
 | [008](./008-authorization-model.md)                       | Authorization Model                                                               | Accepted                |
 | [009](./009-provider-abstraction-without-selection.md)    | Provider Abstraction Without Provider Selection                                   | Accepted                |
 | [010](./010-platform-core-package.md)                     | Platform Core Package: Engine Registry, Contracts, and Plugin Runtime Foundations | Accepted                |
+| [011](./011-storage-provider-selection.md)                | Storage Provider Selection for the Document Engine                               | Accepted                |
 
 ## Status Values
 
