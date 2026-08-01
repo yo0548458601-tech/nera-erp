@@ -124,10 +124,10 @@ Adopting any of these for real, in place of or alongside Part 1, is a stack/prov
 requiring its own ADR once a real, justified need exists (`NERA_CONSTITUTION.md` §12; ADR-009).
 
 Frontend:
-Next.js 16, React 19, Tailwind CSS 4, shadcn/ui, React Hook Form, Zod, Apache ECharts, FullCalendar, React PDF.
+Next.js 16, React 19, Tailwind CSS 4, shadcn/ui, React Hook Form, Zod, Apache ECharts, FullCalendar, React PDF (`@react-pdf/renderer` — selected for the Document Engine's PDF rendering, `ADR-012`, Accepted; not yet installed, still Part 1 "Not installed" until P014 is implemented).
 
 Backend:
-Realtime — Socket.IO. Background Jobs / Scheduler — BullMQ. Cache — Redis. Storage — MinIO (S3-compatible).
+Realtime — Socket.IO. Background Jobs / Scheduler — BullMQ. Cache — Redis. Storage — one generic `S3StorageProvider` adapter: AWS S3 (`il-central-1`) for production, SeaweedFS for local development/CI (`ADR-011`, Accepted; MinIO was an earlier directional mention, since rejected — its open-source edition is unmaintained/archived).
 
 AI Layer:
 A unified AI Engine (per `NERA_CONSTITUTION.md` §5 and ADR-004) fronting OpenAI, Anthropic Claude, Google Gemini, Ollama, and future providers — business modules never call a provider SDK directly. Nera never depends on a single AI provider; changing providers must require configuration only.
@@ -153,8 +153,12 @@ ADR before any migration or provider binding — see `docs/ROADMAP.md` §9.3 and
 
 - **Database / ORM vendor.** Prisma is the actual, implemented, confirmed choice today (Part 1). Whether it remains the long-term choice is not decided by this document.
 - **Authentication provider.** No vendor is selected. Better Auth was an early directional mention only; `demoAuth.ts` remains a stub with no real provider behind it.
-- **Storage provider.** No vendor is selected. MinIO was an early directional mention only.
 - **Package manager.** This document previously listed pnpm as the intended package manager. The repository has always actually used npm (`packageManager: "npm@10.8.2"`, committed `package-lock.json`, every CI step invoked via `npm`). Whether to continue with npm or migrate to pnpm is not decided here — this document now only accurately records what the repository does today (Part 1).
+
+**Resolved, no longer open (moved here from this section once accepted):**
+
+- **Storage provider** — resolved by `ADR-011` (Accepted): AWS S3 (`il-central-1`) production, SeaweedFS local/CI, behind one generic `S3StorageProvider` adapter. Not yet implemented (Part 2), but no longer an undecided vendor question.
+- **PDF rendering library** — resolved by `ADR-012` (Accepted): React PDF. The specific font artifact is not yet fully resolved — `ADR-012` requires re-pinning Noto Sans Hebrew to an immutable static-instance build (with its own SHA-256) and verifying its SIL OFL license text before production use; this remaining step is implementation follow-up, not an open vendor decision.
 
 ---
 

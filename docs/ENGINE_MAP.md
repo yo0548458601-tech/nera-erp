@@ -106,17 +106,19 @@
 # 6. Document
 
 - **Responsibility:** Durable file storage and basic document generation (e.g. a payment or invoice PDF), used by any module that needs to attach or produce a file.
-- **Boundaries:** Stores and serves files; does not interpret their content (that is Integration/AI Assistance, future scope).
-- **Owned data:** File metadata (owner entity/record, tenant, uploader, content type, storage key); the files themselves live in the underlying storage provider, accessed only through this engine (Vendor Abstraction principle).
-- **Public contracts:** `uploadDocument(file, context) → documentId`, `getDocumentUrl(documentId, actor)` (permission-checked, time-limited), `generatePdf(template, data)`.
+- **Boundaries:** Stores and serves files; does not interpret their content (that is Integration/AI Assistance, future scope). Remains ignorant of business concepts such as "Invoice" or "Purchase Order" (`ADR-013`).
+- **Owned data:** File metadata (uploader, content type, storage key, size, checksum); a generic, module-agnostic many-to-many link between a Document and any number of target business records (`ADR-013` Decision D — never a single business-module-specific foreign key on the Document itself); the files themselves live in the underlying storage provider, accessed only through this engine (Vendor Abstraction principle).
+- **Public contracts:** `uploadDocument(file, context) → documentId` (server-proxied upload; validates file type/size/signature before persistence, `ADR-013` Decision A/B), `getDocumentUrl(documentId, actor)` (permission-checked, organization-ownership-checked, `available`-status-checked, time-limited — 15-minute default expiration, `ADR-013` Decision E), `generatePdf(template, data)` (`template` is a trusted, typed, server-only `PdfTemplate<TData>` code reference — never user-suppliable content, `ADR-012` Decision item 7).
 - **Dependencies:** Authorization (per-document access check), Audit, Organization / Institution.
 - **Consumers:** Invoices, Purchase Orders, Payments (V1); Forms (attachments); future Integration Engine (source documents for AI extraction).
 - **Events emitted:** `DocumentUploaded`, `DocumentDeleted`.
 - **Events consumed:** none required for V1.
-- **Security requirements:** A document uploaded under one tenant is never retrievable by a request from another tenant, verified the same way as any other tenant-scoped resource; access URLs are short-lived/signed, never permanent public links by default.
-- **Audit requirements:** Upload, view (where sensitive), and delete are audited.
+- **Security requirements:** A document uploaded under one tenant is never retrievable by a request from another tenant, verified the same way as any other tenant-scoped resource; access URLs are short-lived/signed (15-minute default), never permanent public links by default; tenant isolation for the physical object is defense-in-depth (private bucket, least-privilege credential, server-generated key, `organization_id`-scoped metadata row with `FORCE ROW LEVEL SECURITY`, full authorization gate before every signed URL) since object storage has no RLS-equivalent of its own (`ADR-011` Decision item 7).
+- **Audit requirements:** Upload, view (where sensitive), and delete are audited; an administrator hard-delete (permanent, pre-30-day-window purge) requires explicit confirmation and is fully audited as a distinct, separately-authorized action from a normal (recoverable) delete (`ADR-013` Decision C).
 - **Extension/plugin points:** "Document handlers" — module- or plugin-registered logic for what happens after a document of a given type is uploaded (named explicitly in `NERA_CONSTITUTION.md` Section 10's extension point list); not implemented in V1, only reserved.
-- **Current status:** **planned**.
+- **V1 product policy (`ADR-013`, Accepted):** allowed file types are PDF/JPG/JPEG/PNG/DOCX/XLSX only (no executables, scripts, HTML, SVG, or macro-enabled Office formats); maximum upload size 25 MB, server-enforced; deletion is soft-delete with a 30-day recovery window, then eligible for purge, with a separate, explicitly-confirmed, fully-audited administrator hard-delete path for an earlier permanent purge; default signed-download URL expiration is 15 minutes.
+- **Storage and rendering provider decisions:** storage is a single generic `S3StorageProvider` adapter — AWS S3 (`il-central-1`) in production, SeaweedFS for local/CI (`ADR-011`, Accepted). PDF rendering is React PDF (`ADR-012`, Accepted); the headless-browser and `pdf-lib` alternatives were evaluated and rejected.
+- **Current status:** **planned** — all governing product and architecture decisions (`ADR-011`, `ADR-012`, `ADR-013`) are `Accepted`, but no implementation exists yet; status changes to real/implemented only once P014 is implemented and merged to `main`.
 
 ---
 
