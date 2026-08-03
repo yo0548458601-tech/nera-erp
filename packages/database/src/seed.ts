@@ -49,6 +49,12 @@ const CANONICAL_PERMISSION_IDS: readonly string[] = [
   'contact_methods.restore',
   'birth_date.view',
   'birth_date.edit',
+  'documents.upload',
+  'documents.download',
+  'documents.delete',
+  'documents.restore',
+  'documents.hard_delete',
+  'documents.manage_links',
 ];
 
 /**
@@ -186,161 +192,191 @@ const BUILT_IN_ROLE_DEFINITIONS: ReadonlyArray<{
   },
 ];
 
+/**
+ * Every row this script seeds belongs to this one fixed organization
+ * (or, for `Permission`, no organization at all - see below).
+ */
+const SEED_ORGANIZATION_ID = '00000000-0000-0000-0000-000000000000';
+
 async function main() {
   if (process.env.NODE_ENV === 'production') {
     console.info('Skipping database seed in production.');
     return;
   }
 
-  const organization = await prisma.organization.upsert({
-    where: { id: '00000000-0000-0000-0000-000000000000' },
-    update: {},
-    create: {
-      id: '00000000-0000-0000-0000-000000000000',
-      name: 'Platform Seed Organization',
-      legalName: 'Platform Seed Organization',
-      registrationNumber: 'SEED-001',
-      defaultLocale: 'en',
-      defaultTimezone: 'UTC',
-      defaultCalendarDisplay: 'gregorian',
-    },
-  });
+  await prisma.$transaction(async tx => {
+    /**
+     * Newly-required as of P014 (verified directly, not assumed): every
+     * tenant-scoped table now has `FORCE ROW LEVEL SECURITY`, and - since
+     * the Owner-approved local role architecture keeps `nera_dev_admin`
+     * `NOSUPERUSER NOBYPASSRLS`, deliberately never bypassing RLS - the
+     * table owner is no longer exempt from its own policies (`FORCE` exists
+     * specifically to remove that exemption). Every insert below therefore
+     * needs `app.current_organization_id` set to the exact row it's about
+     * to write, matching `getOrganizationContext`'s own mechanism -
+     * `@nera/database` cannot import `@nera/organization-engine` directly
+     * (Platform layer importing Core Engine layer is a boundary violation,
+     * `packages/core/src/dependencyRules.ts`), so this is done here as the
+     * same raw `set_config` call, not a shared import.
+     */
+    await tx.$executeRawUnsafe(
+      `SELECT set_config('app.current_organization_id', $1, true)`,
+      SEED_ORGANIZATION_ID
+    );
 
-  // Replace any previously-seeded permission that is not part of the
-  // canonical PermissionId catalog (e.g. the old placeholder
-  // "platform.organization.*" rows this seed used before P011). Child
-  // RolePermission rows are removed first - the foreign key is RESTRICT.
-  const obsoletePermissions = await prisma.permission.findMany({
-    where: { permissionKey: { notIn: [...CANONICAL_PERMISSION_IDS] } },
-    select: { id: true },
-  });
-  if (obsoletePermissions.length > 0) {
-    const obsoletePermissionIds = obsoletePermissions.map(permission => permission.id);
-    await prisma.rolePermission.deleteMany({
-      where: { permissionId: { in: obsoletePermissionIds } },
+    const organization = await tx.organization.upsert({
+      where: { id: SEED_ORGANIZATION_ID },
+      update: {},
+      create: {
+        id: SEED_ORGANIZATION_ID,
+        name: 'Platform Seed Organization',
+        legalName: 'Platform Seed Organization',
+        registrationNumber: 'SEED-001',
+        defaultLocale: 'en',
+        defaultTimezone: 'UTC',
+        defaultCalendarDisplay: 'gregorian',
+      },
     });
-    await prisma.permission.deleteMany({ where: { id: { in: obsoletePermissionIds } } });
-  }
 
-  for (const permissionKey of CANONICAL_PERMISSION_IDS) {
-    const { resource, action } = splitPermissionKey(permissionKey);
-    await prisma.permission.upsert({
-      where: { permissionKey },
-      update: { resource, action },
-      create: { permissionKey, resource, action },
+    // Replace any previously-seeded permission that is not part of the
+    // canonical PermissionId catalog (e.g. the old placeholder
+    // "platform.organization.*" rows this seed used before P011). Child
+    // RolePermission rows are removed first - the foreign key is RESTRICT.
+    // `Permission` itself carries no organization_id and has no RLS policy
+    // (it is the one genuinely global, not tenant-scoped, table this seed
+    // touches) - unaffected by the FORCE RLS change above either way.
+    const obsoletePermissions = await tx.permission.findMany({
+      where: { permissionKey: { notIn: [...CANONICAL_PERMISSION_IDS] } },
+      select: { id: true },
     });
-  }
+    if (obsoletePermissions.length > 0) {
+      const obsoletePermissionIds = obsoletePermissions.map(permission => permission.id);
+      await tx.rolePermission.deleteMany({
+        where: { permissionId: { in: obsoletePermissionIds } },
+      });
+      await tx.permission.deleteMany({ where: { id: { in: obsoletePermissionIds } } });
+    }
 
-  const systemRole = await prisma.role.upsert({
-    where: { id: '11111111-1111-1111-1111-111111111111' },
-    update: {},
-    create: {
-      id: '11111111-1111-1111-1111-111111111111',
-      organizationId: organization.id,
-      name: 'System Administrator',
-      description: 'System administrator template role',
-      isSystemRole: true,
-      status: 'active',
-    },
-  });
+    for (const permissionKey of CANONICAL_PERMISSION_IDS) {
+      const { resource, action } = splitPermissionKey(permissionKey);
+      await tx.permission.upsert({
+        where: { permissionKey },
+        update: { resource, action },
+        create: { permissionKey, resource, action },
+      });
+    }
 
-  const allPermissions = await prisma.permission.findMany();
-  for (const permission of allPermissions) {
-    await prisma.rolePermission.upsert({
-      where: {
-        role_permissions_org_role_permission_unique: {
+    const systemRole = await tx.role.upsert({
+      where: { id: '11111111-1111-1111-1111-111111111111' },
+      update: {},
+      create: {
+        id: '11111111-1111-1111-1111-111111111111',
+        organizationId: organization.id,
+        name: 'System Administrator',
+        description: 'System administrator template role',
+        isSystemRole: true,
+        status: 'active',
+      },
+    });
+
+    const allPermissions = await tx.permission.findMany();
+    for (const permission of allPermissions) {
+      await tx.rolePermission.upsert({
+        where: {
+          role_permissions_org_role_permission_unique: {
+            organizationId: organization.id,
+            roleId: systemRole.id,
+            permissionId: permission.id,
+          },
+        },
+        update: { effect: 'allow' },
+        create: {
           organizationId: organization.id,
           roleId: systemRole.id,
           permissionId: permission.id,
+          effect: 'allow',
         },
-      },
-      update: { effect: 'allow' },
+      });
+    }
+
+    // Real demo identity (P013A - see docs/ROADMAP.md). The demo session
+    // (apps/web's demoAuth.ts) points at these exact ids so checkPermission()/
+    // getOrganizationContext() resolve against real rows instead of
+    // placeholder strings matching nothing in the database - this is still
+    // demo-mode, not real authentication: no login flow is introduced.
+    const demoUserProfile = await tx.userProfile.upsert({
+      where: { id: '22222222-2222-2222-2222-222222222222' },
+      update: {},
       create: {
-        organizationId: organization.id,
-        roleId: systemRole.id,
-        permissionId: permission.id,
-        effect: 'allow',
+        id: '22222222-2222-2222-2222-222222222222',
+        authenticationUserId: 'demo-user',
+        displayName: 'Demo User',
+        status: 'active',
       },
     });
-  }
 
-  // Real demo identity (P013A - see docs/ROADMAP.md). The demo session
-  // (apps/web's demoAuth.ts) points at these exact ids so checkPermission()/
-  // getOrganizationContext() resolve against real rows instead of
-  // placeholder strings matching nothing in the database - this is still
-  // demo-mode, not real authentication: no login flow is introduced.
-  const demoUserProfile = await prisma.userProfile.upsert({
-    where: { id: '22222222-2222-2222-2222-222222222222' },
-    update: {},
-    create: {
-      id: '22222222-2222-2222-2222-222222222222',
-      authenticationUserId: 'demo-user',
-      displayName: 'Demo User',
-      status: 'active',
-    },
-  });
-
-  const demoMembership = await prisma.organizationMembership.upsert({
-    where: { id: '33333333-3333-3333-3333-333333333333' },
-    update: {},
-    create: {
-      id: '33333333-3333-3333-3333-333333333333',
-      organizationId: organization.id,
-      userProfileId: demoUserProfile.id,
-      status: 'active',
-    },
-  });
-
-  await prisma.membershipRole.upsert({
-    where: {
-      membership_roles_membership_role_unique: {
-        organizationMembershipId: demoMembership.id,
-        roleId: systemRole.id,
+    const demoMembership = await tx.organizationMembership.upsert({
+      where: { id: '33333333-3333-3333-3333-333333333333' },
+      update: {},
+      create: {
+        id: '33333333-3333-3333-3333-333333333333',
+        organizationId: organization.id,
+        userProfileId: demoUserProfile.id,
+        status: 'active',
       },
-    },
-    update: {},
-    create: {
-      id: '44444444-4444-4444-4444-444444444444',
-      organizationId: organization.id,
-      organizationMembershipId: demoMembership.id,
-      roleId: systemRole.id,
-    },
-  });
+    });
 
-  // Built-in role definitions (P013B - see docs/ROADMAP.md). isSystem rows
-  // are seeded once and never overwritten by `update: {}` on subsequent
-  // seed runs, matching the platform's "built-in roles ship with the
-  // engine" invariant - an administrator's own status/metadata edits (if
-  // any were ever made directly in the database) are not clobbered by a
-  // re-seed.
-  for (const role of BUILT_IN_ROLE_DEFINITIONS) {
-    await prisma.roleDefinition.upsert({
+    await tx.membershipRole.upsert({
       where: {
-        role_definitions_organization_key_unique: {
-          organizationId: organization.id,
-          key: role.key,
+        membership_roles_membership_role_unique: {
+          organizationMembershipId: demoMembership.id,
+          roleId: systemRole.id,
         },
       },
       update: {},
       create: {
+        id: '44444444-4444-4444-4444-444444444444',
         organizationId: organization.id,
-        key: role.key,
-        label: role.label,
-        description: role.description,
-        applicableEntityTypes: role.applicableEntityTypes,
-        order: role.order,
-        showInGlobalAddNew: role.showInGlobalAddNew ?? false,
-        allowMultipleAssignments: role.allowMultipleAssignments ?? false,
-        supportsDateRange: true,
-        supportsBillingProfile: role.supportsBillingProfile ?? false,
-        requiredPermissions: {},
-        linkedCustomFieldDefinitionIds: [],
-        isSystem: true,
+        organizationMembershipId: demoMembership.id,
+        roleId: systemRole.id,
       },
     });
-  }
 
-  console.info('Database seed completed.');
+    // Built-in role definitions (P013B - see docs/ROADMAP.md). isSystem rows
+    // are seeded once and never overwritten by `update: {}` on subsequent
+    // seed runs, matching the platform's "built-in roles ship with the
+    // engine" invariant - an administrator's own status/metadata edits (if
+    // any were ever made directly in the database) are not clobbered by a
+    // re-seed.
+    for (const role of BUILT_IN_ROLE_DEFINITIONS) {
+      await tx.roleDefinition.upsert({
+        where: {
+          role_definitions_organization_key_unique: {
+            organizationId: organization.id,
+            key: role.key,
+          },
+        },
+        update: {},
+        create: {
+          organizationId: organization.id,
+          key: role.key,
+          label: role.label,
+          description: role.description,
+          applicableEntityTypes: role.applicableEntityTypes,
+          order: role.order,
+          showInGlobalAddNew: role.showInGlobalAddNew ?? false,
+          allowMultipleAssignments: role.allowMultipleAssignments ?? false,
+          supportsDateRange: true,
+          supportsBillingProfile: role.supportsBillingProfile ?? false,
+          requiredPermissions: {},
+          linkedCustomFieldDefinitionIds: [],
+          isSystem: true,
+        },
+      });
+    }
+
+    console.info('Database seed completed.');
+  });
 }
 
 main()

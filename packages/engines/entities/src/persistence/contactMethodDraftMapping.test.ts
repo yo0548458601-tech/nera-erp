@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { appPrisma, prisma, type Prisma } from '@nera/database';
+import { appPrisma, type Prisma } from '@nera/database';
 import { createEntityRepository } from './entityRepository';
 import {
   createContactMethodRepository,
@@ -113,10 +113,19 @@ describe('phone/email/address draft -> Prisma mapping (requires PostgreSQL)', ()
   });
 
   afterAll(async () => {
-    await prisma.phone.deleteMany({ where: { entityId } });
-    await prisma.email.deleteMany({ where: { entityId } });
-    await prisma.address.deleteMany({ where: { entityId } });
-    await prisma.entity.delete({ where: { id: entityId } });
+    // Cleanup must run inside the same RLS context the fixture was created
+    // in - verified directly, P014: `entities`/`phones`/`emails`/`addresses`
+    // are FORCE-RLS tables, so an unscoped delete via the raw admin `prisma`
+    // client (no `app.current_organization_id` set) matches no rows at all
+    // (RLS hides them from the query, not merely from writing them), and
+    // Prisma reports "No record was found for a delete" - not a permission
+    // error, but the row is genuinely invisible to that unscoped query.
+    await withOrganizationContext(ORG_ID, async tx => {
+      await tx.phone.deleteMany({ where: { entityId } });
+      await tx.email.deleteMany({ where: { entityId } });
+      await tx.address.deleteMany({ where: { entityId } });
+      await tx.entity.delete({ where: { id: entityId } });
+    });
   });
 
   describe('the exact reported bug - raw-spreading a draft into .add() is rejected by real Prisma', () => {

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
-import { appPrisma, prisma } from '@nera/database';
+import { appPrisma, prisma, type Prisma } from '@nera/database';
 import {
   createGetOrganizationContext,
   type OrganizationContextDbClient,
@@ -25,11 +25,42 @@ function createFakeClient(): FakeOrganizationContextDbClient {
   return { $transaction: vi.fn() } as unknown as FakeOrganizationContextDbClient;
 }
 
-async function createTestOrganization(name: string): Promise<string> {
-  const organization = await prisma.organization.create({
-    data: { id: randomUUID(), name },
+/**
+ * Fixture creation via the admin `prisma` client against a FORCE-RLS table
+ * (`organizations`, `institutions`) requires `app.current_organization_id`
+ * to be set to the exact row being written - verified directly during P014
+ * (Owner-approved local role architecture): with `nera_dev_admin` now
+ * genuinely owning these tables (not `postgres`), `FORCE ROW LEVEL SECURITY`
+ * applies to it too, since `nera_dev_admin` is deliberately
+ * `NOSUPERUSER NOBYPASSRLS` - that is exactly what `FORCE` means (it removes
+ * the table-owner exemption). This mirrors the identical fix applied to
+ * `packages/database/src/seed.ts` for the same reason.
+ */
+async function withOrgWriteContext<T>(
+  organizationId: string,
+  work: (tx: Prisma.TransactionClient) => Promise<T>
+): Promise<T> {
+  return prisma.$transaction(async tx => {
+    await tx.$executeRawUnsafe(
+      `SELECT set_config('app.current_organization_id', $1, true)`,
+      organizationId
+    );
+    return work(tx);
   });
-  return organization.id;
+}
+
+async function createTestOrganization(name: string): Promise<string> {
+  const id = randomUUID();
+  await withOrgWriteContext(id, tx => tx.organization.create({ data: { id, name } }));
+  return id;
+}
+
+async function createTestInstitution(organizationId: string, name: string): Promise<string> {
+  const id = randomUUID();
+  await withOrgWriteContext(organizationId, tx =>
+    tx.institution.create({ data: { id, organizationId, name } })
+  );
+  return id;
 }
 
 describe('createGetOrganizationContext', () => {
@@ -141,17 +172,16 @@ describe('createGetOrganizationContext', () => {
  * Behavioral RLS tests - the honest way to prove Row Level Security is
  * enforced, which cannot be faked. Requires a real PostgreSQL connection via
  * DATABASE_URL, with the P012 migration applied and the RLS test role
- * bootstrapped (see packages/database/README.md). These are the tests that
- * cannot be executed in an environment without a reachable database - see
- * the P012 implementation report for what could and could not be verified
- * directly.
+ * bootstrapped (see packages/database/README.md).
  *
- * Explicitly injected with `prisma` (the administrative, table-owner
- * client), not the default `appPrisma` (P013A) - `asRestrictedRole`'s
- * `SET LOCAL ROLE` mechanism requires the connection to already be a
- * superuser or a member of `nera_rls_test_role`, which the least-privilege
- * `nera_app_role` deliberately is not. This is exactly the "explicit choice
- * only when elevated administrative privileges are actually needed" case.
+ * Explicitly injected with `prisma` (the administrative client), not the
+ * default `appPrisma` (P013A) - `asRestrictedRole`'s `SET LOCAL ROLE`
+ * mechanism requires the connection to already be a member of
+ * `nera_rls_test_role` (or a superuser), which the least-privilege
+ * `nera_app_role` deliberately is not, and which the Owner-approved local
+ * role architecture grants to `nera_dev_admin` specifically for this
+ * purpose (`GRANT nera_rls_test_role TO nera_dev_admin` - membership only,
+ * no `ADMIN OPTION`, no `INHERIT` - verified directly, P014).
  */
 describe('getOrganizationContext (behavioral RLS isolation, requires PostgreSQL)', () => {
   const engine = createOrganizationEngine(prisma);
@@ -198,12 +228,8 @@ describe('getOrganizationContext (behavioral RLS isolation, requires PostgreSQL)
   it('institutions are isolated the same way organizations are', async () => {
     const organizationAId = await createTestOrganization('Org A - institution isolation');
     const organizationBId = await createTestOrganization('Org B - institution isolation');
-    await prisma.institution.create({
-      data: { id: randomUUID(), organizationId: organizationAId, name: 'Institution A' },
-    });
-    await prisma.institution.create({
-      data: { id: randomUUID(), organizationId: organizationBId, name: 'Institution B' },
-    });
+    await createTestInstitution(organizationAId, 'Institution A');
+    await createTestInstitution(organizationBId, 'Institution B');
 
     const visibleToA = await engine.getOrganizationContext(
       { organizationId: organizationAId },
@@ -256,26 +282,42 @@ describe('getOrganizationContext (behavioral RLS isolation, requires PostgreSQL)
     expect(role?.active_role).not.toBe('nera_rls_test_role');
   });
 
-  it(
-    'documents that RLS does not protect the unwrapped (table-owner/superuser) connection - ' +
-      'forgetting asRestrictedRole fails the isolation assertion instead of silently passing',
-    async () => {
-      const organizationAId = await createTestOrganization('Org A - no wrapper');
-      const organizationBId = await createTestOrganization('Org B - no wrapper');
+  /**
+   * CORRECTED, P014 (Owner-approved shared-root-cause fix): this test
+   * previously asserted the opposite of what is now true, and asserted a
+   * premise that was never actually exercised successfully in this local
+   * environment before P014 (see `packages/database/README.md`'s ownership
+   * section) - it assumed the admin `prisma` connection bypasses RLS the way
+   * a real Postgres superuser or a `BYPASSRLS` role would. `nera_dev_admin`
+   * is neither (Owner-approved role architecture: `NOSUPERUSER
+   * NOBYPASSRLS`), so once it genuinely owns these `FORCE ROW LEVEL
+   * SECURITY` tables (verified directly, P014), `FORCE` applies to it too -
+   * that is `FORCE`'s entire purpose (removing the table-owner exemption).
+   * Verified directly: even without `asRestrictedRole`'s role switch, the
+   * admin connection is correctly isolated by the session variable
+   * `getOrganizationContext` itself sets. `NERA_ARCHITECTURAL_INVARIANTS.md`
+   * §3.6's documented Postgres limitation - a literal superuser or
+   * `BYPASSRLS` role always bypasses RLS regardless of `FORCE` - remains
+   * true in principle, but Nera's own admin connection is deliberately never
+   * such a role (locked Owner policy: "Nera must not normally run, migrate,
+   * or test as postgres"), so that risk does not apply to any of Nera's own
+   * real code paths. `asRestrictedRole` remains the authoritative isolation
+   * proof regardless (a stable, minimal test double, decoupled from
+   * whatever the current admin role's own configuration happens to be), not
+   * because the admin connection is otherwise unsafe.
+   */
+  it("the admin (table-owner) connection is itself correctly isolated by FORCE RLS + the session variable, even without asRestrictedRole's role switch - verified directly, not assumed (P014)", async () => {
+    const organizationAId = await createTestOrganization('Org A - admin connection isolation');
+    const organizationBId = await createTestOrganization('Org B - admin connection isolation');
 
-      // Deliberately NOT wrapped in asRestrictedRole.
-      const visibleToA = await engine.getOrganizationContext(
-        { organizationId: organizationAId },
-        async tx =>
-          tx.organization.findMany({ where: { id: { in: [organizationAId, organizationBId] } } })
-      );
+    // Deliberately NOT wrapped in asRestrictedRole - proving the admin
+    // connection itself, not just the restricted test role, is isolated.
+    const visibleToA = await engine.getOrganizationContext(
+      { organizationId: organizationAId },
+      async tx =>
+        tx.organization.findMany({ where: { id: { in: [organizationAId, organizationBId] } } })
+    );
 
-      // Without the role switch, RLS is not enforced against the connecting
-      // (table-owner) role even though FORCE ROW LEVEL SECURITY is set - this
-      // is the exact reason the restricted role and asRestrictedRole exist.
-      expect(visibleToA.map(org => org.id).sort()).toEqual(
-        [organizationAId, organizationBId].sort()
-      );
-    }
-  );
+    expect(visibleToA.map(org => org.id)).toEqual([organizationAId]);
+  });
 });
