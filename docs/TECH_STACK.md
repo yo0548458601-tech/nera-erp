@@ -62,7 +62,10 @@ lucide-react
 Data export:
 exceljs (XLSX export from list views — not previously recorded in this document)
 
-**Not installed:** shadcn/ui (no `components.json`, no Radix Themes/primitives dependency anywhere in the repository), React Hook Form, Zod, Apache ECharts, FullCalendar, React PDF.
+Document rendering:
+React PDF (`@react-pdf/renderer`) — `packages/engines/documents` (`@nera/document-engine`) only, behind the typed `PdfTemplate<TData>` contract (`ADR-012`, Accepted). Implemented on feature branch `p014-document-engine`, not yet merged to `main` (P014 — see `docs/ROADMAP.md`).
+
+**Not installed:** shadcn/ui (no `components.json`, no Radix Themes/primitives dependency anywhere in the repository), React Hook Form, Zod, Apache ECharts, FullCalendar.
 
 ## Backend
 
@@ -84,12 +87,15 @@ Authentication:
 Authorization:
 A hand-built Nera Authorization Engine (`packages/engines/authorization`, `checkPermission()` — Prisma-backed, server-enforced, `MembershipRole → RolePermission → allow/deny`). **No CASL dependency exists anywhere in the repository.**
 
+Storage:
+`@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`, behind one generic `S3StorageProvider` adapter (`packages/engines/documents`) — AWS S3 (`il-central-1`) for production (configuration only, not provisioned), SeaweedFS for local/CI (`ADR-011`, Accepted). Implemented and **verified live** against a real, pinned SeaweedFS 4.40 instance on feature branch `p014-document-engine`, not yet merged to `main` (P014 — see `docs/ROADMAP.md`).
+
 **Not installed:** Better Auth, MinIO, Redis, BullMQ, Socket.IO.
 
 ## Testing
 
 Unit / Integration Testing:
-Vitest — including tests that run against a real local PostgreSQL connection (not only fakes/mocks) for RLS, UUID-validation, and persistence-critical paths; see `docs/NERA_ARCHITECTURAL_INVARIANTS.md` §10.3–10.4.
+Vitest — including tests that run against a real local PostgreSQL connection (not only fakes/mocks) for RLS, UUID-validation, and persistence-critical paths; see `docs/NERA_ARCHITECTURAL_INVARIANTS.md` §10.3–10.4. As of P014, also against a real local SeaweedFS instance for storage-provider tests, and `pdfjs-dist` (`packages/engines/documents` devDependency) for PDF-output text-extraction assertions (the same `getTextContent()` verification method `ADR-012`'s own spike used).
 
 Browser / manual verification:
 **Playwright is not a committed project dependency.** It has been installed temporarily (`npm install --no-save playwright`) for manual, real-browser verification during P013A review rounds, and fully uninstalled afterward every time (verified via `npm ls playwright` and `git status` before each commit). No Playwright test suite is committed to the repository, and no `apps/web` script references it.
@@ -103,12 +109,12 @@ Monorepo:
 Turborepo (`turbo.json`; `turbo run build`/`lint`/`typecheck`).
 
 CI/CD:
-GitHub Actions (`.github/workflows/ci.yml`) — a PostgreSQL 16 service container, migrations, RLS/application-role bootstrap, seed, then format/lint/typecheck/test/build, matching `npm run validate` exactly.
+GitHub Actions (`.github/workflows/ci.yml`) — a PostgreSQL 16 service container, a SeaweedFS instance started via a plain step (P014 — GitHub Actions' `services:` block has no way to pass the `-s3` gateway flag SeaweedFS needs): the exact Linux x64 binary (`linux_amd64.tar.gz`, release tag `4.40`, same version/commit as the pinned Windows binary) is downloaded, its SHA-256 is independently verified against a committed expected digest (`0c63aec15429d17e216fdb878a92532188d3e147d7f072645bfec9eb6f992a02`) before it is ever executed, and CI fails loudly on any mismatch — not yet exercised by a real CI run. Then migrations, RLS/application-role bootstrap, seed, then format/lint/typecheck/test/build, matching `npm run validate` exactly.
 
 Secrets (development):
 Plain `.env` files, loaded inconsistently by two different mechanisms — see `packages/database/README.md`'s Environment section for the exact, verified behavior.
 
-**Not installed:** Docker (no `Dockerfile`/`docker-compose.yml` in the repository), HashiCorp Vault, Pino, OpenTelemetry, Grafana integration.
+**Not installed:** Docker (no `Dockerfile`/`docker-compose.yml` in the repository; CI's SeaweedFS step runs a pinned, verified binary directly, not a container), HashiCorp Vault, Pino, OpenTelemetry, Grafana integration.
 
 ## AI Layer
 
@@ -124,10 +130,10 @@ Adopting any of these for real, in place of or alongside Part 1, is a stack/prov
 requiring its own ADR once a real, justified need exists (`NERA_CONSTITUTION.md` §12; ADR-009).
 
 Frontend:
-Next.js 16, React 19, Tailwind CSS 4, shadcn/ui, React Hook Form, Zod, Apache ECharts, FullCalendar, React PDF (`@react-pdf/renderer` — selected for the Document Engine's PDF rendering, `ADR-012`, Accepted; not yet installed, still Part 1 "Not installed" until P014 is implemented).
+Next.js 16, React 19, Tailwind CSS 4, shadcn/ui, React Hook Form, Zod, Apache ECharts, FullCalendar.
 
 Backend:
-Realtime — Socket.IO. Background Jobs / Scheduler — BullMQ. Cache — Redis. Storage — one generic `S3StorageProvider` adapter: AWS S3 (`il-central-1`) for production, SeaweedFS for local development/CI (`ADR-011`, Accepted; MinIO was an earlier directional mention, since rejected — its open-source edition is unmaintained/archived).
+Realtime — Socket.IO. Background Jobs / Scheduler — BullMQ. Cache — Redis. (MinIO was an earlier directional mention for storage, since rejected — its open-source edition is unmaintained/archived; storage is resolved and now real, see Part 1.)
 
 AI Layer:
 A unified AI Engine (per `NERA_CONSTITUTION.md` §5 and ADR-004) fronting OpenAI, Anthropic Claude, Google Gemini, Ollama, and future providers — business modules never call a provider SDK directly. Nera never depends on a single AI provider; changing providers must require configuration only.
@@ -157,8 +163,8 @@ ADR before any migration or provider binding — see `docs/ROADMAP.md` §9.3 and
 
 **Resolved, no longer open (moved here from this section once accepted):**
 
-- **Storage provider** — resolved by `ADR-011` (Accepted): AWS S3 (`il-central-1`) production, SeaweedFS local/CI, behind one generic `S3StorageProvider` adapter. Not yet implemented (Part 2), but no longer an undecided vendor question.
-- **PDF rendering library** — resolved by `ADR-012` (Accepted): React PDF. The specific font artifact is not yet fully resolved — `ADR-012` requires re-pinning Noto Sans Hebrew to an immutable static-instance build (with its own SHA-256) and verifying its SIL OFL license text before production use; this remaining step is implementation follow-up, not an open vendor decision.
+- **Storage provider** — resolved by `ADR-011` (Accepted): AWS S3 (`il-central-1`) production, SeaweedFS local/CI, behind one generic `S3StorageProvider` adapter. Implemented and verified live (P014, feature branch `p014-document-engine`, not yet merged) — see Part 1.
+- **PDF rendering library** — resolved by `ADR-012` (Accepted): React PDF. Implemented (P014, same branch). The font artifact requirement is also resolved: Noto Sans Hebrew is pinned to an immutable static-instance build sourced directly from the authoritative upstream's own GitHub Release (`notofonts/hebrew`, tag `NotoSansHebrew-v3.001`), with its own independently-computed SHA-256 and the release's own SIL OFL license text committed alongside it — see `packages/engines/documents/src/pdf/fonts.ts`.
 
 ---
 
