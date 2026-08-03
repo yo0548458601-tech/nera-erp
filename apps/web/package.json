@@ -14,6 +14,7 @@
     "@nera/authorization-engine": "*",
     "@nera/calendar-engine": "*",
     "@nera/customization-engine": "*",
+    "@nera/document-engine": "*",
     "@nera/entity-engine": "*",
     "@nera/event-bus-engine": "*",
     "@nera/organization-engine": "*",
