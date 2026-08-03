@@ -64,12 +64,25 @@ export interface DatabaseProvider {
   runInTransaction<TResult>(run: () => Promise<TResult>): Promise<TResult>;
 }
 
+/**
+ * Amended by ADR-011 (Storage Provider Selection, Decision item 17), a real,
+ * intentional, source-breaking contract change - not additive:
+ * - `upload`'s third parameter changes from a bare `contentType` string to a
+ *   required options object, because `Content-Disposition` (set once, at
+ *   upload time, from a server-sanitized filename - ADR-011 item 14/15)
+ *   cannot be expressed through the original signature.
+ * - `upload`'s return type drops `url`. Under the accepted private-bucket,
+ *   signed-URL-only access model, a URL returned directly by `upload()` has
+ *   no safe or defined meaning (ADR-011 item 16) - a usable download URL is
+ *   only ever produced by `getSignedUrl()`, per request, after the Document
+ *   Engine's full authorization gate. No object URL is ever persisted.
+ */
 export interface StorageProvider {
   upload(
     key: string,
     content: Uint8Array,
-    contentType: string
-  ): Promise<{ key: string; url: string }>;
+    options: { contentType: string; contentDisposition?: string }
+  ): Promise<{ key: string }>;
   getSignedUrl(key: string, expiresInSeconds: number): Promise<string>;
   delete(key: string): Promise<void>;
 }
