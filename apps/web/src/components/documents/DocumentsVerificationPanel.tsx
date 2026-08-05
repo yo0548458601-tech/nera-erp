@@ -5,6 +5,11 @@ import type { Document as DocumentDomain } from '@nera/document-engine';
 import { useSession } from '../../context/SessionContext';
 import { useMyPermission } from '../../context/AuthorizationContext';
 import { PanelCard } from '../PanelCard';
+import { DocumentPreviewModal } from './DocumentPreviewModal';
+import {
+  FORM_FIELD_ORIGINAL_FILENAME_UTF8_BASE64URL,
+  encodeOriginalFilenameUtf8Base64Url,
+} from '../../lib/actions/originalFilenameMetadata.shared';
 import {
   deleteDocumentAction,
   generateSampleHebrewPdfAction,
@@ -20,6 +25,9 @@ const STATUS_LABELS: Record<DocumentDomain['status'], string> = {
   available: 'זמין',
   failed: 'העלאה נכשלה',
 };
+
+/** Must match getDocumentUrl.ts's INLINE_VIEWABLE_CONTENT_TYPES exactly - only these types get a separate "view" action. */
+const VIEWABLE_CONTENT_TYPES = new Set(['application/pdf', 'image/jpeg', 'image/png']);
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -44,6 +52,8 @@ export function DocumentsVerificationPanel() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [isBusy, setIsBusy] = useState(false);
+  const [pendingUrlAction, setPendingUrlAction] = useState<string | null>(null);
+  const [previewDocument, setPreviewDocument] = useState<DocumentDomain | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
@@ -74,6 +84,10 @@ export function DocumentsVerificationPanel() {
     setIsBusy(true);
     const formData = new FormData();
     formData.set('file', file);
+    formData.set(
+      FORM_FIELD_ORIGINAL_FILENAME_UTF8_BASE64URL,
+      encodeOriginalFilenameUtf8Base64Url(file.name)
+    );
     const result = await uploadDocumentAction(organizationId, formData);
     setIsBusy(false);
 
@@ -101,15 +115,37 @@ export function DocumentsVerificationPanel() {
     await refresh();
   };
 
-  const handleOpenLink = async (documentId: string) => {
-    if (!organizationId) return;
+  const handleView = (doc: DocumentDomain) => {
     setError('');
-    const result = await getDocumentUrlAction(organizationId, documentId);
-    if (!result.ok) {
-      setError(result.reason);
-      return;
+    setPreviewDocument(doc);
+  };
+
+  const handleDownload = async (documentId: string) => {
+    if (!organizationId || pendingUrlAction) return;
+    setError('');
+    setPendingUrlAction(documentId);
+
+    try {
+      const result = await getDocumentUrlAction(organizationId, documentId, 'download');
+      if (!result.ok) {
+        setError(result.reason);
+        return;
+      }
+
+      // The server's Content-Disposition (attachment; filename*=UTF-8''...)
+      // is authoritative for the saved Unicode filename - no `download`
+      // attribute, no target, created only after a successful result.
+      const anchor = document.createElement('a');
+      anchor.href = result.data.url;
+      anchor.rel = 'noopener noreferrer';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+    } catch {
+      setError('אירעה שגיאה בהורדת הקובץ. נסה שוב.');
+    } finally {
+      setPendingUrlAction(null);
     }
-    window.open(result.data.url, '_blank', 'noopener,noreferrer');
   };
 
   const handleDelete = async (documentId: string) => {
@@ -229,13 +265,24 @@ export function DocumentsVerificationPanel() {
                     </td>
                     <td className="py-2 pe-4">
                       <div className="flex flex-wrap gap-2">
+                        {isActive && VIEWABLE_CONTENT_TYPES.has(doc.contentType) ? (
+                          <button
+                            type="button"
+                            onClick={() => handleView(doc)}
+                            disabled={pendingUrlAction !== null}
+                            className="rounded border border-slate-300 px-2 py-1 text-xs disabled:opacity-50"
+                          >
+                            צפה
+                          </button>
+                        ) : null}
                         {isActive ? (
                           <button
                             type="button"
-                            onClick={() => handleOpenLink(doc.id)}
-                            className="rounded border border-slate-300 px-2 py-1 text-xs"
+                            onClick={() => handleDownload(doc.id)}
+                            disabled={pendingUrlAction !== null}
+                            className="rounded border border-slate-300 px-2 py-1 text-xs disabled:opacity-50"
                           >
-                            פתח קישור
+                            הורד
                           </button>
                         ) : null}
                         {isActive ? (
@@ -274,6 +321,17 @@ export function DocumentsVerificationPanel() {
           </tbody>
         </table>
       </div>
+
+      {previewDocument && organizationId ? (
+        <DocumentPreviewModal
+          organizationId={organizationId}
+          document={previewDocument}
+          onClose={() => setPreviewDocument(null)}
+          onDownload={handleDownload}
+          isDownloadPending={pendingUrlAction !== null}
+          downloadError={error}
+        />
+      ) : null}
     </PanelCard>
   );
 }

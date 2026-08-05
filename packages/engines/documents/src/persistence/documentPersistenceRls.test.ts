@@ -107,6 +107,19 @@ describe('P014 document persistence RLS behavioral isolation (requires PostgreSQ
     );
   }
 
+  it('round-trips a Hebrew original_filename through real Postgres exactly, at the Unicode level (P014 mojibake defect verification)', async () => {
+    const org = await createOrganization('Org - Hebrew filename round trip');
+    const user = await createUserProfile();
+    const filename = 'חשבונית ספק אברהם (2).pdf';
+
+    const created = await createDocument(org, user, filename);
+
+    const readBack = await withOrgWriteContext(org, tx =>
+      tx.document.findUnique({ where: { id: created.id } })
+    );
+    expect(readBack?.originalFilename).toBe(filename);
+  });
+
   it("never sees another organization's documents", async () => {
     const orgA = await createOrganization('Org A - document RLS isolation');
     const orgB = await createOrganization('Org B - document RLS isolation');

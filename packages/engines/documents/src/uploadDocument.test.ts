@@ -66,6 +66,20 @@ const validInput = {
 };
 
 describe('uploadDocument', () => {
+  it('passes a Hebrew filename to the repository create call unchanged', async () => {
+    const txClient = createFakeTxClient();
+    const storageProvider = createFakeStorageProvider();
+
+    await uploadDocument(
+      { ...validInput, filename: 'חשבונית ספק אברהם (2).pdf' },
+      storageProvider,
+      createFakeGetOrganizationContext(txClient)
+    );
+
+    const createCall = (txClient.document.create as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(createCall.data.originalFilename).toBe('חשבונית ספק אברהם (2).pdf');
+  });
+
   it('rejects a disallowed file type before ever creating a row or calling the storage provider', async () => {
     const txClient = createFakeTxClient();
     const storageProvider = createFakeStorageProvider();

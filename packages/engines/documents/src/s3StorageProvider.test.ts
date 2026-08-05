@@ -77,4 +77,54 @@ describe('S3StorageProvider (requires a real S3-compatible endpoint)', () => {
 
     await provider.delete(key);
   });
+
+  it('a signed URL with a responseContentDisposition override serves that exact header; stored metadata is untouched; the object stays private (P014 View/Download)', async () => {
+    const key = `organizations/test-org/documents/${crypto.randomUUID()}.pdf`;
+    const storedDisposition = 'attachment; filename="stored.pdf"';
+    const overrideDisposition = 'inline; filename="view-copy.pdf"';
+    let uploaded = false;
+
+    try {
+      await provider.upload(key, new Uint8Array([0x25, 0x50, 0x44, 0x46]), {
+        contentType: 'application/pdf',
+        contentDisposition: storedDisposition,
+      });
+      uploaded = true;
+
+      const viewUrl = await provider.getSignedUrl(key, 60, {
+        responseContentDisposition: overrideDisposition,
+      });
+      const viewResponse = await fetch(viewUrl);
+      expect(viewResponse.headers.get('content-disposition')).toBe(overrideDisposition);
+      expect(viewResponse.headers.get('content-type')).toBe('application/pdf');
+
+      // The persisted object metadata itself is untouched by the override.
+      const metadata = await headObjectForCertification(config, key);
+      expect(metadata.contentDisposition).toBe(storedDisposition);
+
+      // A short-lived SigV4 presigned URL, not a public link: its query
+      // string carries a signature (SigV4 never embeds the raw secret key
+      // itself) and an expiry matching exactly the requested short
+      // duration. The full URL is never logged.
+      expect(viewUrl).toContain('X-Amz-Expires=60');
+      expect(viewUrl).toContain('X-Amz-Signature=');
+
+      // The object is not public: an unsigned request for the same key
+      // must be denied with a documented anonymous-access-denial status -
+      // not merely "not 200" (a 5xx would not prove privacy). Constructed
+      // directly from this test's own configuration; never printed,
+      // alongside no endpoint/bucket/key/headers/body/credentials anywhere
+      // in this test.
+      const unsignedUrl = config.forcePathStyle
+        ? `${config.endpoint}/${config.bucket}/${key}`
+        : `https://${config.bucket}.s3.${config.region}.amazonaws.com/${key}`;
+      const ACCEPTED_ANONYMOUS_DENIAL_STATUSES = [401, 403, 404];
+      const unsignedResponse = await fetch(unsignedUrl);
+      expect(ACCEPTED_ANONYMOUS_DENIAL_STATUSES).toContain(unsignedResponse.status);
+    } finally {
+      if (uploaded) {
+        await provider.delete(key);
+      }
+    }
+  });
 });

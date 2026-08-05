@@ -78,10 +78,16 @@ export function createS3StorageProvider(config: S3StorageProviderConfig): Storag
       return { key };
     },
 
-    async getSignedUrl(key, expiresInSeconds) {
-      return getS3PresignedUrl(client, new GetObjectCommand({ Bucket: config.bucket, Key: key }), {
-        expiresIn: expiresInSeconds,
-      });
+    async getSignedUrl(key, expiresInSeconds, options) {
+      return getS3PresignedUrl(
+        client,
+        new GetObjectCommand({
+          Bucket: config.bucket,
+          Key: key,
+          ResponseContentDisposition: options?.responseContentDisposition,
+        }),
+        { expiresIn: expiresInSeconds }
+      );
     },
 
     async delete(key) {

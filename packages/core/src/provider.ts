@@ -83,7 +83,11 @@ export interface StorageProvider {
     content: Uint8Array,
     options: { contentType: string; contentDisposition?: string }
   ): Promise<{ key: string }>;
-  getSignedUrl(key: string, expiresInSeconds: number): Promise<string>;
+  getSignedUrl(
+    key: string,
+    expiresInSeconds: number,
+    options?: { responseContentDisposition?: string }
+  ): Promise<string>;
   delete(key: string): Promise<void>;
 }
 

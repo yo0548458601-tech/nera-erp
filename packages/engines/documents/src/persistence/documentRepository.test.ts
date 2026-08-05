@@ -67,6 +67,18 @@ describe('createDocumentRepository', () => {
     expect(call.data.status).toBe('uploading');
   });
 
+  it('persists a Hebrew originalFilename unchanged', async () => {
+    const client = createFakeClient();
+    const repo = createDocumentRepository(client);
+
+    const result = await repo.createUploadingDocument(
+      'org-1',
+      makeInput({ originalFilename: 'חשבונית ספק אברהם (2).pdf' })
+    );
+
+    expect(result.originalFilename).toBe('חשבונית ספק אברהם (2).pdf');
+  });
+
   it('rejects a missing organizationId without touching the database', async () => {
     const client = createFakeClient();
     const repo = createDocumentRepository(client);

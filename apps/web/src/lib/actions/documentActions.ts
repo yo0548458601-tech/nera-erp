@@ -44,6 +44,7 @@ import { requirePermission } from './requirePermission';
 import { buildSampleInvoiceRows, sampleInvoiceTemplate } from './sampleInvoiceTemplate';
 import { generatePdf } from '@nera/document-engine';
 import { randomUUID } from 'node:crypto';
+import { resolveOriginalFilenameFromFormData } from './originalFilenameMetadata.server';
 
 const { getOrganizationContext } = createOrganizationEngine();
 
@@ -110,13 +111,18 @@ export async function uploadDocumentAction(
     return { ok: false, reason: 'לא צורף קובץ.' };
   }
 
+  const resolvedFilename = resolveOriginalFilenameFromFormData(formData);
+  if (!resolvedFilename.ok) {
+    return { ok: false, reason: 'שם הקובץ אינו תקין.' };
+  }
+
   try {
     const bytes = new Uint8Array(await file.arrayBuffer());
     const record = await engineUploadDocument(
       {
         organizationId,
         createdByUserId: DEMO_USER_PROFILE_ID,
-        filename: file.name,
+        filename: resolvedFilename.filename,
         declaredContentType: file.type,
         bytes,
       },
@@ -214,15 +220,23 @@ export async function generateSampleHebrewPdfAction(
 
 export async function getDocumentUrlAction(
   organizationId: string,
-  documentId: string
+  documentId: string,
+  mode: 'view' | 'download'
 ): Promise<ActionResult<{ url: string; expiresInSeconds: number }>> {
   const denyReason = await requirePermission(organizationId, 'documents.download');
   if (denyReason) {
     return { ok: false, reason: denyReason };
   }
 
+  // The TypeScript union alone does not protect this boundary at runtime -
+  // explicitly validated so a forged value can never reach the storage
+  // provider or the engine.
+  if (mode !== 'view' && mode !== 'download') {
+    return { ok: false, reason: 'מצב גישה לא תקין.' };
+  }
+
   try {
-    const url = await engineGetDocumentUrl(documentId, organizationId, getStorageProvider());
+    const url = await engineGetDocumentUrl(documentId, organizationId, getStorageProvider(), mode);
     return { ok: true, data: { url, expiresInSeconds: DEFAULT_SIGNED_URL_EXPIRY_SECONDS } };
   } catch (error) {
     return { ok: false, reason: error instanceof Error ? error.message : 'unknown-error' };

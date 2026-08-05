@@ -54,8 +54,11 @@ function createFakeStorageProvider(): StorageProvider {
       files.set(key, content);
       return { key };
     },
-    async getSignedUrl(key) {
-      return `fake://${key}?signed=1`;
+    async getSignedUrl(key, _expiresInSeconds, options) {
+      const override = options?.responseContentDisposition
+        ? `&responseContentDisposition=${encodeURIComponent(options.responseContentDisposition)}`
+        : '';
+      return `fake://${key}?signed=1${override}`;
     },
     async delete(key) {
       files.delete(key);
@@ -110,6 +113,19 @@ describe('createProviderRegistry', () => {
 
     const signedUrl = await storage.getSignedUrl('b.txt', 900);
     expect(signedUrl).toContain('b.txt');
+  });
+
+  it('getSignedUrl accepts an optional third options argument (responseContentDisposition), passed through by the implementation - existing two-argument callers remain valid', async () => {
+    const storage = createFakeStorageProvider();
+
+    const withoutOptions = await storage.getSignedUrl('c.txt', 900);
+    expect(withoutOptions).toBe('fake://c.txt?signed=1');
+
+    const withOptions = await storage.getSignedUrl('c.txt', 900, {
+      responseContentDisposition: 'inline; filename="c.txt"',
+    });
+    expect(withOptions).toContain('responseContentDisposition=');
+    expect(withOptions).toContain(encodeURIComponent('inline; filename="c.txt"'));
   });
 
   it('DatabaseProvider.runInTransaction runs the callback and returns its result, with no query/tx object exposed', async () => {
