@@ -130,7 +130,7 @@ jobs:
             > /tmp/seaweedfs/weed.log 2>&1 &
 
           for i in $(seq 1 30); do
-            if curl -sf -o /dev/null http://127.0.0.1:8333/ -w '%{http_code}' | grep -qE '^(200|403)$'; then
+            if curl -sS -o /dev/null http://127.0.0.1:8333/ -w '%{http_code}' | grep -qE '^(200|403)$'; then
               echo "SeaweedFS S3 gateway is up."
               exit 0
             fi
