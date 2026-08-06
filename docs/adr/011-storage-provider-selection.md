@@ -65,7 +65,7 @@ depends on; it does not provision production infrastructure (Decision item 12).
      server-generated key and the validated (not yet confirmed-stored) metadata.
    - The server uploads the validated bytes through `StorageProvider.upload()`.
    - See Decision item 5 for what happens next, in every outcome.
-   No user-visible pending-upload state is introduced — this is an internal row status only.
+     No user-visible pending-upload state is introduced — this is an internal row status only.
 5. **Every failed or indeterminate `upload()` outcome is treated as potentially-written; the
    internal lifecycle never assumes a failure proves nothing was persisted:**
    - Status begins as `uploading` (item 4). While in this status, the row is never visible as an
@@ -86,7 +86,7 @@ depends on; it does not provision production infrastructure (Decision item 12).
      exactly the key the row names, then marks the row fully resolved. It **never lists or
      enumerates the bucket**; `ListObjectsV2` is not in the approved operation subset (item 13).
    - This lifecycle is implemented and tested as part of P014; see Decision item 12 for what P014
-     does *not* do with it.
+     does _not_ do with it.
 6. **Object keys are server-generated only**, namespaced by `organization_id` at minimum, and
    **never derived from or containing the original filename** — the original filename is
    preserved only as sanitized metadata (item 15), never as part of the key itself.
@@ -95,7 +95,7 @@ depends on; it does not provision production infrastructure (Decision item 12).
    - The application credential is least-privilege, scoped to the one required bucket only.
    - Object keys are server-generated and namespaced by `organization_id`.
    - Document metadata lives in PostgreSQL with `organization_id NOT NULL`, `ENABLE` + `FORCE ROW
-     LEVEL SECURITY`, and an `*_organization_isolation` policy, identical to every other
+LEVEL SECURITY`, and an `*_organization_isolation` policy, identical to every other
      tenant-scoped table (`NERA_ARCHITECTURAL_INVARIANTS.md` §3.5).
    - `checkPermission()`, a metadata-ownership check, and a status = `available` check all run
      before every signed URL is issued.
@@ -207,10 +207,7 @@ depends on; it does not provision production infrastructure (Decision item 12).
         }
       ): Promise<{ key: string }>;
 
-      getSignedUrl(
-        key: string,
-        expiresInSeconds: number
-      ): Promise<string>;
+      getSignedUrl(key: string, expiresInSeconds: number): Promise<string>;
 
       delete(key: string): Promise<void>;
     }
@@ -286,12 +283,12 @@ depends on; it does not provision production infrastructure (Decision item 12).
 
 ## Follow-up Actions
 
-*(Mandatory pre-implementation/implementation work — performed when P014's Implementation Prompt
-is authorized, not by this ADR itself.)*
+_(Mandatory pre-implementation/implementation work — performed when P014's Implementation Prompt
+is authorized, not by this ADR itself.)_
 
 - **Amend `packages/core/src/provider.ts`'s `StorageProvider` interface** to the exact shape in
   Decision item 17 (third `upload()` parameter becomes `options: { contentType: string;
-  contentDisposition?: string }`; return type becomes `Promise<{ key: string }>`, dropping `url`).
+contentDisposition?: string }`; return type becomes `Promise<{ key: string }>`, dropping `url`).
 - **Update `packages/core/src/provider.test.ts`** — the only existing caller in the repository:
   - `createFakeStorageProvider()`'s `upload(key, content)` fake must accept the new `options`
     parameter and return only `{ key }`.

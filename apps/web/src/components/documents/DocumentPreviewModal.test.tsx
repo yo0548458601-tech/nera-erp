@@ -150,12 +150,16 @@ describe('DocumentPreviewModal', () => {
       ok: true,
       data: { url: 'https://example.test/broken-image', expiresInSeconds: 900 },
     });
-    renderModal({ document: makeDoc({ contentType: 'image/png', originalFilename: 'broken.png' }) });
+    renderModal({
+      document: makeDoc({ contentType: 'image/png', originalFilename: 'broken.png' }),
+    });
 
     const img = await screen.findByAltText('broken.png');
     fireEvent.error(img);
 
-    expect(await screen.findByText('לא ניתן לטעון את התצוגה המקדימה של הקובץ.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('לא ניתן לטעון את התצוגה המקדימה של הקובץ.')
+    ).toBeInTheDocument();
   });
 
   it('the PDF preview falls back to a controlled Hebrew message and keeps Download available if onLoad never fires', () => {

@@ -18,7 +18,8 @@ vi.mock('../../lib/actions/documentActions', () => ({
   listDocumentsAction: (...args: unknown[]) => mocks.listDocumentsAction(...args),
   getDocumentUrlAction: (...args: unknown[]) => mocks.getDocumentUrlAction(...args),
   uploadDocumentAction: (...args: unknown[]) => mocks.uploadDocumentAction(...args),
-  generateSampleHebrewPdfAction: (...args: unknown[]) => mocks.generateSampleHebrewPdfAction(...args),
+  generateSampleHebrewPdfAction: (...args: unknown[]) =>
+    mocks.generateSampleHebrewPdfAction(...args),
   deleteDocumentAction: (...args: unknown[]) => mocks.deleteDocumentAction(...args),
   restoreDocumentAction: (...args: unknown[]) => mocks.restoreDocumentAction(...args),
   hardDeleteDocumentAction: (...args: unknown[]) => mocks.hardDeleteDocumentAction(...args),

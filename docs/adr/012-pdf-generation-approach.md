@@ -32,7 +32,7 @@ and in correct order for both). **Both candidates showed a real, reproducible de
 for tightly-mixed Hebrew+digit+parenthesis content** (e.g. a product code written as
 `(מק"ט 1000)` embedded inside an RTL sentence):
 
-- **React PDF**: the parenthesis *characters themselves* are swapped in the extracted text layer
+- **React PDF**: the parenthesis _characters themselves_ are swapped in the extracted text layer
   (`)מק"ט 1000(` instead of `(מק"ט 1000)`) — the page looks visually correct (parenthesis mirroring
   is a normal, correct bidi rendering behavior), but the underlying extractable/copyable text
   contains the wrong literal punctuation characters.

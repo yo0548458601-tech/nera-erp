@@ -77,7 +77,8 @@ const CONTROLLED_FILENAME = 'חשבונית ספק אברהם (2).pdf';
  * (0xD7 0x97) reinterpreted one byte per code point - the exact defect
  * proven via the P014 six-boundary trace, not an arbitrary string.
  */
-const DETERMINISTIC_CORRUPTED_FILENAME = String.fromCodePoint(0x00d7, 0x0097, 0x00d7, 0x00a9) + '.pdf';
+const DETERMINISTIC_CORRUPTED_FILENAME =
+  String.fromCodePoint(0x00d7, 0x0097, 0x00d7, 0x00a9) + '.pdf';
 
 const PDF_BYTES = new Uint8Array([0x25, 0x50, 0x44, 0x46]);
 
@@ -128,7 +129,9 @@ describe('uploadDocumentAction - original filename resolution (isolated, mocked 
   });
 
   it('ignores a corrupted File.name and passes the decoded Hebrew metadata to the Document Engine', async () => {
-    mocks.engineUploadDocument.mockResolvedValue(makeRecord({ originalFilename: CONTROLLED_FILENAME }));
+    mocks.engineUploadDocument.mockResolvedValue(
+      makeRecord({ originalFilename: CONTROLLED_FILENAME })
+    );
 
     const formData = formDataWith(
       DETERMINISTIC_CORRUPTED_FILENAME,

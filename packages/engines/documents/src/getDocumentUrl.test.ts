@@ -235,19 +235,22 @@ describe('getDocumentUrl', () => {
     }
   );
 
-  it.each(['view', 'download'] as const)('rejects a soft-deleted document (mode: %s)', async mode => {
-    const storageProvider = createFakeStorageProvider();
-    await expect(
-      getDocumentUrl(
-        'doc-1',
-        'org-1',
-        storageProvider,
-        mode,
-        900,
-        createFakeGetOrganizationContext(makeRecord({ deletedAt: new Date('2026-01-01') }))
-      )
-    ).rejects.toThrow(DocumentNotAvailableError);
-  });
+  it.each(['view', 'download'] as const)(
+    'rejects a soft-deleted document (mode: %s)',
+    async mode => {
+      const storageProvider = createFakeStorageProvider();
+      await expect(
+        getDocumentUrl(
+          'doc-1',
+          'org-1',
+          storageProvider,
+          mode,
+          900,
+          createFakeGetOrganizationContext(makeRecord({ deletedAt: new Date('2026-01-01') }))
+        )
+      ).rejects.toThrow(DocumentNotAvailableError);
+    }
+  );
 
   it.each(['view', 'download'] as const)('rejects a purged document (mode: %s)', async mode => {
     const storageProvider = createFakeStorageProvider();
@@ -265,10 +268,20 @@ describe('getDocumentUrl', () => {
     ).rejects.toThrow(DocumentNotAvailableError);
   });
 
-  it.each(['view', 'download'] as const)('rejects an unknown document id (mode: %s)', async mode => {
-    const storageProvider = createFakeStorageProvider();
-    await expect(
-      getDocumentUrl('missing', 'org-1', storageProvider, mode, 900, createFakeGetOrganizationContext(null))
-    ).rejects.toThrow(DocumentNotAvailableError);
-  });
+  it.each(['view', 'download'] as const)(
+    'rejects an unknown document id (mode: %s)',
+    async mode => {
+      const storageProvider = createFakeStorageProvider();
+      await expect(
+        getDocumentUrl(
+          'missing',
+          'org-1',
+          storageProvider,
+          mode,
+          900,
+          createFakeGetOrganizationContext(null)
+        )
+      ).rejects.toThrow(DocumentNotAvailableError);
+    }
+  );
 });

@@ -60,7 +60,10 @@ describe('encodeOriginalFilenameUtf8Base64Url / decodeOriginalFilenameUtf8Base64
   });
 
   it('rejects a string with an invalid Base64 length (length % 4 === 1)', () => {
-    expect(decodeOriginalFilenameUtf8Base64Url('A')).toEqual({ ok: false, reason: 'invalid-base64url' });
+    expect(decodeOriginalFilenameUtf8Base64Url('A')).toEqual({
+      ok: false,
+      reason: 'invalid-base64url',
+    });
   });
 
   it('rejects bytes that are not valid UTF-8', () => {

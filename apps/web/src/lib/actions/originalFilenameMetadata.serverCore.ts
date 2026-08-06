@@ -29,7 +29,8 @@ export type DecodeOriginalFilenameResult =
 
 export function decodeOriginalFilenameUtf8Base64Url(encoded: string): DecodeOriginalFilenameResult {
   if (!encoded) return { ok: false, reason: 'empty' };
-  if (encoded.length > MAX_ENCODED_ORIGINAL_FILENAME_LENGTH) return { ok: false, reason: 'too-long' };
+  if (encoded.length > MAX_ENCODED_ORIGINAL_FILENAME_LENGTH)
+    return { ok: false, reason: 'too-long' };
   if (!BASE64URL_PATTERN.test(encoded) || encoded.length % 4 === 1) {
     return { ok: false, reason: 'invalid-base64url' };
   }
@@ -57,8 +58,7 @@ export function decodeOriginalFilenameUtf8Base64Url(encoded: string): DecodeOrig
 }
 
 export type ResolveOriginalFilenameResult =
-  | { ok: true; filename: string }
-  | { ok: false; reason: string };
+  { ok: true; filename: string } | { ok: false; reason: string };
 
 /**
  * The single point of truth for "which filename does this upload use" -
@@ -66,7 +66,9 @@ export type ResolveOriginalFilenameResult =
  * alone. Missing or invalid metadata is rejected outright - there is no
  * fallback to File.name.
  */
-export function resolveOriginalFilenameFromFormData(formData: FormData): ResolveOriginalFilenameResult {
+export function resolveOriginalFilenameFromFormData(
+  formData: FormData
+): ResolveOriginalFilenameResult {
   const encoded = formData.get(FORM_FIELD_ORIGINAL_FILENAME_UTF8_BASE64URL);
   if (typeof encoded !== 'string') {
     return { ok: false, reason: 'missing-original-filename-metadata' };

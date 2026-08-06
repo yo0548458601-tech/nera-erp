@@ -99,13 +99,12 @@ describe('buildInlineContentDisposition', () => {
 });
 
 describe('sanitizeOriginalFilename', () => {
-  it.each([
-    'חשבונית ספק אברהם (2).pdf',
-    'קובץ עם רווחים ו(סוגריים).pdf',
-    'דוח2024-Report_A.pdf',
-  ])('preserves Hebrew, spaces, parentheses, digits, and Latin letters unchanged: %s', filename => {
-    expect(sanitizeOriginalFilename(filename)).toBe(filename);
-  });
+  it.each(['חשבונית ספק אברהם (2).pdf', 'קובץ עם רווחים ו(סוגריים).pdf', 'דוח2024-Report_A.pdf'])(
+    'preserves Hebrew, spaces, parentheses, digits, and Latin letters unchanged: %s',
+    filename => {
+      expect(sanitizeOriginalFilename(filename)).toBe(filename);
+    }
+  );
 
   it('normalizes to NFC', () => {
     const nfd = 'א'.normalize('NFD') + '.pdf';
@@ -120,7 +119,10 @@ describe('sanitizeOriginalFilename', () => {
     ['U+0000 (NUL)', String.fromCharCode(0x00)],
     ['U+001B (ESC)', String.fromCharCode(0x1b)],
     ['U+007F (DEL)', String.fromCharCode(0x7f)],
-    ['U+0097 (C1 control - the exact byte value seen in the P014 mojibake defect)', String.fromCharCode(0x97)],
+    [
+      'U+0097 (C1 control - the exact byte value seen in the P014 mojibake defect)',
+      String.fromCharCode(0x97),
+    ],
   ])('strips %s', (_label, controlChar) => {
     const result = sanitizeOriginalFilename(`evil${controlChar}name.pdf`);
     // eslint-disable-next-line no-control-regex
