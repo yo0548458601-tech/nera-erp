@@ -214,6 +214,20 @@ jobs:
       - name: Bootstrap RLS test role
         run: npm run db:bootstrap-rls-role --workspace=@nera/database
 
+      # nera_dev_admin (Seed/Test steps below) exercises the same
+      # `SET LOCAL ROLE "nera_rls_test_role"` real application code uses
+      # (packages/engines/organization/src/testSupport/restrictedRole.ts) -
+      # PostgreSQL only allows SET ROLE to a role the connecting role is
+      # already a member of. Grants membership only, never SUPERUSER or
+      # BYPASSRLS on either role.
+      - name: Allow nera_dev_admin to assume the RLS test role
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d nera_test -v ON_ERROR_STOP=1 \
+            -c 'GRANT nera_rls_test_role TO nera_dev_admin;'
+
       # Least-privilege application role (P013A - see
       # packages/database/README.md). Must run after migrations (it revokes
       # access to _prisma_migrations, which migrate deploy creates) and
