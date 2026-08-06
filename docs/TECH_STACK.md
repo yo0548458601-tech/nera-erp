@@ -63,7 +63,7 @@ Data export:
 exceljs (XLSX export from list views — not previously recorded in this document)
 
 Document rendering:
-React PDF (`@react-pdf/renderer`) — `packages/engines/documents` (`@nera/document-engine`) only, behind the typed `PdfTemplate<TData>` contract (`ADR-012`, Accepted). Implemented on feature branch `p014-document-engine`, not yet merged to `main` (P014 — see `docs/ROADMAP.md`).
+React PDF (`@react-pdf/renderer`) — `packages/engines/documents` (`@nera/document-engine`) only, behind the typed `PdfTemplate<TData>` contract (`ADR-012`, Accepted). Implemented and merged to `main` (P014, PR #4, merge commit `13e3e3a1ce26077c8a94832504acf75ed0200125` — see `docs/ROADMAP.md`).
 
 **Not installed:** shadcn/ui (no `components.json`, no Radix Themes/primitives dependency anywhere in the repository), React Hook Form, Zod, Apache ECharts, FullCalendar.
 
@@ -88,7 +88,7 @@ Authorization:
 A hand-built Nera Authorization Engine (`packages/engines/authorization`, `checkPermission()` — Prisma-backed, server-enforced, `MembershipRole → RolePermission → allow/deny`). **No CASL dependency exists anywhere in the repository.**
 
 Storage:
-`@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`, behind one generic `S3StorageProvider` adapter (`packages/engines/documents`) — AWS S3 (`il-central-1`) for production (configuration only, not provisioned), SeaweedFS for local/CI (`ADR-011`, Accepted). Implemented and **verified live** against a real, pinned SeaweedFS 4.40 instance on feature branch `p014-document-engine`, not yet merged to `main` (P014 — see `docs/ROADMAP.md`).
+`@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`, behind one generic `S3StorageProvider` adapter (`packages/engines/documents`) — AWS S3 (`il-central-1`) for production (configuration only, not provisioned), SeaweedFS for local/CI (`ADR-011`, Accepted). Implemented and **verified live** against a real, pinned SeaweedFS 4.40 instance, merged to `main` (P014, PR #4, merge commit `13e3e3a1ce26077c8a94832504acf75ed0200125` — see `docs/ROADMAP.md`).
 
 **Not installed:** Better Auth, MinIO, Redis, BullMQ, Socket.IO.
 
@@ -109,7 +109,7 @@ Monorepo:
 Turborepo (`turbo.json`; `turbo run build`/`lint`/`typecheck`).
 
 CI/CD:
-GitHub Actions (`.github/workflows/ci.yml`) — a PostgreSQL 16 service container, a SeaweedFS instance started via a plain step (P014 — GitHub Actions' `services:` block has no way to pass the `-s3` gateway flag SeaweedFS needs): the exact Linux x64 binary (`linux_amd64.tar.gz`, release tag `4.40`, same version/commit as the pinned Windows binary) is downloaded, its SHA-256 is independently verified against a committed expected digest (`0c63aec15429d17e216fdb878a92532188d3e147d7f072645bfec9eb6f992a02`) before it is ever executed, and CI fails loudly on any mismatch — not yet exercised by a real CI run. Then migrations, RLS/application-role bootstrap, seed, then format/lint/typecheck/test/build, matching `npm run validate` exactly.
+GitHub Actions (`.github/workflows/ci.yml`) — a PostgreSQL 16 service container, a SeaweedFS instance started via a plain step (P014 — GitHub Actions' `services:` block has no way to pass the `-s3` gateway flag SeaweedFS needs): the exact Linux x64 binary (`linux_amd64.tar.gz`, release tag `4.40`, same version/commit as the pinned Windows binary) is downloaded, its SHA-256 is independently verified against a committed expected digest (`0c63aec15429d17e216fdb878a92532188d3e147d7f072645bfec9eb6f992a02`) before it is ever executed, and CI fails loudly on any mismatch — exercised and green on P014's merged PR (run `31089192043`). Then migrations, RLS/application-role bootstrap, seed, then format/lint/typecheck/test/build, matching `npm run validate` exactly.
 
 Secrets (development):
 Plain `.env` files, loaded inconsistently by two different mechanisms — see `packages/database/README.md`'s Environment section for the exact, verified behavior.
@@ -163,8 +163,8 @@ ADR before any migration or provider binding — see `docs/ROADMAP.md` §9.3 and
 
 **Resolved, no longer open (moved here from this section once accepted):**
 
-- **Storage provider** — resolved by `ADR-011` (Accepted): AWS S3 (`il-central-1`) production, SeaweedFS local/CI, behind one generic `S3StorageProvider` adapter. Implemented and verified live (P014, feature branch `p014-document-engine`, not yet merged) — see Part 1.
-- **PDF rendering library** — resolved by `ADR-012` (Accepted): React PDF. Implemented (P014, same branch). The font artifact requirement is also resolved: Noto Sans Hebrew is pinned to an immutable static-instance build sourced directly from the authoritative upstream's own GitHub Release (`notofonts/hebrew`, tag `NotoSansHebrew-v3.001`), with its own independently-computed SHA-256 and the release's own SIL OFL license text committed alongside it — see `packages/engines/documents/src/pdf/fonts.ts`.
+- **Storage provider** — resolved by `ADR-011` (Accepted): AWS S3 (`il-central-1`) production, SeaweedFS local/CI, behind one generic `S3StorageProvider` adapter. Implemented, verified live, and merged to `main` (P014, PR #4) — see Part 1.
+- **PDF rendering library** — resolved by `ADR-012` (Accepted): React PDF. Implemented and merged to `main` (P014, same PR). The font artifact requirement is also resolved: Noto Sans Hebrew is pinned to an immutable static-instance build sourced directly from the authoritative upstream's own GitHub Release (`notofonts/hebrew`, tag `NotoSansHebrew-v3.001`), with its own independently-computed SHA-256 and the release's own SIL OFL license text committed alongside it — see `packages/engines/documents/src/pdf/fonts.ts`.
 
 ---
 
