@@ -168,13 +168,21 @@ jobs:
       # superuser always bypasses Row Level Security, including `FORCE ROW
       # LEVEL SECURITY`, which silently breaks any test that expects the
       # administrative `prisma` client (DATABASE_URL) to be RLS-restricted.
-      # These are exactly the two statements the README documents as the
-      # canonical repair procedure, run once against this fresh CI database
-      # instead of a drifted local one. `nera_dev_admin` is deliberately
-      # NOSUPERUSER/NOCREATEDB/NOCREATEROLE/NOBYPASSRLS - ownership of the
-      # already-migrated tables (transferred below) is what lets it run
-      # DDL/DML on them, never elevated role attributes. A fixed, non-secret
-      # CI-only password, matching every other credential in this file.
+      # `nera_dev_admin` is deliberately NOSUPERUSER/NOCREATEDB/
+      # NOCREATEROLE/NOBYPASSRLS - ownership of the already-migrated tables
+      # (transferred below) is what lets it run DDL/DML on them, never
+      # elevated role attributes. A fixed, non-secret CI-only password,
+      # matching every other credential in this file.
+      #
+      # `REASSIGN OWNED BY postgres` is deliberately NOT used here - in this
+      # CI Postgres service, `postgres` also owns PostgreSQL's own
+      # system-required objects (not just this workflow's application
+      # tables), so a blanket reassignment is too broad. Instead, a `DO`
+      # block targets only `public`-schema tables/partitioned tables
+      # (relkind `r`/`p`) and sequences (relkind `S`) - exactly the objects
+      # migrations created - leaving every system schema/object untouched.
+      # Identifiers are safely quoted via `format('%I.%I', ...)`, never
+      # string-concatenated.
       - name: Create nera_dev_admin and transfer table ownership (matches local role architecture)
         env:
           PGPASSWORD: postgres
@@ -183,7 +191,24 @@ jobs:
           psql -h localhost -U postgres -d nera_test -v ON_ERROR_STOP=1 <<'SQL'
           CREATE ROLE nera_dev_admin LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS PASSWORD 'nera_dev_admin_ci_password';
           ALTER DATABASE nera_test OWNER TO nera_dev_admin;
-          REASSIGN OWNED BY postgres TO nera_dev_admin;
+          DO $$
+          DECLARE
+            rec RECORD;
+          BEGIN
+            FOR rec IN
+              SELECT c.relname, c.relkind
+              FROM pg_class c
+              JOIN pg_namespace n ON n.oid = c.relnamespace
+              WHERE n.nspname = 'public'
+                AND c.relkind IN ('r', 'p', 'S')
+            LOOP
+              IF rec.relkind IN ('r', 'p') THEN
+                EXECUTE format('ALTER TABLE %I.%I OWNER TO nera_dev_admin', 'public', rec.relname);
+              ELSIF rec.relkind = 'S' THEN
+                EXECUTE format('ALTER SEQUENCE %I.%I OWNER TO nera_dev_admin', 'public', rec.relname);
+              END IF;
+            END LOOP;
+          END $$;
           SQL
 
       - name: Bootstrap RLS test role
