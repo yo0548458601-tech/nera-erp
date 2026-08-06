@@ -78,7 +78,22 @@ describe('checkPermission + RLS interaction (requires PostgreSQL, requires seed.
     expect(decision.decision).toBe('allow');
   });
 
-  it('the administrative prisma client bypasses RLS regardless (table owner) - a real deny would signal a genuinely broken seed, not this bug', async () => {
+  /**
+   * CORRECTED, P014 (Owner-approved shared-root-cause fix): this test
+   * previously asserted the opposite of what is now true. It assumed the
+   * admin `prisma` connection bypasses RLS the way a real Postgres
+   * superuser or `BYPASSRLS` role would - true only because `postgres` (an
+   * actual superuser) was the effective admin connection at the time this
+   * test was written and last passed. `nera_dev_admin` is deliberately
+   * `NOSUPERUSER NOBYPASSRLS` (Owner-approved local role architecture) and
+   * now genuinely owns these `FORCE ROW LEVEL SECURITY` tables (verified
+   * directly, P014), so it is exactly as restricted as `appPrisma` when no
+   * RLS context is set - neither bypasses RLS. This is a *stronger*
+   * defense-in-depth guarantee than the original test assumed, not a
+   * regression: no client, admin or application, skips
+   * `getOrganizationContext` for free.
+   */
+  it('the administrative prisma client is equally restricted without RLS context - it does not bypass RLS either (verified directly, P014)', async () => {
     const { checkPermission } = createAuthorizationEngine(prisma);
 
     const decision = await checkPermission({
@@ -87,7 +102,11 @@ describe('checkPermission + RLS interaction (requires PostgreSQL, requires seed.
       permission: 'entities.edit',
     });
 
-    expect(decision.decision).toBe('allow');
+    expect(decision).toEqual({
+      permission: 'entities.edit',
+      decision: 'deny',
+      reason: 'unknown-membership',
+    });
   });
 
   it('a genuinely unknown membership is still denied correctly inside getOrganizationContext - the fix does not mask real denials', async () => {

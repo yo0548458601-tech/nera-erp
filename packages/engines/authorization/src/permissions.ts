@@ -29,7 +29,13 @@ export type PermissionId =
   | 'contact_methods.remove'
   | 'contact_methods.restore'
   | 'birth_date.view'
-  | 'birth_date.edit';
+  | 'birth_date.edit'
+  | 'documents.upload'
+  | 'documents.download'
+  | 'documents.delete'
+  | 'documents.restore'
+  | 'documents.hard_delete'
+  | 'documents.manage_links';
 
 export type PermissionDefinition = {
   id: PermissionId;
@@ -146,6 +152,36 @@ export const permissionRegistry: PermissionDefinition[] = [
     id: 'birth_date.edit',
     label: 'עריכת תאריך לידה',
     description: 'עריכת תאריך הלידה הלועזי ותיקון התאריך העברי.',
+  },
+  {
+    id: 'documents.upload',
+    label: 'העלאת מסמכים',
+    description: 'העלאת קובץ חדש למאגר המסמכים.',
+  },
+  {
+    id: 'documents.download',
+    label: 'הורדת/צפייה במסמכים',
+    description: 'קבלת קישור זמני להורדה או צפייה במסמך קיים.',
+  },
+  {
+    id: 'documents.delete',
+    label: 'מחיקת מסמכים',
+    description: 'מחיקה רכה של מסמך (ניתנת לשחזור למשך 30 יום).',
+  },
+  {
+    id: 'documents.restore',
+    label: 'שחזור מסמכים',
+    description: 'שחזור מסמך שנמחק, בתוך חלון השחזור של 30 יום.',
+  },
+  {
+    id: 'documents.hard_delete',
+    label: 'מחיקה בלתי הפיכה של מסמכים',
+    description: 'מחיקה מיידית ובלתי הפיכה של מסמך על ידי מנהל מערכת, לפני תום חלון השחזור.',
+  },
+  {
+    id: 'documents.manage_links',
+    label: 'ניהול קישורי מסמכים',
+    description: 'קישור או ביטול קישור של מסמך לרשומה עסקית.',
   },
 ];
 

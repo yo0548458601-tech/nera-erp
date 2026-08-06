@@ -52,10 +52,13 @@ function createFakeStorageProvider(): StorageProvider {
   return {
     async upload(key, content) {
       files.set(key, content);
-      return { key, url: `fake://${key}` };
+      return { key };
     },
-    async getSignedUrl(key) {
-      return `fake://${key}?signed=1`;
+    async getSignedUrl(key, _expiresInSeconds, options) {
+      const override = options?.responseContentDisposition
+        ? `&responseContentDisposition=${encodeURIComponent(options.responseContentDisposition)}`
+        : '';
+      return `fake://${key}?signed=1${override}`;
     },
     async delete(key) {
       files.delete(key);
@@ -94,8 +97,35 @@ describe('createProviderRegistry', () => {
     expect(await registry.getProvider('database')!.isConnected()).toBe(true);
     const uploaded = await registry
       .getProvider('storage')!
-      .upload('a.txt', new Uint8Array([1, 2, 3]), 'text/plain');
+      .upload('a.txt', new Uint8Array([1, 2, 3]), { contentType: 'text/plain' });
     expect(uploaded.key).toBe('a.txt');
+  });
+
+  it('upload() resolves only {key} - a usable download URL is a separate, distinct operation (ADR-011 Decision items 16-17)', async () => {
+    const storage = createFakeStorageProvider();
+
+    const uploaded = await storage.upload('b.txt', new Uint8Array([4, 5, 6]), {
+      contentType: 'text/plain',
+    });
+
+    expect(uploaded).toEqual({ key: 'b.txt' });
+    expect(Object.keys(uploaded)).toEqual(['key']);
+
+    const signedUrl = await storage.getSignedUrl('b.txt', 900);
+    expect(signedUrl).toContain('b.txt');
+  });
+
+  it('getSignedUrl accepts an optional third options argument (responseContentDisposition), passed through by the implementation - existing two-argument callers remain valid', async () => {
+    const storage = createFakeStorageProvider();
+
+    const withoutOptions = await storage.getSignedUrl('c.txt', 900);
+    expect(withoutOptions).toBe('fake://c.txt?signed=1');
+
+    const withOptions = await storage.getSignedUrl('c.txt', 900, {
+      responseContentDisposition: 'inline; filename="c.txt"',
+    });
+    expect(withOptions).toContain('responseContentDisposition=');
+    expect(withOptions).toContain(encodeURIComponent('inline; filename="c.txt"'));
   });
 
   it('DatabaseProvider.runInTransaction runs the callback and returns its result, with no query/tx object exposed', async () => {

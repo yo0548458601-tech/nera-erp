@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { prisma } from '@nera/database';
+import { prisma, type Prisma } from '@nera/database';
 import { createGetOrganizationContext } from './organizationContext';
 import { asRestrictedRole } from './testSupport/restrictedRole';
 
@@ -72,30 +72,46 @@ describe('P013A entity persistence RLS configuration (introspection, requires Po
 describe('P013A entity persistence RLS behavioral isolation (requires PostgreSQL)', () => {
   const getOrganizationContext = createGetOrganizationContext(prisma);
 
+  /**
+   * Fixture creation via the admin `prisma` client against a FORCE-RLS
+   * table requires `app.current_organization_id` set to the exact row
+   * being written - verified directly during P014 (Owner-approved local
+   * role architecture): `nera_dev_admin` genuinely owns these tables and is
+   * deliberately `NOSUPERUSER NOBYPASSRLS`, so `FORCE` applies to it too.
+   * Mirrors the identical fix applied to `packages/database/src/seed.ts`.
+   */
+  async function withOrgWriteContext<T>(
+    organizationId: string,
+    work: (tx: Prisma.TransactionClient) => Promise<T>
+  ): Promise<T> {
+    return prisma.$transaction(async tx => {
+      await tx.$executeRawUnsafe(
+        `SELECT set_config('app.current_organization_id', $1, true)`,
+        organizationId
+      );
+      return work(tx);
+    });
+  }
+
   async function createOrganization(name: string): Promise<string> {
-    const organization = await prisma.organization.create({ data: { id: randomUUID(), name } });
-    return organization.id;
+    const id = randomUUID();
+    await withOrgWriteContext(id, tx => tx.organization.create({ data: { id, name } }));
+    return id;
+  }
+
+  async function createEntity(organizationId: string, neraId: string) {
+    return withOrgWriteContext(organizationId, tx =>
+      tx.entity.create({
+        data: { id: randomUUID(), organizationId, neraId, entityType: 'person' },
+      })
+    );
   }
 
   it("never sees another organization's entities", async () => {
     const orgA = await createOrganization('Org A - entity RLS isolation');
     const orgB = await createOrganization('Org B - entity RLS isolation');
-    await prisma.entity.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgA,
-        neraId: 'NERA-00000001',
-        entityType: 'person',
-      },
-    });
-    await prisma.entity.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgB,
-        neraId: 'NERA-00000001',
-        entityType: 'person',
-      },
-    });
+    await createEntity(orgA, 'NERA-00000001');
+    await createEntity(orgB, 'NERA-00000001');
 
     const visibleToA = await getOrganizationContext(
       { organizationId: orgA },
@@ -109,40 +125,30 @@ describe('P013A entity persistence RLS behavioral isolation (requires PostgreSQL
   it("never sees phones belonging to another organization's entity", async () => {
     const orgA = await createOrganization('Org A - phone RLS isolation');
     const orgB = await createOrganization('Org B - phone RLS isolation');
-    const entityA = await prisma.entity.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgA,
-        neraId: 'NERA-00000002',
-        entityType: 'person',
-      },
-    });
-    const entityB = await prisma.entity.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgB,
-        neraId: 'NERA-00000002',
-        entityType: 'person',
-      },
-    });
-    await prisma.phone.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgA,
-        entityId: entityA.id,
-        number: '0501111111',
-        type: 'mobile',
-      },
-    });
-    await prisma.phone.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgB,
-        entityId: entityB.id,
-        number: '0502222222',
-        type: 'mobile',
-      },
-    });
+    const entityA = await createEntity(orgA, 'NERA-00000002');
+    const entityB = await createEntity(orgB, 'NERA-00000002');
+    await withOrgWriteContext(orgA, tx =>
+      tx.phone.create({
+        data: {
+          id: randomUUID(),
+          organizationId: orgA,
+          entityId: entityA.id,
+          number: '0501111111',
+          type: 'mobile',
+        },
+      })
+    );
+    await withOrgWriteContext(orgB, tx =>
+      tx.phone.create({
+        data: {
+          id: randomUUID(),
+          organizationId: orgB,
+          entityId: entityB.id,
+          number: '0502222222',
+          type: 'mobile',
+        },
+      })
+    );
 
     const visibleToA = await getOrganizationContext(
       { organizationId: orgA },
@@ -154,79 +160,66 @@ describe('P013A entity persistence RLS behavioral isolation (requires PostgreSQL
 
   it('the partial unique index rejects a second primary active phone for the same entity', async () => {
     const orgA = await createOrganization('Org A - primary phone uniqueness');
-    const entity = await prisma.entity.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgA,
-        neraId: 'NERA-00000003',
-        entityType: 'person',
-      },
-    });
-    await prisma.phone.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgA,
-        entityId: entity.id,
-        number: '0501111111',
-        type: 'mobile',
-        isPrimary: true,
-      },
-    });
-
-    await expect(
-      prisma.phone.create({
+    const entity = await createEntity(orgA, 'NERA-00000003');
+    await withOrgWriteContext(orgA, tx =>
+      tx.phone.create({
         data: {
           id: randomUUID(),
           organizationId: orgA,
           entityId: entity.id,
-          number: '0502222222',
+          number: '0501111111',
           type: 'mobile',
           isPrimary: true,
         },
       })
+    );
+
+    await expect(
+      withOrgWriteContext(orgA, tx =>
+        tx.phone.create({
+          data: {
+            id: randomUUID(),
+            organizationId: orgA,
+            entityId: entity.id,
+            number: '0502222222',
+            type: 'mobile',
+            isPrimary: true,
+          },
+        })
+      )
     ).rejects.toThrow();
   });
 
   it("never sees notes belonging to another organization's entity", async () => {
     const orgA = await createOrganization('Org A - note RLS isolation');
     const orgB = await createOrganization('Org B - note RLS isolation');
-    const entityA = await prisma.entity.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgA,
-        neraId: 'NERA-00000004',
-        entityType: 'person',
-      },
-    });
-    const entityB = await prisma.entity.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgB,
-        neraId: 'NERA-00000004',
-        entityType: 'person',
-      },
-    });
+    const entityA = await createEntity(orgA, 'NERA-00000004');
+    const entityB = await createEntity(orgB, 'NERA-00000004');
     const userProfile = await prisma.userProfile.create({
       data: { id: randomUUID(), authenticationUserId: `note-rls-test-${randomUUID()}` },
     });
-    await prisma.note.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgA,
-        entityId: entityA.id,
-        content: 'Org A note',
-        createdByUserId: userProfile.id,
-      },
-    });
-    await prisma.note.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgB,
-        entityId: entityB.id,
-        content: 'Org B note',
-        createdByUserId: userProfile.id,
-      },
-    });
+    await withOrgWriteContext(orgA, tx =>
+      tx.note.create({
+        data: {
+          id: randomUUID(),
+          organizationId: orgA,
+          entityId: entityA.id,
+          content: 'Org A note',
+          createdByUserId: userProfile.id,
+        },
+      })
+    );
+    await withOrgWriteContext(orgB, tx =>
+      tx.note.create({
+        data: {
+          id: randomUUID(),
+          organizationId: orgB,
+          entityId: entityB.id,
+          content: 'Org B note',
+          createdByUserId: userProfile.id,
+        },
+      })
+    );
 
     const visibleToA = await getOrganizationContext(
       { organizationId: orgA },

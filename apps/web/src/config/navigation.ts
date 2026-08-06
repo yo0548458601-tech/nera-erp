@@ -19,6 +19,7 @@ export type NavIconId =
   | 'tasks'
   | 'events'
   | 'forms'
+  | 'documents'
   | 'reports'
   | 'notifications'
   | 'settings'
@@ -236,6 +237,15 @@ export const navigationSections: NavSection[] = [
         icon: 'forms',
         description: 'ניהול טפסים דיגיטליים ואיסוף מידע מובנה.',
         order: 7,
+      },
+      {
+        id: 'operations-documents',
+        label: 'מסמכים',
+        href: '/operations/documents',
+        icon: 'documents',
+        requiredPermission: 'documents.upload',
+        description: 'העלאה, צפייה, שחזור ומחיקה של מסמכים (P014 - מסך אימות).',
+        order: 8,
       },
     ],
   },

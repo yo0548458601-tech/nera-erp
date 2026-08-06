@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
-import { appPrisma, prisma } from '@nera/database';
+import { appPrisma, prisma, type Prisma } from '@nera/database';
 import {
   createAssertInstitutionBelongsToOrganization,
   InstitutionOwnershipError,
@@ -131,58 +131,120 @@ describe('createAssertInstitutionBelongsToOrganization', () => {
 });
 
 /**
- * Live-database tests - a plain read against real rows, exercising the exact
- * "same id, different org" and "same name, different org" cases that prove
- * the check is strict id+organization matching, not fuzzy/name-based.
- * Requires a real PostgreSQL connection (see organizationContext.test.ts's
- * describe block comment for what that requires).
+ * Live-database tests against real rows. Requires a real PostgreSQL
+ * connection (see organizationContext.test.ts's describe block comment for
+ * what that requires).
  *
- * Explicitly injected with `prisma` (the administrative client), not the
- * default `appPrisma` (P013A) - this test deliberately calls the function
- * directly, without going through `getOrganizationContext`, so no
- * `app.current_organization_id` session variable is ever set; under the
- * least-privilege `appPrisma` connection that would mean RLS hides every
- * row (a correct result, but not what this test is exercising - it tests
- * `assertInstitutionBelongsToOrganization`'s own id/organization matching
- * logic against real rows, not RLS).
+ * CORRECTED, P014 (Owner-approved shared-root-cause fix). Previously this
+ * suite called `assertInstitutionBelongsToOrganization` directly against
+ * the bare admin `prisma` client, with no `app.current_organization_id`
+ * ever set - deliberately, per the file's own prior comment, "to test the
+ * function's own id/organization matching logic against real rows, not
+ * RLS." That premise only worked because the admin connection used to
+ * bypass RLS entirely (it was never actually the table owner - `postgres`
+ * was). Now that `nera_dev_admin` genuinely owns `institutions`
+ * (`FORCE ROW LEVEL SECURITY`, `NOSUPERUSER NOBYPASSRLS` - verified
+ * directly, P014), an unscoped read is RLS-filtered like any other query:
+ * a row belonging to a different organization than whatever
+ * `app.current_organization_id` happens to be set to (or unset) is
+ * genuinely invisible to the query, not merely mismatched in application
+ * code.
+ *
+ * This is a real, verified behavioral finding, not just a test-fixture
+ * fix: `assertInstitutionBelongsToOrganization`'s real callers always run
+ * inside `getOrganizationContext`'s RLS-scoped transaction (never the bare
+ * admin client), so in genuine production use, a cross-organization
+ * institution lookup was already indistinguishable from "does not exist" -
+ * RLS hides it before the function's own `organizationId` string
+ * comparison ever runs. That is a *stronger* isolation guarantee than the
+ * function's own `'organization-mismatch'` reason implies in isolation
+ * (defense in depth: the row is invisible, not merely flagged) - this
+ * suite now proves that real behavior instead of the RLS-bypassed
+ * approximation it proved before. `'organization-mismatch'` remains a real,
+ * reachable reason for the fake-client unit tests above (which do not
+ * involve RLS at all) and for any future caller that legitimately queries
+ * without organization scoping.
  */
 describe('assertInstitutionBelongsToOrganization (against real rows, requires PostgreSQL)', () => {
-  const assertInstitutionBelongsToOrganization =
-    createAssertInstitutionBelongsToOrganization(prisma);
+  async function withOrgWriteContext<T>(
+    organizationId: string,
+    work: (tx: Prisma.TransactionClient) => Promise<T>
+  ): Promise<T> {
+    return prisma.$transaction(async tx => {
+      await tx.$executeRawUnsafe(
+        `SELECT set_config('app.current_organization_id', $1, true)`,
+        organizationId
+      );
+      return work(tx);
+    });
+  }
 
   it('resolves for a real institution matching its real organization', async () => {
-    const organization = await prisma.organization.create({
-      data: { id: randomUUID(), name: 'Org - real institution match' },
-    });
-    const institution = await prisma.institution.create({
-      data: { id: randomUUID(), organizationId: organization.id, name: 'Real Institution' },
-    });
+    const organizationId = randomUUID();
+    await withOrgWriteContext(organizationId, tx =>
+      tx.organization.create({ data: { id: organizationId, name: 'Org - real institution match' } })
+    );
+    const institutionId = randomUUID();
+    await withOrgWriteContext(organizationId, tx =>
+      tx.institution.create({
+        data: { id: institutionId, organizationId, name: 'Real Institution' },
+      })
+    );
 
-    await expect(
-      assertInstitutionBelongsToOrganization(institution.id, organization.id)
-    ).resolves.toBeUndefined();
+    // Real callers always resolve this inside their own organization's
+    // getOrganizationContext-scoped transaction - reproduced here directly
+    // rather than through the higher-level engine wrapper, to keep this
+    // suite's dependency on `organizationContext.ts` a plain, local one.
+    await withOrgWriteContext(organizationId, async tx => {
+      const assertInstitutionBelongsToOrganization = createAssertInstitutionBelongsToOrganization(
+        tx as unknown as InstitutionOwnershipDbClient
+      );
+      await expect(
+        assertInstitutionBelongsToOrganization(institutionId, organizationId)
+      ).resolves.toBeUndefined();
+    });
   });
 
-  it('never matches by name across organizations - only by id and organization together', async () => {
-    const organizationA = await prisma.organization.create({
-      data: { id: randomUUID(), name: 'Org A - name collision' },
-    });
-    const organizationB = await prisma.organization.create({
-      data: { id: randomUUID(), name: 'Org B - name collision' },
-    });
-    const institutionUnderB = await prisma.institution.create({
-      data: { id: randomUUID(), organizationId: organizationB.id, name: 'Shared Institution Name' },
-    });
-    await prisma.institution.create({
-      data: { id: randomUUID(), organizationId: organizationA.id, name: 'Shared Institution Name' },
-    });
+  it('a cross-organization institution is invisible under RLS-scoped access - reported as unknown-institution, not organization-mismatch (defense in depth, verified directly)', async () => {
+    const organizationAId = randomUUID();
+    const organizationBId = randomUUID();
+    await withOrgWriteContext(organizationAId, tx =>
+      tx.organization.create({ data: { id: organizationAId, name: 'Org A - name collision' } })
+    );
+    await withOrgWriteContext(organizationBId, tx =>
+      tx.organization.create({ data: { id: organizationBId, name: 'Org B - name collision' } })
+    );
+    const institutionUnderBId = randomUUID();
+    await withOrgWriteContext(organizationBId, tx =>
+      tx.institution.create({
+        data: {
+          id: institutionUnderBId,
+          organizationId: organizationBId,
+          name: 'Shared Institution Name',
+        },
+      })
+    );
+    await withOrgWriteContext(organizationAId, tx =>
+      tx.institution.create({
+        data: {
+          id: randomUUID(),
+          organizationId: organizationAId,
+          name: 'Shared Institution Name',
+        },
+      })
+    );
 
-    const error = await assertInstitutionBelongsToOrganization(
-      institutionUnderB.id,
-      organizationA.id
-    ).catch((caught: unknown) => caught);
+    await withOrgWriteContext(organizationAId, async tx => {
+      const assertInstitutionBelongsToOrganization = createAssertInstitutionBelongsToOrganization(
+        tx as unknown as InstitutionOwnershipDbClient
+      );
+      const error = await assertInstitutionBelongsToOrganization(
+        institutionUnderBId,
+        organizationAId
+      ).catch((caught: unknown) => caught);
 
-    expect(error).toBeInstanceOf(InstitutionOwnershipError);
-    expect((error as InstitutionOwnershipError).reason).toBe('organization-mismatch');
+      expect(error).toBeInstanceOf(InstitutionOwnershipError);
+      expect((error as InstitutionOwnershipError).reason).toBe('unknown-institution');
+    });
   });
 });

@@ -1,0 +1,29 @@
+{
+  "name": "@nera/document-engine",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "documents:reconcile": "tsx src/services/runReconciliation.ts",
+    "documents:purge": "tsx src/services/runRetentionPurge.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.699.0",
+    "@aws-sdk/s3-request-presigner": "^3.699.0",
+    "@nera/core": "*",
+    "@nera/database": "*",
+    "@nera/organization-engine": "*",
+    "@react-pdf/renderer": "^4.1.6",
+    "react": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "dotenv": "^16.4.3",
+    "pdfjs-dist": "^4.9.155",
+    "tsx": "^4.20.3"
+  }
+}

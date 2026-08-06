@@ -155,6 +155,15 @@ enum RoleDefinitionStatus {
   inactive
 }
 
+/// Upload lifecycle only (ADR-011 Decision item 5) - never combined with the
+/// deletion lifecycle (Document.deletedAt/purgedAt), which is independent so
+/// the standard soft-delete pattern stays uniform with every other table.
+enum DocumentStatus {
+  uploading
+  available
+  failed
+}
+
 model Organization {
   id                        String                     @id @default(uuid()) @db.Uuid
   name                      String                     @db.VarChar(255)
@@ -180,6 +189,8 @@ model Organization {
   customFieldValues         CustomFieldValue[]
   fieldRequirementRules     FieldRequirementRule[]
   roleDefinitions           RoleDefinition[]
+  documents                 Document[]
+  documentLinks             DocumentLink[]
 
   @@map("organizations")
 }
@@ -229,6 +240,11 @@ model UserProfile {
   decidedDuplicateOverrides    DuplicateOverrideRecord[] @relation("DuplicateOverrideDecidedByUser")
   updatedCustomFieldValues     CustomFieldValue[]        @relation("CustomFieldValueUpdatedByUser")
   updatedFieldRequirementRules FieldRequirementRule[]    @relation("FieldRequirementRuleUpdatedByUser")
+  createdDocuments             Document[]                @relation("DocumentCreatedByUser")
+  deletedDocuments             Document[]                @relation("DocumentDeletedByUser")
+  purgedDocuments              Document[]                @relation("DocumentPurgedByUser")
+  linkedDocumentLinks          DocumentLink[]            @relation("DocumentLinkLinkedByUser")
+  deletedDocumentLinks         DocumentLink[]            @relation("DocumentLinkDeletedByUser")
 
   @@map("user_profiles")
 }
@@ -751,4 +767,82 @@ model RoleDefinition {
   @@unique([organizationId, key], name: "role_definitions_organization_key_unique")
   @@index([organizationId])
   @@map("role_definitions")
+}
+
+/// Document Engine persistence (ENGINE_MAP.md Section 6; ADR-011/012/013;
+/// P014). The upload lifecycle (status: uploading/available/failed, ADR-011
+/// Decision item 5) and the deletion lifecycle (deletedAt/purgedAt, ADR-013
+/// Decision item C's three-tier soft-delete -> 30-day recovery -> purge,
+/// plus a separate audited admin hard-delete) are independent fields on one
+/// row, not a combined enum - this keeps the RLS/soft-delete shape uniform
+/// with every other table. reconciledAt marks a stuck uploading/failed row
+/// as resolved by the reconciliation service (ADR-011 Decision item 5's
+/// "marks the row fully resolved" step, 1-hour grace period - Owner
+/// decision). storageKey is server-generated only and never contains the
+/// original filename (ADR-011 Decision item 6/15); originalFilename is kept
+/// only as metadata. No object URL is ever persisted (ADR-011 Decision item
+/// 16) - a usable URL is minted per-request via getSignedUrl().
+model Document {
+  id               String         @id @default(uuid()) @db.Uuid
+  organizationId   String         @map("organization_id") @db.Uuid
+  status           DocumentStatus @default(uploading)
+  storageKey       String         @unique @map("storage_key") @db.VarChar(512)
+  originalFilename String         @map("original_filename") @db.VarChar(255)
+  contentType      String         @map("content_type") @db.VarChar(127)
+  fileSizeBytes    Int            @map("file_size_bytes")
+  checksumSha256   String         @map("checksum_sha256") @db.VarChar(64)
+  createdByUserId  String         @map("created_by_user_id") @db.Uuid
+  deletedByUserId  String?        @map("deleted_by_user_id") @db.Uuid
+  purgedByUserId   String?        @map("purged_by_user_id") @db.Uuid
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  deletedAt        DateTime?      @map("deleted_at")
+  purgedAt         DateTime?      @map("purged_at")
+  reconciledAt     DateTime?      @map("reconciled_at")
+  organization     Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdByUser    UserProfile    @relation("DocumentCreatedByUser", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  deletedByUser    UserProfile?   @relation("DocumentDeletedByUser", fields: [deletedByUserId], references: [id], onDelete: Restrict)
+  purgedByUser     UserProfile?   @relation("DocumentPurgedByUser", fields: [purgedByUserId], references: [id], onDelete: Restrict)
+  links            DocumentLink[]
+
+  @@index([organizationId])
+  @@index([status, reconciledAt])
+  @@map("documents")
+}
+
+/// Generic, module-agnostic many-to-many document-to-record link (ADR-013
+/// Decision item D) - the Document Engine stays ignorant of business
+/// concepts such as "Invoice" or "Purchase Order"; targetRecordType/
+/// targetRecordId are a plain string/UUID pair, never a live FK to an
+/// unknown future table. Link rows are soft-deleted on unlink (Owner
+/// decision, P014 implementation session - supersedes this model's
+/// original hard-delete decision), matching the standard soft-delete
+/// pattern used throughout the repository (NERA_CONSTITUTION.md Section
+/// 7.4). Duplicate-active-link prevention is a partial unique index on
+/// (document_id, target_record_type, target_record_id) WHERE deleted_at IS
+/// NULL, added by hand in the migration (not expressible in schema.prisma
+/// alone - Prisma has no partial-unique-index syntax), matching the
+/// precedent set by person_profiles' own partial index (see P013B's
+/// Lessons Learned in its sprint closing report) - this is what actually
+/// allows re-linking the same document to the same target record after a
+/// prior link was removed.
+model DocumentLink {
+  id               String       @id @default(uuid()) @db.Uuid
+  organizationId   String       @map("organization_id") @db.Uuid
+  documentId       String       @map("document_id") @db.Uuid
+  targetRecordType String       @map("target_record_type") @db.VarChar(100)
+  targetRecordId   String       @map("target_record_id") @db.Uuid
+  linkedByUserId   String       @map("linked_by_user_id") @db.Uuid
+  createdAt        DateTime     @default(now()) @map("created_at")
+  deletedAt        DateTime?    @map("deleted_at")
+  deletedByUserId  String?      @map("deleted_by_user_id") @db.Uuid
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  document         Document     @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  linkedByUser     UserProfile  @relation("DocumentLinkLinkedByUser", fields: [linkedByUserId], references: [id], onDelete: Restrict)
+  deletedByUser    UserProfile? @relation("DocumentLinkDeletedByUser", fields: [deletedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([documentId, targetRecordType, targetRecordId])
+  @@index([organizationId])
+  @@index([targetRecordType, targetRecordId])
+  @@map("document_links")
 }

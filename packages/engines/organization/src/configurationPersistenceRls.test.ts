@@ -1,13 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { prisma } from '@nera/database';
+import { prisma, type Prisma } from '@nera/database';
 import { createGetOrganizationContext } from './organizationContext';
 import { asRestrictedRole } from './testSupport/restrictedRole';
 
 /**
  * P013B configuration-persistence RLS verification (see `docs/ROADMAP.md`),
- * following the exact pattern `entityPersistenceRls.test.ts` established for
- * P013A: introspection for every new table, plus behavioral cross-organization
+ * following the exact pattern `entityPersistenceRls.test.ts` established:
+ * introspection for every new table, plus behavioral cross-organization
  * isolation for a representative subset.
  *
  * Requires a real PostgreSQL connection with the P013B migration
@@ -69,34 +69,60 @@ describe('P013B configuration persistence RLS configuration (introspection, requ
 describe('P013B configuration persistence RLS behavioral isolation (requires PostgreSQL)', () => {
   const getOrganizationContext = createGetOrganizationContext(prisma);
 
+  /**
+   * Fixture creation via the admin `prisma` client against a FORCE-RLS
+   * table requires `app.current_organization_id` set to the exact row
+   * being written - verified directly during P014 (Owner-approved local
+   * role architecture): `nera_dev_admin` genuinely owns these tables and is
+   * deliberately `NOSUPERUSER NOBYPASSRLS`, so `FORCE` applies to it too.
+   * Mirrors the identical fix applied to `packages/database/src/seed.ts`.
+   */
+  async function withOrgWriteContext<T>(
+    organizationId: string,
+    work: (tx: Prisma.TransactionClient) => Promise<T>
+  ): Promise<T> {
+    return prisma.$transaction(async tx => {
+      await tx.$executeRawUnsafe(
+        `SELECT set_config('app.current_organization_id', $1, true)`,
+        organizationId
+      );
+      return work(tx);
+    });
+  }
+
   async function createOrganization(name: string): Promise<string> {
-    const organization = await prisma.organization.create({ data: { id: randomUUID(), name } });
-    return organization.id;
+    const id = randomUUID();
+    await withOrgWriteContext(id, tx => tx.organization.create({ data: { id, name } }));
+    return id;
   }
 
   it("never sees another organization's role definitions", async () => {
     const orgA = await createOrganization('Org A - role definition RLS isolation');
     const orgB = await createOrganization('Org B - role definition RLS isolation');
-    await prisma.roleDefinition.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgA,
-        key: 'volunteer',
-        label: 'מתנדב',
-        description: '',
-        applicableEntityTypes: ['person'],
-      },
-    });
-    await prisma.roleDefinition.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgB,
-        key: 'volunteer',
-        label: 'מתנדב',
-        description: '',
-        applicableEntityTypes: ['person'],
-      },
-    });
+    await withOrgWriteContext(orgA, tx =>
+      tx.roleDefinition.create({
+        data: {
+          id: randomUUID(),
+          organizationId: orgA,
+          key: 'volunteer',
+          label: 'מתנדב',
+          description: '',
+          applicableEntityTypes: ['person'],
+        },
+      })
+    );
+    await withOrgWriteContext(orgB, tx =>
+      tx.roleDefinition.create({
+        data: {
+          id: randomUUID(),
+          organizationId: orgB,
+          key: 'volunteer',
+          label: 'מתנדב',
+          description: '',
+          applicableEntityTypes: ['person'],
+        },
+      })
+    );
 
     const visibleToA = await getOrganizationContext(
       { organizationId: orgA },
@@ -110,28 +136,32 @@ describe('P013B configuration persistence RLS behavioral isolation (requires Pos
   it("never sees another organization's custom field definitions", async () => {
     const orgA = await createOrganization('Org A - custom field RLS isolation');
     const orgB = await createOrganization('Org B - custom field RLS isolation');
-    await prisma.customFieldDefinition.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgA,
-        key: 'shirt_size',
-        label: 'מידת חולצה',
-        fieldType: 'short_text',
-        targetScope: 'entity_type',
-        targetEntityType: 'person',
-      },
-    });
-    await prisma.customFieldDefinition.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgB,
-        key: 'shirt_size',
-        label: 'מידת חולצה',
-        fieldType: 'short_text',
-        targetScope: 'entity_type',
-        targetEntityType: 'person',
-      },
-    });
+    await withOrgWriteContext(orgA, tx =>
+      tx.customFieldDefinition.create({
+        data: {
+          id: randomUUID(),
+          organizationId: orgA,
+          key: 'shirt_size',
+          label: 'מידת חולצה',
+          fieldType: 'short_text',
+          targetScope: 'entity_type',
+          targetEntityType: 'person',
+        },
+      })
+    );
+    await withOrgWriteContext(orgB, tx =>
+      tx.customFieldDefinition.create({
+        data: {
+          id: randomUUID(),
+          organizationId: orgB,
+          key: 'shirt_size',
+          label: 'מידת חולצה',
+          fieldType: 'short_text',
+          targetScope: 'entity_type',
+          targetEntityType: 'person',
+        },
+      })
+    );
 
     const visibleToA = await getOrganizationContext(
       { organizationId: orgA },
@@ -145,67 +175,79 @@ describe('P013B configuration persistence RLS behavioral isolation (requires Pos
   it("never sees another organization's custom field values", async () => {
     const orgA = await createOrganization('Org A - custom field value RLS isolation');
     const orgB = await createOrganization('Org B - custom field value RLS isolation');
-    const entityA = await prisma.entity.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgA,
-        neraId: 'NERA-00000901',
-        entityType: 'person',
-      },
-    });
-    const entityB = await prisma.entity.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgB,
-        neraId: 'NERA-00000901',
-        entityType: 'person',
-      },
-    });
-    const definitionA = await prisma.customFieldDefinition.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgA,
-        key: 'shirt_size',
-        label: 'מידת חולצה',
-        fieldType: 'short_text',
-        targetScope: 'entity_type',
-        targetEntityType: 'person',
-      },
-    });
-    const definitionB = await prisma.customFieldDefinition.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgB,
-        key: 'shirt_size',
-        label: 'מידת חולצה',
-        fieldType: 'short_text',
-        targetScope: 'entity_type',
-        targetEntityType: 'person',
-      },
-    });
+    const entityA = await withOrgWriteContext(orgA, tx =>
+      tx.entity.create({
+        data: {
+          id: randomUUID(),
+          organizationId: orgA,
+          neraId: 'NERA-00000901',
+          entityType: 'person',
+        },
+      })
+    );
+    const entityB = await withOrgWriteContext(orgB, tx =>
+      tx.entity.create({
+        data: {
+          id: randomUUID(),
+          organizationId: orgB,
+          neraId: 'NERA-00000901',
+          entityType: 'person',
+        },
+      })
+    );
+    const definitionA = await withOrgWriteContext(orgA, tx =>
+      tx.customFieldDefinition.create({
+        data: {
+          id: randomUUID(),
+          organizationId: orgA,
+          key: 'shirt_size',
+          label: 'מידת חולצה',
+          fieldType: 'short_text',
+          targetScope: 'entity_type',
+          targetEntityType: 'person',
+        },
+      })
+    );
+    const definitionB = await withOrgWriteContext(orgB, tx =>
+      tx.customFieldDefinition.create({
+        data: {
+          id: randomUUID(),
+          organizationId: orgB,
+          key: 'shirt_size',
+          label: 'מידת חולצה',
+          fieldType: 'short_text',
+          targetScope: 'entity_type',
+          targetEntityType: 'person',
+        },
+      })
+    );
     const userProfile = await prisma.userProfile.create({
       data: { id: randomUUID(), authenticationUserId: `cf-value-rls-test-${randomUUID()}` },
     });
-    await prisma.customFieldValue.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgA,
-        customFieldDefinitionId: definitionA.id,
-        entityId: entityA.id,
-        value: { type: 'short_text', value: 'M' },
-        updatedByUserId: userProfile.id,
-      },
-    });
-    await prisma.customFieldValue.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgB,
-        customFieldDefinitionId: definitionB.id,
-        entityId: entityB.id,
-        value: { type: 'short_text', value: 'L' },
-        updatedByUserId: userProfile.id,
-      },
-    });
+    await withOrgWriteContext(orgA, tx =>
+      tx.customFieldValue.create({
+        data: {
+          id: randomUUID(),
+          organizationId: orgA,
+          customFieldDefinitionId: definitionA.id,
+          entityId: entityA.id,
+          value: { type: 'short_text', value: 'M' },
+          updatedByUserId: userProfile.id,
+        },
+      })
+    );
+    await withOrgWriteContext(orgB, tx =>
+      tx.customFieldValue.create({
+        data: {
+          id: randomUUID(),
+          organizationId: orgB,
+          customFieldDefinitionId: definitionB.id,
+          entityId: entityB.id,
+          value: { type: 'short_text', value: 'L' },
+          updatedByUserId: userProfile.id,
+        },
+      })
+    );
 
     const visibleToA = await getOrganizationContext(
       { organizationId: orgA },
@@ -219,26 +261,30 @@ describe('P013B configuration persistence RLS behavioral isolation (requires Pos
   it("never sees another organization's field requirement rules", async () => {
     const orgA = await createOrganization('Org A - field requirement rule RLS isolation');
     const orgB = await createOrganization('Org B - field requirement rule RLS isolation');
-    await prisma.fieldRequirementRule.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgA,
-        fieldKey: 'birthDate',
-        scope: 'role',
-        targetId: 'student',
-        mode: 'required',
-      },
-    });
-    await prisma.fieldRequirementRule.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgB,
-        fieldKey: 'birthDate',
-        scope: 'role',
-        targetId: 'student',
-        mode: 'optional',
-      },
-    });
+    await withOrgWriteContext(orgA, tx =>
+      tx.fieldRequirementRule.create({
+        data: {
+          id: randomUUID(),
+          organizationId: orgA,
+          fieldKey: 'birthDate',
+          scope: 'role',
+          targetId: 'student',
+          mode: 'required',
+        },
+      })
+    );
+    await withOrgWriteContext(orgB, tx =>
+      tx.fieldRequirementRule.create({
+        data: {
+          id: randomUUID(),
+          organizationId: orgB,
+          fieldKey: 'birthDate',
+          scope: 'role',
+          targetId: 'student',
+          mode: 'optional',
+        },
+      })
+    );
 
     const visibleToA = await getOrganizationContext(
       { organizationId: orgA },
@@ -251,28 +297,32 @@ describe('P013B configuration persistence RLS behavioral isolation (requires Pos
 
   it('the unique index rejects a second role definition with the same key in the same organization', async () => {
     const orgA = await createOrganization('Org A - role definition key uniqueness');
-    await prisma.roleDefinition.create({
-      data: {
-        id: randomUUID(),
-        organizationId: orgA,
-        key: 'volunteer',
-        label: 'מתנדב',
-        description: '',
-        applicableEntityTypes: ['person'],
-      },
-    });
-
-    await expect(
-      prisma.roleDefinition.create({
+    await withOrgWriteContext(orgA, tx =>
+      tx.roleDefinition.create({
         data: {
           id: randomUUID(),
           organizationId: orgA,
           key: 'volunteer',
-          label: 'מתנדב 2',
+          label: 'מתנדב',
           description: '',
           applicableEntityTypes: ['person'],
         },
       })
+    );
+
+    await expect(
+      withOrgWriteContext(orgA, tx =>
+        tx.roleDefinition.create({
+          data: {
+            id: randomUUID(),
+            organizationId: orgA,
+            key: 'volunteer',
+            label: 'מתנדב 2',
+            description: '',
+            applicableEntityTypes: ['person'],
+          },
+        })
+      )
     ).rejects.toThrow();
   });
 });

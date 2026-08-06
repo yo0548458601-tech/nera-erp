@@ -207,6 +207,7 @@ export const engineRegistry: EngineDescriptor[] = [
     id: 'document',
     classification: 'required',
     name: 'Document',
+    packageName: '@nera/document-engine',
     responsibility:
       'Durable file storage and basic document generation, used by any module that needs to attach or produce a file.',
     boundaries: 'Stores and serves files; does not interpret their content.',
@@ -220,7 +221,7 @@ export const engineRegistry: EngineDescriptor[] = [
       'A document uploaded under one tenant is never retrievable by another tenant; access URLs are short-lived/signed.',
     auditRequirements: 'Upload, view (where sensitive), and delete are audited.',
     extensionPoints: 'Document handlers - not implemented in V1, only reserved.',
-    status: 'planned',
+    status: 'partial',
   },
   {
     id: 'workflow',
